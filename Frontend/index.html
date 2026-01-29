@@ -1,0 +1,293 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NPUA Library Café - Smart Campus Hub</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <div class="logo" onclick="showPage('home')">
+                📚 NPUA Library Café
+            </div>
+            <ul class="nav-links">
+                <li><a onclick="showPage('home')" class="active">Home</a></li>
+                <li><a onclick="showPage('library')">Library</a></li>
+                <li><a onclick="showPage('cafe')">Café</a></li>
+                <li><a onclick="showPage('favorites')">Favorites</a></li>
+                <li><a onclick="showPage('reservations')">Reservations</a></li>
+                <li><a onclick="showPage('profile')">My Account</a></li>
+            </ul>
+            <div class="nav-actions">
+                <div class="user-info" id="userInfo">
+                    <div class="wallet-badge" id="walletDisplay">0 AMD</div>
+                    <div class="cart-badge" onclick="openModal('cartModal')">
+                        🛒
+                        <span class="cart-count" id="cartCount">0</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                </div>
+                <div id="authButtons">
+                    <button class="btn btn-secondary" onclick="openModal('loginModal')">Login</button>
+                    <button class="btn btn-primary" onclick="openModal('registerModal')">Sign Up</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="notification" id="notification">
+        <span id="notificationText"></span>
+    </div>
+
+    <!-- HOME PAGE -->
+    <div class="page active" id="home">
+        <div class="hero">
+            <h1>Welcome to NPUA Library Café</h1>
+            <p>Discover books, enjoy coffee, and connect with your community</p>
+
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search books, menu items, or events...">
+                <select id="searchCategory">
+                    <option value="all">All</option>
+                    <option value="books">Books</option>
+                    <option value="menu">Menu</option>
+                </select>
+                <button class="btn btn-primary" onclick="performSearch()">Search</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="statBooks">0</div>
+                    <div class="stat-label">Books Available</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statMembers">0</div>
+                    <div class="stat-label">Active Members</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statItems">0</div>
+                    <div class="stat-label">Café Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statEvents">12</div>
+                    <div class="stat-label">Upcoming Events</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">📚 Trending Books</h2>
+                <div class="cards-grid" id="trendingBooks"></div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">☕ Popular Menu</h2>
+                <div class="cards-grid" id="popularMenu"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIBRARY PAGE -->
+    <div class="page" id="library">
+        <div class="container">
+            <div class="section">
+                <h2 class="section-title">
+                    <span>📚 Library Catalog</span>
+                </h2>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="filterBooks('all')">All Books</button>
+                    <button class="tab" onclick="filterBooks('Fiction')">Fiction</button>
+                    <button class="tab" onclick="filterBooks('Non-Fiction')">Non-Fiction</button>
+                    <button class="tab" onclick="filterBooks('Technology')">Technology</button>
+                    <button class="tab" onclick="filterBooks('Science')">Science</button>
+                </div>
+
+                <div class="cards-grid" id="libraryBooks"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAFÉ PAGE -->
+    <div class="page" id="cafe">
+        <div class="container">
+            <div class="section">
+                <h2 class="section-title">☕ Café Menu</h2>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="filterMenu('all')">All Items</button>
+                    <button class="tab" onclick="filterMenu('Hot Drinks')">Hot Drinks</button>
+                    <button class="tab" onclick="filterMenu('Cold Drinks')">Cold Drinks</button>
+                    <button class="tab" onclick="filterMenu('Breakfast')">Breakfast</button>
+                    <button class="tab" onclick="filterMenu('Sandwiches')">Sandwiches</button>
+                    <button class="tab" onclick="filterMenu('Salads')">Salads</button>
+                    <button class="tab" onclick="filterMenu('Desserts')">Desserts</button>
+                </div>
+
+                <div class="cards-grid" id="cafeMenu"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAVORITES PAGE -->
+    <div class="page" id="favorites">
+        <div class="container">
+            <div class="section">
+                <h2 class="section-title">
+                    <span>❤️ My Favorites</span>
+                </h2>
+                <p style="color: var(--text-light); margin-bottom: 2rem;">Your favorite books and café items in one place</p>
+
+                <div id="favoritesContent">
+                    <p style="text-align: center; color: var(--text-light); padding: 3rem;">No favorites yet. Start adding items you love!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESERVATIONS PAGE -->
+    <div class="page" id="reservations">
+        <div class="container">
+            <div class="section">
+                <h2 class="section-title">🪑 Seat Reservation</h2>
+                <p style="margin-bottom: 2rem; color: var(--text-light);">Select an available seat to reserve (Click to reserve/unreserve)</p>
+
+                <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+                    <div><span style="display: inline-block; width: 20px; height: 20px; background: white; border: 2px solid var(--olive-lighter); border-radius: 4px; margin-right: 8px;"></span> Available</div>
+                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #f5e8e6; border: 2px solid var(--danger); border-radius: 4px; margin-right: 8px;"></span> Occupied</div>
+                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #fff9e6; border: 2px solid var(--warning); border-radius: 4px; margin-right: 8px;"></span> Your Reservations</div>
+                </div>
+
+                <div class="seat-map" id="seatMap"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE PAGE -->
+    <div class="page" id="profile">
+        <div class="container">
+            <div class="section">
+                <h2 class="section-title">👤 My Profile</h2>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
+                    <div style="text-align: center;">
+                        <div style="width: 150px; height: 150px; background: linear-gradient(135deg, var(--olive-light), var(--olive)); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: white;">👤</div>
+                        <h3 id="profileName" style="color: var(--primary);">Guest</h3>
+                        <p id="profileRole" style="color: var(--text-light);">Not logged in</p>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 1rem; color: var(--primary);">Account Information</h3>
+                        <p style="margin-bottom: 0.5rem;"><strong>Email:</strong> <span id="profileEmail">-</span></p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Member Since:</strong> <span id="profileMemberSince">-</span></p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Wallet Balance:</strong> <span id="profileWallet">0 AMD</span></p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Books Borrowed:</strong> <span id="profileBooksBorrowed">0</span></p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Current Fines:</strong> <span id="profileFines">0 AMD</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">📖 Borrowing History</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Book</th>
+                            <th>Borrowed</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="borrowingHistory"></tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">🧾 Order History</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Items</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderHistory"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Login</h2>
+                <button class="close-modal" onclick="closeModal('loginModal')">×</button>
+            </div>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- REGISTER MODAL -->
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sign Up</h2>
+                <button class="close-modal" onclick="closeModal('registerModal')">×</button>
+            </div>
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="regName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="regEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="regRole" required>
+                        <option value="">Select role</option>
+                        <option value="Student">Student</option>
+                        <option value="Librarian">Librarian</option>
+                        <option value="Café Staff">Café Staff</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Sign Up</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CART MODAL -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🛒 Your Cart</h2>
+                <button class="close-modal" onclick="closeModal('cartModal')">×</button>
+            </div>
+            <div id="cartItems"></div>
+            <div class="cart-total">Total: <span id="cartTotalAmount">0</span> AMD</div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="checkout()">Checkout</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
