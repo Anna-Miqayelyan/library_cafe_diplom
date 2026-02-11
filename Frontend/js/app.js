@@ -114,11 +114,11 @@ function saveToStorage() {
         orderHistory,
         favorites
     };
-    localStorage.setItem('npuaLibraryCafe', JSON.stringify(data));
+    localStorage.setItem('LibraryCafe', JSON.stringify(data));
 }
 
 function loadFromStorage() {
-    const saved = localStorage.getItem('npuaLibraryCafe');
+    const saved = localStorage.getItem('LibraryCafe');
     if (saved) {
         const data = JSON.parse(saved);
         currentUser = data.currentUser;
@@ -208,7 +208,7 @@ function handleRegister(e) {
 
     updateUIForLoggedInUser();
     closeModal('registerModal');
-    showNotification('Registration successful! Welcome to NPUA Library Café!');
+    showNotification('Registration successful! Welcome to Library Café!');
     saveToStorage();
 }
 
@@ -234,8 +234,9 @@ function renderTrendingBooks() {
 
     container.innerHTML = trending.map(book => `
                 <div class="card">
-                    <button class="btn-favorite ${
-                        .some(f => f.id === book.id && f.type === 'book') ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite(${book.id}, 'book')">
+                   <button class="btn-favorite ${
+        favorites.some(f => f.id === book.id && f.type === 'book') ? 'active' : ''}">
+
                         ${favorites.some(f => f.id === book.id && f.type === 'book') ? '❤️' : '🤍'}
                     </button>
                     <div class="card-image">
