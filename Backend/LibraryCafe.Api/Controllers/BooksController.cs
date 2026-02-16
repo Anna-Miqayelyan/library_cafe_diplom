@@ -1,6 +1,6 @@
 using LibraryCafe.Api.DTOs;
-//using LibraryCafe.Core.Entities;
-//using LibraryCafe.Data;
+using LibraryCafe.Core.Entities;
+using LibraryCafe.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

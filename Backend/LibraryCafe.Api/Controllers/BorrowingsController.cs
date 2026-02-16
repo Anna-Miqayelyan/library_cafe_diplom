@@ -39,23 +39,26 @@ namespace LibraryCafe.Api.Controllers
                 }
             }
 
+            // FIXED: Fetch data first, then calculate IsOverdue in memory
             var borrowings = await query
                 .OrderByDescending(b => b.BorrowDate)
-                .Select(b => new BorrowingDto
-                {
-                    Id = b.Id,
-                    UserId = b.UserId,
-                    UserFullname = b.User.Fullname,
-                    BookId = b.BookId,
-                    BookTitle = b.Book.Title,
-                    BorrowDate = b.BorrowDate,
-                    ReturnDate = b.ReturnDate,
-                    DueDate = b.DueDate,
-                    IsOverdue = b.DueDate.HasValue && b.ReturnDate == null && b.DueDate < DateTime.Now
-                })
                 .ToListAsync();
 
-            return Ok(borrowings);
+            var currentDate = DateTime.UtcNow;
+            var result = borrowings.Select(b => new BorrowingDto
+            {
+                Id = b.Id,
+                UserId = b.UserId,
+                UserFullname = b.User.Fullname,
+                BookId = b.BookId,
+                BookTitle = b.Book.Title,
+                BorrowDate = b.BorrowDate,
+                ReturnDate = b.ReturnDate,
+                DueDate = b.DueDate,
+                IsOverdue = b.DueDate.HasValue && b.ReturnDate == null && b.DueDate < currentDate
+            }).ToList();
+
+            return Ok(result);
         }
 
         // GET: api/borrowings/5
@@ -72,6 +75,7 @@ namespace LibraryCafe.Api.Controllers
                 return NotFound(new { message = "Borrowing not found" });
             }
 
+            var currentDate = DateTime.UtcNow;
             var borrowingDto = new BorrowingDto
             {
                 Id = borrowing.Id,
@@ -82,7 +86,7 @@ namespace LibraryCafe.Api.Controllers
                 BorrowDate = borrowing.BorrowDate,
                 ReturnDate = borrowing.ReturnDate,
                 DueDate = borrowing.DueDate,
-                IsOverdue = borrowing.DueDate.HasValue && borrowing.ReturnDate == null && borrowing.DueDate < DateTime.Now
+                IsOverdue = borrowing.DueDate.HasValue && borrowing.ReturnDate == null && borrowing.DueDate < currentDate
             };
 
             return Ok(borrowingDto);
@@ -119,8 +123,8 @@ namespace LibraryCafe.Api.Controllers
             {
                 UserId = borrowingDto.UserId,
                 BookId = borrowingDto.BookId,
-                BorrowDate = DateTime.Now,
-                DueDate = borrowingDto.DueDate ?? DateTime.Now.AddDays(14) // Default 14 days
+                BorrowDate = DateTime.UtcNow,  // FIXED: Use UtcNow
+                DueDate = borrowingDto.DueDate ?? DateTime.UtcNow.AddDays(14)  // FIXED: Use UtcNow
             };
 
             _context.Borrowings.Add(borrowing);
@@ -173,11 +177,17 @@ namespace LibraryCafe.Api.Controllers
         [HttpGet("overdue")]
         public async Task<ActionResult<IEnumerable<BorrowingDto>>> GetOverdueBorrowings()
         {
+            // FIXED: Fetch data first, then filter in memory
             var borrowings = await _context.Borrowings
                 .Include(b => b.User)
                 .Include(b => b.Book)
-                .Where(b => b.ReturnDate == null && b.DueDate < DateTime.Now)
+                .Where(b => b.ReturnDate == null && b.DueDate != null)
                 .OrderBy(b => b.DueDate)
+                .ToListAsync();
+
+            var currentDate = DateTime.UtcNow;
+            var overdueBorrowings = borrowings
+                .Where(b => b.DueDate.Value < currentDate)
                 .Select(b => new BorrowingDto
                 {
                     Id = b.Id,
@@ -190,9 +200,9 @@ namespace LibraryCafe.Api.Controllers
                     DueDate = b.DueDate,
                     IsOverdue = true
                 })
-                .ToListAsync();
+                .ToList();
 
-            return Ok(borrowings);
+            return Ok(overdueBorrowings);
         }
 
         // DELETE: api/borrowings/5
