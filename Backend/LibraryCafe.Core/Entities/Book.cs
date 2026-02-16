@@ -22,5 +22,8 @@ namespace LibraryCafe.Core.Entities
 
         [Column("bookshelf")]
         public string Bookshelf { get; set; } = null!;
+
+        public ICollection<Borrowing> Borrowings { get; set; } = new List<Borrowing>();
+        public ICollection<BookReview> Reviews { get; set; } = new List<BookReview>();
     }
 }
