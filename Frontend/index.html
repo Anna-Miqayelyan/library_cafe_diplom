@@ -2,289 +2,456 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Café - Smart Campus Hub</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Library Café</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <nav>
+
+    <!-- NAV -->
+    <nav id="mainNav" style="display:none">
         <div class="nav-container">
-            <div class="logo" onclick="showPage('home')">
-                 Library Café
+            <div class="logo" id="logoBtn">
+                <div class="logo-mark">LC</div>
+                <span class="logo-text">Library <em>Café</em></span>
             </div>
-            <ul class="nav-links">
-                <li><a onclick="showPage('home')" class="active">Home</a></li>
-                <li><a onclick="showPage('library')">Library</a></li>
-                <li><a onclick="showPage('cafe')">Café</a></li>
-                <li><a onclick="showPage('favorites')">Favorites</a></li>
-                <li><a onclick="showPage('reservations')">Reservations</a></li>
-                <li><a onclick="showPage('profile')">My Account</a></li>
-            </ul>
-            <div class="nav-actions">
-                <div class="user-info" id="userInfo">
-                    <div class="wallet-badge" id="walletDisplay">0 AMD</div>
-                    <div class="cart-badge" onclick="openModal('cartModal')">
-                        🛒
-                        <span class="cart-count" id="cartCount">0</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            <ul class="nav-links" id="navLinks"></ul>
+            <div class="nav-right">
+                <div id="walletDisplay" class="wallet-chip" style="display:none">0 AMD</div>
+                <div id="cartBtn" class="cart-trigger" onclick="openModal('cartModal')" style="display:none" title="Cart">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+                    <span class="cart-dot" id="cartCount">0</span>
                 </div>
-                <div id="authButtons">
-                    <button class="btn btn-secondary" onclick="openModal('loginModal')">Login</button>
-                    <button class="btn btn-primary" onclick="openModal('registerModal')">Sign Up</button>
-                </div>
+                <span id="rolePill" class="role-pill"></span>
+                <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
             </div>
         </div>
     </nav>
 
-    <div class="notification" id="notification">
-        <span id="notificationText"></span>
+    <!-- NOTIFICATION -->
+    <div class="notif" id="notif">
+        <span class="notif-icon" id="notifIcon">—</span>
+        <span id="notifText"></span>
     </div>
 
-     HOME PAGE 
-    <div class="page active" id="home">
-        <div class="hero">
-            <h1>Welcome to Library Café</h1>
-            <p>Discover books, enjoy coffee, and connect with your community</p>
-
-            <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Search books, menu items, or events...">
-                <select id="searchCategory">
-                    <option value="all">All</option>
-                    <option value="books">Books</option>
-                    <option value="menu">Menu</option>
-                </select>
-                <button class="btn btn-primary" onclick="performSearch()">Search</button>
+    <!-- AUTH -->
+    <div id="authScreen" class="auth-screen">
+        <!-- Left decorative panel -->
+        <div class="auth-left">
+            <div class="auth-left-inner">
+                <div class="auth-deco"></div>
+                <blockquote class="auth-quote">
+                    "A library is not a <span>luxury</span> but one of the necessities of life."
+                </blockquote>
+                <p class="auth-byline">Henry Ward Beecher</p>
             </div>
         </div>
 
-        <div class="container">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="statBooks">0</div>
-                    <div class="stat-label">Books Available</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="statMembers">0</div>
-                    <div class="stat-label">Active Members</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="statItems">0</div>
-                    <div class="stat-label">Café Items</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="statEvents">12</div>
-                    <div class="stat-label">Upcoming Events</div>
-                </div>
-            </div>
+        <!-- Right form panel -->
+        <div class="auth-right">
+            <div class="auth-box">
+                <p class="auth-eyebrow">Smart Campus Hub</p>
+                <h1 class="auth-title">Library <em>Café</em></h1>
 
-            <div class="section">
-                <h2 class="section-title">📚 Trending Books</h2>
-                <div class="cards-grid" id="trendingBooks"></div>
-            </div>
-
-            <div class="section">
-                <h2 class="section-title">☕ Popular Menu</h2>
-                <div class="cards-grid" id="popularMenu"></div>
-            </div>
-        </div>
-    </div>
-
-     LIBRARY PAGE 
-    <div class="page" id="library">
-        <div class="container">
-            <div class="section">
-                <h2 class="section-title">
-                    <span>📚 Library Catalog</span>
-                </h2>
-
-                <div class="tabs">
-                    <button class="tab active" onclick="filterBooks('all')">All Books</button>
-                    <button class="tab" onclick="filterBooks('Fiction')">Fiction</button>
-                    <button class="tab" onclick="filterBooks('Non-Fiction')">Non-Fiction</button>
-                    <button class="tab" onclick="filterBooks('Technology')">Technology</button>
-                    <button class="tab" onclick="filterBooks('Science')">Science</button>
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="tabLogin" onclick="showLoginTab()">Login</button>
+                    <button class="auth-tab" id="tabReg" onclick="showRegTab()">Sign Up</button>
                 </div>
 
-                <div class="cards-grid" id="libraryBooks"></div>
-            </div>
-        </div>
-    </div>
-
-     CAFÉ PAGE 
-    <div class="page" id="cafe">
-        <div class="container">
-            <div class="section">
-                <h2 class="section-title">☕ Café Menu</h2>
-
-                <div class="tabs">
-                    <button class="tab active" onclick="filterMenu('all')">All Items</button>
-                    <button class="tab" onclick="filterMenu('Hot Drinks')">Hot Drinks</button>
-                    <button class="tab" onclick="filterMenu('Cold Drinks')">Cold Drinks</button>
-                    <button class="tab" onclick="filterMenu('Breakfast')">Breakfast</button>
-                    <button class="tab" onclick="filterMenu('Sandwiches')">Sandwiches</button>
-                    <button class="tab" onclick="filterMenu('Salads')">Salads</button>
-                    <button class="tab" onclick="filterMenu('Desserts')">Desserts</button>
-                </div>
-
-                <div class="cards-grid" id="cafeMenu"></div>
-            </div>
-        </div>
-    </div>
-
-     FAVORITES PAGE 
-    <div class="page" id="favorites">
-        <div class="container">
-            <div class="section">
-                <h2 class="section-title">
-                    <span>❤️ My Favorites</span>
-                </h2>
-                <p style="color: var(--text-light); margin-bottom: 2rem;">Your favorite books and café items in one place</p>
-
-                <div id="favoritesContent">
-                    <p style="text-align: center; color: var(--text-light); padding: 3rem;">No favorites yet. Start adding items you love!</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-     RESERVATIONS PAGE 
-    <div class="page" id="reservations">
-        <div class="container">
-            <div class="section">
-                <h2 class="section-title">🪑 Seat Reservation</h2>
-                <p style="margin-bottom: 2rem; color: var(--text-light);">Select an available seat to reserve (Click to reserve/unreserve)</p>
-
-                <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: white; border: 2px solid var(--olive-lighter); border-radius: 4px; margin-right: 8px;"></span> Available</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #f5e8e6; border: 2px solid var(--danger); border-radius: 4px; margin-right: 8px;"></span> Occupied</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #fff9e6; border: 2px solid var(--warning); border-radius: 4px; margin-right: 8px;"></span> Your Reservations</div>
-                </div>
-
-                <div class="seat-map" id="seatMap"></div>
-            </div>
-        </div>
-    </div>
-
-     PROFILE PAGE 
-    <div class="page" id="profile">
-        <div class="container">
-            <div class="section">
-                <h2 class="section-title">👤 My Profile</h2>
-                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
-                    <div style="text-align: center;">
-                        <div style="width: 150px; height: 150px; background: linear-gradient(135deg, var(--olive-light), var(--olive)); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: white;">👤</div>
-                        <h3 id="profileName" style="color: var(--primary);">Guest</h3>
-                        <p id="profileRole" style="color: var(--text-light);">Not logged in</p>
+                <!-- LOGIN FORM -->
+                <div id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com">
                     </div>
-                    <div>
-                        <h3 style="margin-bottom: 1rem; color: var(--primary);">Account Information</h3>
-                        <p style="margin-bottom: 0.5rem;"><strong>Email:</strong> <span id="profileEmail">-</span></p>
-                        <p style="margin-bottom: 0.5rem;"><strong>Member Since:</strong> <span id="profileMemberSince">-</span></p>
-                        <p style="margin-bottom: 0.5rem;"><strong>Wallet Balance:</strong> <span id="profileWallet">0 AMD</span></p>
-                        <p style="margin-bottom: 0.5rem;"><strong>Books Borrowed:</strong> <span id="profileBooksBorrowed">0</span></p>
-                        <p style="margin-bottom: 0.5rem;"><strong>Current Fines:</strong> <span id="profileFines">0 AMD</span></p>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="input-wrap">
+                            <input type="password" id="loginPass" class="pw-field" placeholder="••••••••">
+                            <button type="button" class="eye-btn" onclick="togglePw('loginPass', this)" tabindex="-1">
+                                <svg id="eyeLogin" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%;padding:1rem;margin-top:.5rem" onclick="handleLogin()">
+                        Sign In
+                    </button>
+                </div>
+
+                <!-- REGISTER FORM -->
+                <div id="regForm" class="auth-form" style="display:none">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="regName" placeholder="Your full name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="regEmail" placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="input-wrap">
+                            <input type="password" id="regPass" class="pw-field" placeholder="••••••••">
+                            <button type="button" class="eye-btn" onclick="togglePw('regPass', this)" tabindex="-1">
+                                <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="regRole">
+                            <option value="Student">Student</option>
+                            <option value="Librarian">Librarian</option>
+                            <option value="Café Staff">Café Staff</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%;padding:1rem;margin-top:.5rem" onclick="handleRegister()">
+                        Create Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" style="display:none">
+
+        <!-- HOME -->
+        <div class="page active" id="home">
+            <div class="hero">
+                <div class="hero-lines"></div>
+                <div class="hero-inner">
+                    <p class="hero-eyebrow">Welcome back</p>
+                    <h1 id="heroName">Good to see <em>you</em> again.</h1>
+                    <p class="hero-sub">Discover exceptional books, artisan coffee, and a community that values knowledge.</p>
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="Search the collection…">
+                        <select id="searchCat">
+                            <option value="all">All</option>
+                            <option value="books">Books</option>
+                            <option value="menu">Menu</option>
+                        </select>
+                        <button class="s-btn" onclick="performSearch()">Search</button>
                     </div>
                 </div>
             </div>
-
-            <div class="section">
-                <h2 class="section-title">📖 Borrowing History</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Book</th>
-                            <th>Borrowed</th>
-                            <th>Due Date</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="borrowingHistory"></tbody>
-                </table>
+            <div class="container">
+                <div class="stats-row">
+                    <div class="stat-cell"><div class="stat-n" id="statBooks">0</div><div class="stat-l">Available Books</div></div>
+                    <div class="stat-cell"><div class="stat-n">1,234</div><div class="stat-l">Active Members</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="statItems">0</div><div class="stat-l">Café Items</div></div>
+                    <div class="stat-cell"><div class="stat-n">12</div><div class="stat-l">Upcoming Events</div></div>
+                </div>
+                <div class="section">
+                    <div class="sec-head"><h2>Trending <em>Books</em></h2></div>
+                    <div class="cards-grid" id="trendingBooks"><div class="spin"></div></div>
+                </div>
+                <div class="section">
+                    <div class="sec-head"><h2>Popular <em>Menu</em></h2></div>
+                    <div class="cards-grid" id="popularMenu"><div class="spin"></div></div>
+                </div>
             </div>
+        </div>
 
-            <div class="section">
-                <h2 class="section-title">🧾 Order History</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Items</th>
-                            <th>Date</th>
-                            <th>Total</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="orderHistory"></tbody>
-                </table>
+        <!-- LIBRARY -->
+        <div class="page" id="library">
+            <div class="container">
+                <div class="section">
+                    <div class="sec-head"><h2>Library <em>Catalog</em></h2></div>
+                    <div class="tabs">
+                        <button class="tab active" onclick="filterBooks('all',this)">All</button>
+                        <button class="tab" onclick="filterBooks('Fiction',this)">Fiction</button>
+                        <button class="tab" onclick="filterBooks('Non-Fiction',this)">Non-Fiction</button>
+                        <button class="tab" onclick="filterBooks('Technology',this)">Technology</button>
+                        <button class="tab" onclick="filterBooks('Science',this)">Science</button>
+                    </div>
+                    <div class="cards-grid" id="libraryBooks"><div class="spin"></div></div>
+                </div>
             </div>
+        </div>
+
+        <!-- CAFÉ -->
+        <div class="page" id="cafe">
+            <div class="container">
+                <div class="section">
+                    <div class="sec-head"><h2>Café <em>Menu</em></h2></div>
+                    <div class="tabs">
+                        <button class="tab active" onclick="filterMenu('all',this)">All</button>
+                        <button class="tab" onclick="filterMenu('Hot Drinks',this)">Hot Drinks</button>
+                        <button class="tab" onclick="filterMenu('Cold Drinks',this)">Cold Drinks</button>
+                        <button class="tab" onclick="filterMenu('Breakfast',this)">Breakfast</button>
+                        <button class="tab" onclick="filterMenu('Sandwiches',this)">Sandwiches</button>
+                        <button class="tab" onclick="filterMenu('Salads',this)">Salads</button>
+                        <button class="tab" onclick="filterMenu('Desserts',this)">Desserts</button>
+                    </div>
+                    <div class="cards-grid" id="cafeMenu"><div class="spin"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAVORITES -->
+        <div class="page" id="favorites">
+            <div class="container">
+                <div class="section">
+                    <div class="sec-head"><h2>My <em>Favorites</em></h2></div>
+                    <div id="favContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESERVATIONS -->
+        <div class="page" id="reservations">
+            <div class="container">
+                <div class="section">
+                    <div class="sec-head"><h2>Seat <em>Reservations</em></h2></div>
+                    <p style="color:var(--mist);margin-bottom:1.8rem;font-size:.88rem;font-weight:300;line-height:1.7">Select an available seat to reserve your study spot for the session.</p>
+                    <div class="legend-row">
+                        <div class="legend-item"><span class="leg-sw ls-a"></span>Available</div>
+                        <div class="legend-item"><span class="leg-sw ls-t"></span>Occupied</div>
+                        <div class="legend-item"><span class="leg-sw ls-m"></span>Your Reservation</div>
+                    </div>
+                    <div class="seat-map" id="seatMap"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFILE -->
+        <div class="page" id="profile">
+            <div class="container">
+                <div class="section">
+                    <div class="sec-head"><h2>My <em>Profile</em></h2></div>
+                    <div class="profile-grid">
+                        <div style="text-align:center">
+                            <div class="profile-av">◈</div>
+                            <div class="pn" id="profName">—</div>
+                            <div class="pr" id="profRole">—</div>
+                        </div>
+                        <div>
+                            <div class="info-row"><span class="info-k">Email</span><span class="info-v" id="profEmail">—</span></div>
+                            <div class="info-row"><span class="info-k">Wallet Balance</span><span class="info-v" id="profWallet">0 AMD</span></div>
+                            <div class="info-row"><span class="info-k">Books Borrowed</span><span class="info-v" id="profBorrowed">0</span></div>
+                            <div class="info-row"><span class="info-k">Current Fines</span><span class="info-v" id="profFines">0 AMD</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="sec-head"><h2>Borrowing <em>History</em></h2></div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Book</th><th>Borrowed</th><th>Due Date</th><th>Status</th></tr></thead>
+                            <tbody id="borrowHist"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="sec-head"><h2>Order <em>History</em></h2></div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Items</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
+                            <tbody id="orderHist"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIBRARIAN DASHBOARD -->
+        <div class="page" id="libDash">
+            <div class="container">
+                <div class="dash-banner">
+                    <div class="dash-inner">
+                        <p class="dash-eyebrow">Librarian Portal</p>
+                        <h2>Book <em>Management</em></h2>
+                        <p>Manage the collection, track borrowings and returns</p>
+                    </div>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-cell"><div class="stat-n" id="lsTotal">0</div><div class="stat-l">Total Books</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="lsAvail">0</div><div class="stat-l">Available</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="lsBorr">0</div><div class="stat-l">Borrowed</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="lsOver">0</div><div class="stat-l">Overdue</div></div>
+                </div>
+                <div class="section">
+                    <div class="sec-head">
+                        <h2>Book <em>Catalog</em></h2>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('addBookModal')">+ Add Book</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>ISBN</th><th>Shelf</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="libBooksTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="sec-head"><h2>Active <em>Borrowings</em></h2></div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Student</th><th>Book</th><th>Borrowed</th><th>Due</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="libBorrTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAFÉ STAFF DASHBOARD -->
+        <div class="page" id="cafeDash">
+            <div class="container">
+                <div class="dash-banner">
+                    <div class="dash-inner">
+                        <p class="dash-eyebrow">Café Staff Portal</p>
+                        <h2>Order <em>Management</em></h2>
+                        <p>Manage orders, update statuses and curate the menu</p>
+                    </div>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-cell"><div class="stat-n" id="csTotal">0</div><div class="stat-l">Total Orders</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="csPending">0</div><div class="stat-l">Pending</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="csCompleted">0</div><div class="stat-l">Completed</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="csRevenue">0</div><div class="stat-l">Today (AMD)</div></div>
+                </div>
+                <div class="section">
+                    <div class="sec-head"><h2>Live <em>Orders</em></h2></div>
+                    <div class="tabs">
+                        <button class="tab active" onclick="filterOrders('all',this)">All</button>
+                        <button class="tab" onclick="filterOrders('Pending',this)">Pending</button>
+                        <button class="tab" onclick="filterOrders('Preparing',this)">Preparing</button>
+                        <button class="tab" onclick="filterOrders('Ready',this)">Ready</button>
+                        <button class="tab" onclick="filterOrders('Completed',this)">Completed</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Type</th><th>Status</th><th>Update</th></tr></thead>
+                            <tbody id="cafeOrdersTb"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="sec-head">
+                        <h2>Menu <em>Items</em></h2>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('addMenuModal')">+ Add Item</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Action</th></tr></thead>
+                            <tbody id="cafeMenuTb"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN DASHBOARD -->
+        <div class="page" id="adminDash">
+            <div class="container">
+                <div class="dash-banner">
+                    <div class="dash-inner">
+                        <p class="dash-eyebrow">Admin Portal</p>
+                        <h2>System <em>Overview</em></h2>
+                        <p>Full platform management and analytics</p>
+                    </div>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-cell"><div class="stat-n" id="asUsers">0</div><div class="stat-l">Total Users</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="asBooks">0</div><div class="stat-l">Total Books</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="asOrders">0</div><div class="stat-l">Total Orders</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="asRevenue">0</div><div class="stat-l">Revenue (AMD)</div></div>
+                </div>
+                <div class="section">
+                    <div class="sec-head"><h2>All <em>Users</em></h2></div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+                            <tbody id="adminUsersTb"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="sec-head">
+                        <h2>All <em>Books</em></h2>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('addBookModal')">+ Add Book</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="adminBooksTb"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="sec-head"><h2>All <em>Orders</em></h2></div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Order #</th><th>Customer</th><th>Total</th><th>Date</th><th>Status</th></tr></thead>
+                            <tbody id="adminOrdersTb"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /mainApp -->
+    <!-- MODALS -->
+    <div class="modal" id="addBookModal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h2>Add New <em>Book</em></h2>
+                <button class="m-close" onclick="closeModal('addBookModal')">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="form-group"><label>Title</label><input type="text" id="bkTitle" placeholder="Book title"></div>
+            <div class="form-group"><label>Author</label><input type="text" id="bkAuthor" placeholder="Author name"></div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="bkCat"><option>Fiction</option><option>Non-Fiction</option><option>Technology</option><option>Science</option></select>
+            </div>
+            <div class="form-group"><label>ISBN</label><input type="text" id="bkISBN" placeholder="978-..."></div>
+            <div class="form-group"><label>Bookshelf</label><input type="text" id="bkShelf" placeholder="e.g. A-12"></div>
+            <button class="btn btn-primary" style="width:100%;margin-top:.5rem" onclick="addBook()">Add to Collection</button>
         </div>
     </div>
 
-     LOGIN MODAL 
-    <div class="modal" id="loginModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Login</h2>
-                <button class="close-modal" onclick="closeModal('loginModal')">×</button>
+    <div class="modal" id="addMenuModal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h2>Add Menu <em>Item</em></h2>
+                <button class="m-close" onclick="closeModal('addMenuModal')">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                </button>
             </div>
-            <form onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="loginEmail" required>
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPassword" required>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
-            </form>
+            <div class="form-group"><label>Item Name</label><input type="text" id="miName" placeholder="e.g. Cappuccino"></div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="miCat"><option>Hot Drinks</option><option>Cold Drinks</option><option>Breakfast</option><option>Sandwiches</option><option>Salads</option><option>Desserts</option></select>
+            </div>
+            <div class="form-group"><label>Price (AMD)</label><input type="number" id="miPrice" placeholder="1200"></div>
+            <button class="btn btn-primary" style="width:100%;margin-top:.5rem" onclick="addMenuItem()">Add to Menu</button>
         </div>
     </div>
 
-     REGISTER MODAL 
-    <div class="modal" id="registerModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Sign Up</h2>
-                <button class="close-modal" onclick="closeModal('registerModal')">×</button>
-            </div>
-            <form onsubmit="handleRegister(event)">
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="regName" required>
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="regEmail" required>
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="regPassword" required>
-                </div>
-                <div class="form-group">
-                    <label>Role</label>
-                    <select id="regRole" required>
-                        <option value="">Select role</option>
-                        <option value="Student">Student</option>
-                        <option value="Librarian">Librarian</option>
-                        <option value="Café Staff">Café Staff</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Sign Up</button>
-            </form>
-        </div>
-    </div>
-
-     CART MODAL 
     <div class="modal" id="cartModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🛒 Your Cart</h2>
-                <button class="close-modal" onclick="closeModal('cartModal')">×</button>
+        <div class="modal-box">
+            <div class="modal-head">
+                <h2>Your <em>Cart</em></h2>
+                <button class="m-close" onclick="closeModal('cartModal')">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                </button>
             </div>
             <div id="cartItems"></div>
-            <div class="cart-total">Total: <span id="cartTotalAmount">0</span> AMD</div>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="checkout()">Checkout</button>
+            <div class="cart-tot">
+                <span class="cart-tot-l">Total</span>
+                <span class="cart-tot-n"><span id="cartTotal">0</span> AMD</span>
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:1.5rem;padding:1rem" onclick="checkout()">Place Order</button>
         </div>
     </div>
 
