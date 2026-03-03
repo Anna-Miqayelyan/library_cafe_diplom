@@ -22,13 +22,14 @@ const ROLES = {
             { l: 'Café', p: 'cafe' },
             { l: 'Favorites', p: 'favorites' },
             { l: 'Reservations', p: 'reservations' },
+            { l: 'AI Assistant', p: 'aiPage' },
             { l: 'Profile', p: 'profile' }
         ],
         wallet: true, cart: true
     },
     'Librarian': {
         badge: 'Librarian', cls: 'rp-l', home: 'libDash',
-        nav: [{ l: 'Dashboard', p: 'libDash' }, { l: 'Library', p: 'library' }, { l: 'Profile', p: 'profile' }],
+        nav: [{ l: 'Dashboard', p: 'libDash' }, { l: 'Library', p: 'library' }, { l: 'AI Assistant', p: 'aiPage' }, { l: 'Profile', p: 'profile' }],
         wallet: false, cart: false
     },
     'Café Staff': {
@@ -42,6 +43,7 @@ const ROLES = {
             { l: 'Dashboard', p: 'adminDash' },
             { l: 'Library', p: 'libDash' },
             { l: 'Café', p: 'cafeDash' },
+            { l: 'AI Assistant', p: 'aiPage' },
             { l: 'Profile', p: 'profile' }
         ],
         wallet: false, cart: false
@@ -207,7 +209,12 @@ async function loadBooks() {
         books = (await res.json()).map(b => ({
             id: b.id, title: b.title, author: b.author, category: b.category,
             isbn: b.isbn, shelf: b.bookshelf, available: b.isAvailable,
-            status: b.isAvailable ? 'available' : 'borrowed'
+            status: b.isAvailable ? 'available' : 'borrowed',
+            totalCount: b.totalCount || 1,
+            borrowedCount: b.borrowedCount || 0,
+            availableCount: b.availableCount || (b.isAvailable ? 1 : 0),
+            imagePath: b.imagePath || null,
+            pdfUrl: b.pdfUrl || null
         }));
     }
 }
@@ -237,6 +244,7 @@ function showPage(id) {
     if (id === 'cafeDash') loadCafeDash();
     if (id === 'adminDash') loadAdminDash();
     if (id === 'reservations') generateSeats();
+    if (id === 'aiPage') initAiPage();
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────
@@ -256,21 +264,27 @@ function statusChip(s) {
 function bookCard(b) {
     const fav = favs.some(f => f.id === b.id && f.type === 'book');
     const cats = { Fiction: 'F', Technology: 'T', Science: 'S', 'Non-Fiction': 'N' };
+    const imgHtml = b.imagePath
+        ? `<img src="${b.imagePath}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-sm)">`
+        : `<div class="card-img-icon">${cats[b.category] || '◈'}</div>`;
+    const avail = b.availableCount ?? (b.available ? 1 : 0);
+    const total = b.totalCount || 1;
+    const copyBadge = total > 1
+        ? `<span style="font-size:.75rem;color:var(--smoke);margin-left:.4rem">${avail}/${total} copies</span>`
+        : '';
     return `
   <div class="card">
     <button class="fav-btn ${fav ? 'on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
-    <div class="card-img">
-      <div class="card-img-icon">${cats[b.category] || '◈'}</div>
-    </div>
+    <div class="card-img">${imgHtml}</div>
     <div class="card-body">
       <div class="card-ey">${b.category} · Shelf ${b.shelf || '—'}</div>
       <div class="card-title">${b.title}</div>
       <div class="card-author">${b.author}</div>
-      ${statusChip(b.status)}
+      <div style="display:flex;align-items:center;gap:.3rem;margin:.3rem 0">${statusChip(b.status)}${copyBadge}</div>
       <div class="card-actions">
-        ${b.available
+        ${avail > 0
             ? `<button class="btn btn-primary btn-sm" onclick="borrowBook(${b.id})">Borrow</button>`
-            : `<button class="btn btn-ghost btn-sm" disabled>Borrowed</button>`}
+            : `<button class="btn btn-ghost btn-sm" disabled>All Borrowed</button>`}
       </div>
     </div>
   </div>`;
@@ -520,8 +534,24 @@ async function loadLibDash() {
 
     const bt = document.getElementById('libBooksTable');
     if (bt) bt.innerHTML = books.length
-        ? books.map(b => `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.category}</td><td>${b.isbn || '—'}</td><td>${b.shelf || '—'}</td><td>${statusChip(b.status)}</td><td><button class="btn-del" onclick="deleteBook(${b.id})">Delete</button></td></tr>`).join('')
-        : `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No books yet</td></tr>`;
+        ? books.map(b => {
+            const avail = b.availableCount ?? (b.available ? 1 : 0);
+            const total = b.totalCount || 1;
+            return `<tr>
+                <td>${b.title}</td>
+                <td>${b.author}</td>
+                <td>${b.category}</td>
+                <td>${b.isbn || '—'}</td>
+                <td>${b.shelf || '—'}</td>
+                <td><span style="font-size:.8rem">${avail}/${total}</span> ${statusChip(b.status)}</td>
+                <td>${statusChip(b.status)}</td>
+                <td style="display:flex;gap:.4rem">
+                    <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">Edit</button>
+                    <button class="btn-del" onclick="deleteBook(${b.id})">Delete</button>
+                </td>
+            </tr>`;
+        }).join('')
+        : `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No books yet</td></tr>`;
 
     const br = await api('/borrowings?active=true');
     if (br && br.ok) {
@@ -533,23 +563,72 @@ async function loadLibDash() {
     }
 }
 
-async function addBook() {
-    const title = document.getElementById('bkTitle').value.trim();
-    const author = document.getElementById('bkAuthor').value.trim();
-    const category = document.getElementById('bkCat').value;
-    const isbn = document.getElementById('bkISBN').value.trim();
-    const bookshelf = document.getElementById('bkShelf').value.trim();
-    if (!title || !author || !isbn || !bookshelf) { notify('Please fill all fields', true); return; }
+// Opens modal for adding a new book
+function openAddBook() {
+    document.getElementById('bkEditId').value = '';
+    document.getElementById('addBookTitle').innerHTML = 'Add New <em>Book</em>';
+    document.getElementById('bkSubmitBtn').textContent = 'Add to Collection';
+    ['bkTitle', 'bkAuthor', 'bkISBN', 'bkShelf', 'bkImage', 'bkPdf'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('bkCount').value = 1;
+    document.getElementById('bkCat').value = 'Fiction';
+    openModal('addBookModal');
+}
 
-    const res = await api('/books', { method: 'POST', body: JSON.stringify({ title, author, category, isbn, bookshelf }) });
-    if (!res) return;
-    if (!res.ok) { const e = await res.json(); notify(e.message || 'Failed', true); return; }
-    notify('"' + title + '" added to collection');
+// Opens modal pre-filled for editing
+function openEditBook(id) {
+    const b = books.find(x => x.id === id);
+    if (!b) return;
+    document.getElementById('bkEditId').value = b.id;
+    document.getElementById('addBookTitle').innerHTML = 'Edit <em>Book</em>';
+    document.getElementById('bkSubmitBtn').textContent = 'Save Changes';
+    document.getElementById('bkTitle').value = b.title;
+    document.getElementById('bkAuthor').value = b.author;
+    document.getElementById('bkCat').value = b.category;
+    document.getElementById('bkISBN').value = b.isbn || '';
+    document.getElementById('bkShelf').value = b.shelf || '';
+    document.getElementById('bkCount').value = b.totalCount || 1;
+    document.getElementById('bkImage').value = b.imagePath || '';
+    document.getElementById('bkPdf').value = b.pdfUrl || '';
+    openModal('addBookModal');
+}
+
+// Handles both add and edit
+async function submitBook() {
+    const editId = document.getElementById('bkEditId')?.value || '';
+    const title = document.getElementById('bkTitle')?.value.trim() || '';
+    const author = document.getElementById('bkAuthor')?.value.trim() || '';
+    const category = document.getElementById('bkCat')?.value || 'Fiction';
+    const isbn = document.getElementById('bkISBN')?.value.trim() || '';
+    const bookshelf = document.getElementById('bkShelf')?.value.trim() || '';
+    const totalCount = parseInt(document.getElementById('bkCount')?.value) || 1;
+    const imagePath = document.getElementById('bkImage')?.value.trim() || null;
+    const pdfUrl = document.getElementById('bkPdf')?.value.trim() || null;
+
+    if (!title || !author || !isbn || !bookshelf) { notify('Please fill all required fields', true); return; }
+
+    const body = JSON.stringify({ title, author, category, isbn, bookshelf, totalCount, imagePath, pdfUrl });
+
+    let res;
+    if (editId) {
+        res = await api(`/books/${editId}`, { method: 'PUT', body });
+        if (!res) return;
+        if (!res.ok) { const e = await res.json(); notify(e.message || 'Update failed', true); return; }
+        notify(`"${title}" updated`);
+    } else {
+        res = await api('/books', { method: 'POST', body });
+        if (!res) return;
+        if (!res.ok) { const e = await res.json(); notify(e.message || 'Failed', true); return; }
+        notify(`"${title}" added to collection`);
+    }
+
     closeModal('addBookModal');
-    ['bkTitle', 'bkAuthor', 'bkISBN', 'bkShelf'].forEach(id => document.getElementById(id).value = '');
+    await loadBooks();
     loadLibDash();
     if (currentUser.role === 'Admin') loadAdminDash();
 }
+
+// Keep old name as alias so existing onclick="addBook()" buttons still work
+function addBook() { submitBook(); }
 
 async function deleteBook(id) {
     if (!confirm('Delete this book from the collection?')) return;
@@ -652,7 +731,18 @@ async function loadAdminDash() {
 
     set('asBooks', books.length);
     const bk = document.getElementById('adminBooksTb');
-    if (bk) bk.innerHTML = books.map(b => `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.category}</td><td>${statusChip(b.status)}</td><td><button class="btn-del" onclick="deleteBook(${b.id})">Delete</button></td></tr>`).join('');
+    if (bk) bk.innerHTML = books.map(b => {
+        const avail = b.availableCount ?? (b.available ? 1 : 0);
+        const total = b.totalCount || 1;
+        return `<tr>
+            <td>${b.title}</td><td>${b.author}</td><td>${b.category}</td>
+            <td>${avail}/${total} ${statusChip(b.status)}</td>
+            <td style="display:flex;gap:.4rem">
+                <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">Edit</button>
+                <button class="btn-del" onclick="deleteBook(${b.id})">Delete</button>
+            </td>
+        </tr>`;
+    }).join('');
 
     const or = await api('/cafeorders');
     if (or && or.ok) {
@@ -721,4 +811,161 @@ function notify(msg, isError = false) {
     el.classList.add('show');
     clearTimeout(el._t);
     el._t = setTimeout(() => el.classList.remove('show'), 3500);
+}
+// ═══════════════════════════════════════════════════════════
+//  AI ASSISTANT — replace the entire AI section in app.js
+// ═══════════════════════════════════════════════════════════
+
+let aiInitialized = false;
+let aiLastCall = 0; // timestamp of last API call
+
+// Minimum ms between AI calls — prevents 429 rate limit errors
+const AI_COOLDOWN = 3000;
+
+function initAiPage() {
+    if (aiInitialized) return;
+    aiInitialized = true;
+    // Don't auto-call on load — let user click instead
+    const el = document.getElementById('historyWidget');
+    if (el) el.innerHTML = `<div class="ai-hist-item">
+        <span class="ai-hist-year">Tip</span>
+        <span>Click "📅 Today in history" to load today's events.</span>
+    </div>`;
+}
+
+// ─── RATE LIMIT GUARD ────────────────────────────────────────
+function canCallAi() {
+    const now = Date.now();
+    if (now - aiLastCall < AI_COOLDOWN) {
+        notify(`Please wait a moment before sending another message.`, true);
+        return false;
+    }
+    aiLastCall = now;
+    return true;
+}
+
+// ─── QUICK PROMPT BUTTONS ────────────────────────────────────
+function aiQuick(type) {
+    const borrowed = books.filter(b => !b.available).slice(0, 3).map(b => b.title).join(', ') || 'various books';
+    const prompts = {
+        recommend: `I'm a student at a library café. Books I've recently borrowed: ${borrowed}. Suggest 4 books I might enjoy, with a short reason for each.`,
+        history: `What are 3 fascinating historical events that happened on ${new Date().toLocaleDateString('en', { month: 'long', day: 'numeric' })}? Keep each to 2 sentences.`,
+        cafe: `I'm reading "${books.find(b => !b.available)?.title || 'a mystery novel'}" at a library café. Suggest 3 café drinks or snacks that pair well with this type of book.`,
+        summary: `Give me a 3-sentence summary of a classic novel every student should know, and explain why it still matters today.`
+    };
+    document.getElementById('aiInput').value = prompts[type];
+    sendAiMessage();
+}
+
+// ─── SEND MESSAGE ────────────────────────────────────────────
+async function sendAiMessage() {
+    if (!canCallAi()) return;
+
+    const input = document.getElementById('aiInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+
+    appendAiMsg(msg, 'user');
+    const typingEl = appendAiTyping();
+
+    try {
+        const systemPrompt = `You are a friendly, knowledgeable assistant for a Library Café — a cosy space where students read books and enjoy coffee. Help with book recommendations, historical trivia, café pairings, and reading culture. Keep responses warm, concise and engaging. The library currently has books like: ${books.slice(0, 8).map(b => b.title).join(', ')}.`;
+
+        const response = await api('/ai/chat', {
+            method: 'POST',
+            body: JSON.stringify({ message: msg, systemPrompt })
+        });
+
+        typingEl.remove();
+
+        if (response && response.ok) {
+            const data = await response.json();
+            appendAiMsg(data.reply, 'bot');
+            if (/recommend|suggest|should read/i.test(msg)) updateAiSuggest(data.reply);
+        } else if (response && response.status === 429) {
+            appendAiMsg('⚠️ Too many requests — the AI is rate limited. Please wait 30 seconds and try again.', 'bot');
+        } else if (response && response.status === 503) {
+            appendAiMsg('⚠️ AI is not configured. Ask your admin to add the Gemini:ApiKey to appsettings.json.', 'bot');
+        } else {
+            const err = response ? await response.json().catch(() => ({})) : {};
+            appendAiMsg(`Sorry, something went wrong: ${err.message || 'Unknown error'}`, 'bot');
+        }
+    } catch (err) {
+        typingEl.remove();
+        appendAiMsg('Connection error. Please make sure the backend is running.', 'bot');
+    }
+}
+
+// ─── MESSAGE BUILDERS ────────────────────────────────────────
+function appendAiMsg(text, role) {
+    const el = document.getElementById('aiMessages');
+    const div = document.createElement('div');
+    div.className = 'ai-msg' + (role === 'user' ? ' ai-msg-user' : '');
+    div.innerHTML = `
+        <div class="ai-avatar ${role === 'user' ? 'ai-avatar-user' : ''}">${role === 'user' ? 'ME' : 'AI'}</div>
+        <div class="ai-bubble">${text.replace(/\n/g, '<br>')}</div>`;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+    return div;
+}
+
+function appendAiTyping() {
+    const el = document.getElementById('aiMessages');
+    const div = document.createElement('div');
+    div.className = 'ai-msg';
+    div.innerHTML = `<div class="ai-avatar">AI</div>
+        <div class="ai-bubble"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>`;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+    return div;
+}
+
+// ─── READING SUGGESTIONS SIDEBAR ─────────────────────────────
+function updateAiSuggest(text) {
+    const titles = text.match(/"([^"]+)"/g) || [];
+    if (!titles.length) return;
+    const el = document.getElementById('aiSuggest');
+    if (!el) return;
+    el.innerHTML = titles.slice(0, 5).map(t => `
+        <div class="ai-suggest-item">
+            <span>📖</span>
+            <span>${t.replace(/"/g, '')}</span>
+        </div>`).join('');
+}
+
+// ─── TODAY IN HISTORY (only called when user clicks the button) ──
+async function loadTodayHistory() {
+    if (!canCallAi()) return;
+    const el = document.getElementById('historyWidget');
+    if (!el) return;
+    el.innerHTML = '<div class="spin"></div>';
+    try {
+        const dateStr = new Date().toLocaleDateString('en', { month: 'long', day: 'numeric' });
+        const response = await api('/ai/chat', {
+            method: 'POST',
+            body: JSON.stringify({
+                message: `Give me exactly 3 notable historical events that happened on ${dateStr} in different centuries. Return ONLY a JSON array like: [{"year":"1969","event":"Description here"}]. No extra text, no markdown.`
+            })
+        });
+        if (response && response.ok) {
+            const data = await response.json();
+            const raw = (data.reply || '').replace(/```json|```/g, '').trim();
+            const events = JSON.parse(raw);
+            el.innerHTML = events.map(e => `
+                <div class="ai-hist-item">
+                    <span class="ai-hist-year">${e.year}</span>
+                    <span>${e.event}</span>
+                </div>`).join('');
+        } else if (response && response.status === 429) {
+            el.innerHTML = `<div class="ai-hist-item"><span class="ai-hist-year">⚠️</span><span>Rate limited — wait 30 seconds and try again.</span></div>`;
+        } else {
+            throw new Error('bad response');
+        }
+    } catch {
+        el.innerHTML = `<div class="ai-hist-item">
+            <span class="ai-hist-year">Did you know?</span>
+            <span>Books have existed for over 5,000 years — the first written records date to ancient Mesopotamia.</span>
+        </div>`;
+    }
 }

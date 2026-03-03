@@ -1,4 +1,4 @@
-using LibraryCafe.Core.Entities;
+﻿using LibraryCafe.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryCafe.Data
@@ -10,7 +10,7 @@ namespace LibraryCafe.Data
         {
         }
 
-        // DbSets for all entities
+        // DbSets
         public DbSet<Book> Books => Set<Book>();
         public DbSet<User> Users => Set<User>();
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
@@ -26,9 +26,7 @@ namespace LibraryCafe.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure relationships
-
-            // Borrowing relationships
+            // ── Borrowing ──────────────────────────────────────────
             modelBuilder.Entity<Borrowing>()
                 .HasOne(b => b.User)
                 .WithMany(u => u.Borrowings)
@@ -41,7 +39,7 @@ namespace LibraryCafe.Data
                 .HasForeignKey(b => b.BookId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // BookReview relationships
+            // ── BookReview ─────────────────────────────────────────
             modelBuilder.Entity<BookReview>()
                 .HasOne(br => br.User)
                 .WithMany(u => u.BookReviews)
@@ -54,14 +52,25 @@ namespace LibraryCafe.Data
                 .HasForeignKey(br => br.BookId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // CafeOrder relationships
+            // NEW: one review per user per book (unique constraint)
+            modelBuilder.Entity<BookReview>()
+                .HasIndex(br => new { br.UserId, br.BookId })
+                .IsUnique()
+                .HasDatabaseName("UQ_bookreviews_user_book");
+
+            // NEW: default value for CreatedAt on the DB side
+            modelBuilder.Entity<BookReview>()
+                .Property(br => br.CreatedAt)
+                .HasDefaultValueSql("now()");
+
+            // ── CafeOrder ──────────────────────────────────────────
             modelBuilder.Entity<CafeOrder>()
                 .HasOne(co => co.User)
                 .WithMany(u => u.CafeOrders)
                 .HasForeignKey(co => co.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // CafeOrderItem relationships
+            // ── CafeOrderItem ──────────────────────────────────────
             modelBuilder.Entity<CafeOrderItem>()
                 .HasOne(coi => coi.Order)
                 .WithMany(co => co.OrderItems)
@@ -74,7 +83,7 @@ namespace LibraryCafe.Data
                 .HasForeignKey(coi => coi.ItemId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Payment relationships
+            // ── Payment ────────────────────────────────────────────
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Order)
                 .WithMany(co => co.Payments)
@@ -87,7 +96,7 @@ namespace LibraryCafe.Data
                 .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // CafeReview relationships
+            // ── CafeReview ─────────────────────────────────────────
             modelBuilder.Entity<CafeReview>()
                 .HasOne(cr => cr.User)
                 .WithMany(u => u.CafeReviews)
@@ -99,6 +108,22 @@ namespace LibraryCafe.Data
                 .WithMany(mi => mi.Reviews)
                 .HasForeignKey(cr => cr.ItemId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // NEW: one review per user per menu item (unique constraint)
+            modelBuilder.Entity<CafeReview>()
+                .HasIndex(cr => new { cr.UserId, cr.ItemId })
+                .IsUnique()
+                .HasDatabaseName("UQ_cafereviews_user_item");
+
+            // NEW: default value for CreatedAt on the DB side
+            modelBuilder.Entity<CafeReview>()
+                .Property(cr => cr.CreatedAt)
+                .HasDefaultValueSql("now()");
+
+            // ── Book: new column defaults ──────────────────────────
+            modelBuilder.Entity<Book>()
+                .Property(b => b.TotalCount)
+                .HasDefaultValue(1);
         }
     }
 }

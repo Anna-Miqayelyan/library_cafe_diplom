@@ -1,4 +1,4 @@
-using LibraryCafe.Api.DTOs;
+﻿using LibraryCafe.Api.DTOs;
 using LibraryCafe.Core.Entities;
 using LibraryCafe.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -17,9 +17,9 @@ namespace LibraryCafe.Api.Controllers
             _context = context;
         }
 
-        // ============== BOOK REVIEWS ==============
+        // ══════════════════ BOOK REVIEWS ══════════════════════
 
-        // GET: api/reviews/books
+        // GET: api/reviews/books?bookId=5
         [HttpGet("books")]
         public async Task<ActionResult<IEnumerable<BookReviewDto>>> GetBookReviews(
             [FromQuery] int? bookId = null)
@@ -30,11 +30,10 @@ namespace LibraryCafe.Api.Controllers
                 .AsQueryable();
 
             if (bookId.HasValue)
-            {
                 query = query.Where(r => r.BookId == bookId.Value);
-            }
 
             var reviews = await query
+                .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new BookReviewDto
                 {
                     Id = r.Id,
@@ -43,7 +42,8 @@ namespace LibraryCafe.Api.Controllers
                     BookId = r.BookId,
                     BookTitle = r.Book.Title,
                     Rating = r.Rating,
-                    Comment = r.Comment
+                    Comment = r.Comment,
+                    CreatedAt = r.CreatedAt
                 })
                 .ToListAsync();
 
@@ -54,90 +54,86 @@ namespace LibraryCafe.Api.Controllers
         [HttpGet("books/{id}")]
         public async Task<ActionResult<BookReviewDto>> GetBookReview(int id)
         {
-            var review = await _context.BookReviews
+            var r = await _context.BookReviews
                 .Include(r => r.User)
                 .Include(r => r.Book)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (review == null)
-            {
-                return NotFound(new { message = "Review not found" });
-            }
+            if (r == null) return NotFound(new { message = "Review not found" });
 
-            var reviewDto = new BookReviewDto
+            return Ok(new BookReviewDto
             {
-                Id = review.Id,
-                UserId = review.UserId,
-                UserFullname = review.User.Fullname,
-                BookId = review.BookId,
-                BookTitle = review.Book.Title,
-                Rating = review.Rating,
-                Comment = review.Comment
-            };
-
-            return Ok(reviewDto);
+                Id = r.Id,
+                UserId = r.UserId,
+                UserFullname = r.User.Fullname,
+                BookId = r.BookId,
+                BookTitle = r.Book.Title,
+                Rating = r.Rating,
+                Comment = r.Comment,
+                CreatedAt = r.CreatedAt
+            });
         }
 
         // POST: api/reviews/books
         [HttpPost("books")]
-        public async Task<ActionResult<BookReviewDto>> CreateBookReview(BookReviewCreateDto reviewDto)
+        public async Task<ActionResult<BookReviewDto>> CreateBookReview(BookReviewCreateDto dto)
         {
-            // Validate user
-            var user = await _context.Users.FindAsync(reviewDto.UserId);
-            if (user == null)
-            {
-                return BadRequest(new { message = "User not found" });
-            }
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null) return BadRequest(new { message = "User not found" });
 
-            // Validate book
-            var book = await _context.Books.FindAsync(reviewDto.BookId);
-            if (book == null)
-            {
-                return BadRequest(new { message = "Book not found" });
-            }
+            var book = await _context.Books.FindAsync(dto.BookId);
+            if (book == null) return BadRequest(new { message = "Book not found" });
 
-            // Validate rating
-            if (reviewDto.Rating < 1 || reviewDto.Rating > 5)
-            {
+            if (dto.Rating < 1 || dto.Rating > 5)
                 return BadRequest(new { message = "Rating must be between 1 and 5" });
-            }
 
-            // Check if user already reviewed this book
-            var existingReview = await _context.BookReviews
-                .FirstOrDefaultAsync(r => r.UserId == reviewDto.UserId && r.BookId == reviewDto.BookId);
+            // Upsert: update existing review if user already reviewed this book
+            var existing = await _context.BookReviews
+                .FirstOrDefaultAsync(r => r.UserId == dto.UserId && r.BookId == dto.BookId);
 
-            if (existingReview != null)
+            if (existing != null)
             {
-                return BadRequest(new { message = "You have already reviewed this book" });
+                existing.Rating = dto.Rating;
+                existing.Comment = dto.Comment;
+                existing.CreatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Ok(new BookReviewDto
+                {
+                    Id = existing.Id,
+                    UserId = existing.UserId,
+                    UserFullname = user.Fullname,
+                    BookId = existing.BookId,
+                    BookTitle = book.Title,
+                    Rating = existing.Rating,
+                    Comment = existing.Comment,
+                    CreatedAt = existing.CreatedAt
+                });
             }
 
             var review = new BookReview
             {
-                UserId = reviewDto.UserId,
-                BookId = reviewDto.BookId,
-                Rating = reviewDto.Rating,
-                Comment = reviewDto.Comment
+                UserId = dto.UserId,
+                BookId = dto.BookId,
+                Rating = dto.Rating,
+                Comment = dto.Comment,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.BookReviews.Add(review);
             await _context.SaveChangesAsync();
 
-            // Reload with navigation properties
-            await _context.Entry(review).Reference(r => r.User).LoadAsync();
-            await _context.Entry(review).Reference(r => r.Book).LoadAsync();
-
-            var resultDto = new BookReviewDto
+            return CreatedAtAction(nameof(GetBookReview), new { id = review.Id }, new BookReviewDto
             {
                 Id = review.Id,
                 UserId = review.UserId,
-                UserFullname = review.User.Fullname,
+                UserFullname = user.Fullname,
                 BookId = review.BookId,
-                BookTitle = review.Book.Title,
+                BookTitle = book.Title,
                 Rating = review.Rating,
-                Comment = review.Comment
-            };
-
-            return CreatedAtAction(nameof(GetBookReview), new { id = review.Id }, resultDto);
+                Comment = review.Comment,
+                CreatedAt = review.CreatedAt
+            });
         }
 
         // DELETE: api/reviews/books/5
@@ -145,21 +141,16 @@ namespace LibraryCafe.Api.Controllers
         public async Task<IActionResult> DeleteBookReview(int id)
         {
             var review = await _context.BookReviews.FindAsync(id);
-
-            if (review == null)
-            {
-                return NotFound(new { message = "Review not found" });
-            }
+            if (review == null) return NotFound(new { message = "Review not found" });
 
             _context.BookReviews.Remove(review);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
-        // ============== CAFE REVIEWS ==============
+        // ══════════════════ CAFÉ REVIEWS ══════════════════════
 
-        // GET: api/reviews/cafe
+        // GET: api/reviews/cafe?itemId=3
         [HttpGet("cafe")]
         public async Task<ActionResult<IEnumerable<CafeReviewDto>>> GetCafeReviews(
             [FromQuery] int? itemId = null)
@@ -170,11 +161,10 @@ namespace LibraryCafe.Api.Controllers
                 .AsQueryable();
 
             if (itemId.HasValue)
-            {
                 query = query.Where(r => r.ItemId == itemId.Value);
-            }
 
             var reviews = await query
+                .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new CafeReviewDto
                 {
                     Id = r.Id,
@@ -183,7 +173,8 @@ namespace LibraryCafe.Api.Controllers
                     ItemId = r.ItemId,
                     ItemName = r.MenuItem.ItemName,
                     Rating = r.Rating,
-                    Comment = r.Comment
+                    Comment = r.Comment,
+                    CreatedAt = r.CreatedAt
                 })
                 .ToListAsync();
 
@@ -194,90 +185,86 @@ namespace LibraryCafe.Api.Controllers
         [HttpGet("cafe/{id}")]
         public async Task<ActionResult<CafeReviewDto>> GetCafeReview(int id)
         {
-            var review = await _context.CafeReviews
+            var r = await _context.CafeReviews
                 .Include(r => r.User)
                 .Include(r => r.MenuItem)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (review == null)
-            {
-                return NotFound(new { message = "Review not found" });
-            }
+            if (r == null) return NotFound(new { message = "Review not found" });
 
-            var reviewDto = new CafeReviewDto
+            return Ok(new CafeReviewDto
             {
-                Id = review.Id,
-                UserId = review.UserId,
-                UserFullname = review.User.Fullname,
-                ItemId = review.ItemId,
-                ItemName = review.MenuItem.ItemName,
-                Rating = review.Rating,
-                Comment = review.Comment
-            };
-
-            return Ok(reviewDto);
+                Id = r.Id,
+                UserId = r.UserId,
+                UserFullname = r.User.Fullname,
+                ItemId = r.ItemId,
+                ItemName = r.MenuItem.ItemName,
+                Rating = r.Rating,
+                Comment = r.Comment,
+                CreatedAt = r.CreatedAt
+            });
         }
 
         // POST: api/reviews/cafe
         [HttpPost("cafe")]
-        public async Task<ActionResult<CafeReviewDto>> CreateCafeReview(CafeReviewCreateDto reviewDto)
+        public async Task<ActionResult<CafeReviewDto>> CreateCafeReview(CafeReviewCreateDto dto)
         {
-            // Validate user
-            var user = await _context.Users.FindAsync(reviewDto.UserId);
-            if (user == null)
-            {
-                return BadRequest(new { message = "User not found" });
-            }
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null) return BadRequest(new { message = "User not found" });
 
-            // Validate menu item
-            var menuItem = await _context.MenuItems.FindAsync(reviewDto.ItemId);
-            if (menuItem == null)
-            {
-                return BadRequest(new { message = "Menu item not found" });
-            }
+            var menuItem = await _context.MenuItems.FindAsync(dto.ItemId);
+            if (menuItem == null) return BadRequest(new { message = "Menu item not found" });
 
-            // Validate rating
-            if (reviewDto.Rating < 1 || reviewDto.Rating > 5)
-            {
+            if (dto.Rating < 1 || dto.Rating > 5)
                 return BadRequest(new { message = "Rating must be between 1 and 5" });
-            }
 
-            // Check if user already reviewed this item
-            var existingReview = await _context.CafeReviews
-                .FirstOrDefaultAsync(r => r.UserId == reviewDto.UserId && r.ItemId == reviewDto.ItemId);
+            // Upsert: update if already reviewed
+            var existing = await _context.CafeReviews
+                .FirstOrDefaultAsync(r => r.UserId == dto.UserId && r.ItemId == dto.ItemId);
 
-            if (existingReview != null)
+            if (existing != null)
             {
-                return BadRequest(new { message = "You have already reviewed this item" });
+                existing.Rating = dto.Rating;
+                existing.Comment = dto.Comment;
+                existing.CreatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Ok(new CafeReviewDto
+                {
+                    Id = existing.Id,
+                    UserId = existing.UserId,
+                    UserFullname = user.Fullname,
+                    ItemId = existing.ItemId,
+                    ItemName = menuItem.ItemName,
+                    Rating = existing.Rating,
+                    Comment = existing.Comment,
+                    CreatedAt = existing.CreatedAt
+                });
             }
 
             var review = new CafeReview
             {
-                UserId = reviewDto.UserId,
-                ItemId = reviewDto.ItemId,
-                Rating = reviewDto.Rating,
-                Comment = reviewDto.Comment
+                UserId = dto.UserId,
+                ItemId = dto.ItemId,
+                Rating = dto.Rating,
+                Comment = dto.Comment,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.CafeReviews.Add(review);
             await _context.SaveChangesAsync();
 
-            // Reload with navigation properties
-            await _context.Entry(review).Reference(r => r.User).LoadAsync();
-            await _context.Entry(review).Reference(r => r.MenuItem).LoadAsync();
-
-            var resultDto = new CafeReviewDto
+            return CreatedAtAction(nameof(GetCafeReview), new { id = review.Id }, new CafeReviewDto
             {
                 Id = review.Id,
                 UserId = review.UserId,
-                UserFullname = review.User.Fullname,
+                UserFullname = user.Fullname,
                 ItemId = review.ItemId,
-                ItemName = review.MenuItem.ItemName,
+                ItemName = menuItem.ItemName,
                 Rating = review.Rating,
-                Comment = review.Comment
-            };
-
-            return CreatedAtAction(nameof(GetCafeReview), new { id = review.Id }, resultDto);
+                Comment = review.Comment,
+                CreatedAt = review.CreatedAt
+            });
         }
 
         // DELETE: api/reviews/cafe/5
@@ -285,15 +272,10 @@ namespace LibraryCafe.Api.Controllers
         public async Task<IActionResult> DeleteCafeReview(int id)
         {
             var review = await _context.CafeReviews.FindAsync(id);
-
-            if (review == null)
-            {
-                return NotFound(new { message = "Review not found" });
-            }
+            if (review == null) return NotFound(new { message = "Review not found" });
 
             _context.CafeReviews.Remove(review);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }

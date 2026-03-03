@@ -1,4 +1,4 @@
-using LibraryCafe.Api.DTOs;
+﻿using LibraryCafe.Api.DTOs;
 using LibraryCafe.Core.Entities;
 using LibraryCafe.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +11,39 @@ namespace LibraryCafe.Api.Controllers
     public class BorrowingsController : ControllerBase
     {
         private readonly LibraryCafeDbContext _context;
+        private const decimal FinePerDay = 50m; // 50 AMD per overdue day
 
         public BorrowingsController(LibraryCafeDbContext context)
         {
             _context = context;
+        }
+
+        // ── helper ─────────────────────────────────────────────
+        private static decimal CalculateFine(DateTime? dueDate, DateTime? returnDate)
+        {
+            if (dueDate == null) return 0;
+            var compareDate = returnDate ?? DateTime.UtcNow;
+            var overdueDays = (int)(compareDate - dueDate.Value).TotalDays;
+            return overdueDays > 0 ? overdueDays * FinePerDay : 0;
+        }
+
+        private static BorrowingDto MapBorrowing(Borrowing b)
+        {
+            var now = DateTime.UtcNow;
+            var fine = CalculateFine(b.DueDate, b.ReturnDate);
+            return new BorrowingDto
+            {
+                Id = b.Id,
+                UserId = b.UserId,
+                UserFullname = b.User?.Fullname ?? "",
+                BookId = b.BookId,
+                BookTitle = b.Book?.Title ?? "",
+                BorrowDate = b.BorrowDate,
+                ReturnDate = b.ReturnDate,
+                DueDate = b.DueDate,
+                IsOverdue = b.DueDate.HasValue && b.ReturnDate == null && b.DueDate < now,
+                OverdueFine = fine
+            };
         }
 
         // GET: api/borrowings
@@ -28,181 +57,133 @@ namespace LibraryCafe.Api.Controllers
                 .AsQueryable();
 
             if (active.HasValue)
-            {
-                if (active.Value)
-                {
-                    query = query.Where(b => b.ReturnDate == null);
-                }
-                else
-                {
-                    query = query.Where(b => b.ReturnDate != null);
-                }
-            }
+                query = active.Value
+                    ? query.Where(b => b.ReturnDate == null)
+                    : query.Where(b => b.ReturnDate != null);
 
-            // FIXED: Fetch data first, then calculate IsOverdue in memory
-            var borrowings = await query
-                .OrderByDescending(b => b.BorrowDate)
-                .ToListAsync();
-
-            var currentDate = DateTime.UtcNow;
-            var result = borrowings.Select(b => new BorrowingDto
-            {
-                Id = b.Id,
-                UserId = b.UserId,
-                UserFullname = b.User.Fullname,
-                BookId = b.BookId,
-                BookTitle = b.Book.Title,
-                BorrowDate = b.BorrowDate,
-                ReturnDate = b.ReturnDate,
-                DueDate = b.DueDate,
-                IsOverdue = b.DueDate.HasValue && b.ReturnDate == null && b.DueDate < currentDate
-            }).ToList();
-
-            return Ok(result);
+            var data = await query.OrderByDescending(b => b.BorrowDate).ToListAsync();
+            return Ok(data.Select(MapBorrowing));
         }
 
         // GET: api/borrowings/5
         [HttpGet("{id}")]
         public async Task<ActionResult<BorrowingDto>> GetBorrowing(int id)
         {
-            var borrowing = await _context.Borrowings
+            var b = await _context.Borrowings
                 .Include(b => b.User)
                 .Include(b => b.Book)
                 .FirstOrDefaultAsync(b => b.Id == id);
 
-            if (borrowing == null)
-            {
-                return NotFound(new { message = "Borrowing not found" });
-            }
-
-            var currentDate = DateTime.UtcNow;
-            var borrowingDto = new BorrowingDto
-            {
-                Id = borrowing.Id,
-                UserId = borrowing.UserId,
-                UserFullname = borrowing.User.Fullname,
-                BookId = borrowing.BookId,
-                BookTitle = borrowing.Book.Title,
-                BorrowDate = borrowing.BorrowDate,
-                ReturnDate = borrowing.ReturnDate,
-                DueDate = borrowing.DueDate,
-                IsOverdue = borrowing.DueDate.HasValue && borrowing.ReturnDate == null && borrowing.DueDate < currentDate
-            };
-
-            return Ok(borrowingDto);
+            if (b == null) return NotFound(new { message = "Borrowing not found" });
+            return Ok(MapBorrowing(b));
         }
 
         // POST: api/borrowings
         [HttpPost]
-        public async Task<ActionResult<BorrowingDto>> CreateBorrowing(BorrowingCreateDto borrowingDto)
+        public async Task<ActionResult<BorrowingDto>> CreateBorrowing(BorrowingCreateDto dto)
         {
-            // Check if user exists
-            var user = await _context.Users.FindAsync(borrowingDto.UserId);
-            if (user == null)
-            {
-                return BadRequest(new { message = "User not found" });
-            }
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null) return BadRequest(new { message = "User not found" });
 
-            // Check if book exists
-            var book = await _context.Books.FindAsync(borrowingDto.BookId);
-            if (book == null)
-            {
-                return BadRequest(new { message = "Book not found" });
-            }
+            var book = await _context.Books
+                .Include(b => b.Borrowings)
+                .FirstOrDefaultAsync(b => b.Id == dto.BookId);
+            if (book == null) return BadRequest(new { message = "Book not found" });
 
-            // Check if book is available
-            var isBookBorrowed = await _context.Borrowings
-                .AnyAsync(b => b.BookId == borrowingDto.BookId && b.ReturnDate == null);
+            // Multi-copy availability check
+            var activeBorrowings = book.Borrowings.Count(br => br.ReturnDate == null);
+            var totalCopies = book.TotalCount > 0 ? book.TotalCount : 1;
+            if (activeBorrowings >= totalCopies)
+                return BadRequest(new { message = "No copies available. Please join the queue." });
 
-            if (isBookBorrowed)
-            {
-                return BadRequest(new { message = "Book is currently borrowed" });
-            }
+            // Determine due date: use provided DueDate, or calculate from DurationDays, or default 14 days
+            DateTime dueDate;
+            if (dto.DueDate.HasValue)
+                dueDate = dto.DueDate.Value;
+            else if (dto.DurationDays.HasValue && dto.DurationDays.Value > 0)
+                dueDate = DateTime.UtcNow.AddDays(dto.DurationDays.Value);
+            else
+                dueDate = DateTime.UtcNow.AddDays(14);
 
             var borrowing = new Borrowing
             {
-                UserId = borrowingDto.UserId,
-                BookId = borrowingDto.BookId,
-                BorrowDate = DateTime.UtcNow,  // FIXED: Use UtcNow
-                DueDate = borrowingDto.DueDate ?? DateTime.UtcNow.AddDays(14)  // FIXED: Use UtcNow
+                UserId = dto.UserId,
+                BookId = dto.BookId,
+                BorrowDate = DateTime.UtcNow,
+                DueDate = dueDate
             };
 
             _context.Borrowings.Add(borrowing);
             await _context.SaveChangesAsync();
 
-            // Reload with navigation properties
             await _context.Entry(borrowing).Reference(b => b.User).LoadAsync();
             await _context.Entry(borrowing).Reference(b => b.Book).LoadAsync();
 
-            var resultDto = new BorrowingDto
-            {
-                Id = borrowing.Id,
-                UserId = borrowing.UserId,
-                UserFullname = borrowing.User.Fullname,
-                BookId = borrowing.BookId,
-                BookTitle = borrowing.Book.Title,
-                BorrowDate = borrowing.BorrowDate,
-                ReturnDate = borrowing.ReturnDate,
-                DueDate = borrowing.DueDate,
-                IsOverdue = false
-            };
-
-            return CreatedAtAction(nameof(GetBorrowing), new { id = borrowing.Id }, resultDto);
+            return CreatedAtAction(nameof(GetBorrowing), new { id = borrowing.Id }, MapBorrowing(borrowing));
         }
 
         // PUT: api/borrowings/5/return
         [HttpPut("{id}/return")]
-        public async Task<IActionResult> ReturnBook(int id, BorrowingReturnDto returnDto)
+        public async Task<ActionResult<BorrowingDto>> ReturnBook(int id, BorrowingReturnDto returnDto)
         {
-            var borrowing = await _context.Borrowings.FindAsync(id);
+            var borrowing = await _context.Borrowings
+                .Include(b => b.User)
+                .Include(b => b.Book)
+                .FirstOrDefaultAsync(b => b.Id == id);
 
-            if (borrowing == null)
-            {
-                return NotFound(new { message = "Borrowing not found" });
-            }
-
-            if (borrowing.ReturnDate != null)
-            {
-                return BadRequest(new { message = "Book already returned" });
-            }
+            if (borrowing == null) return NotFound(new { message = "Borrowing not found" });
+            if (borrowing.ReturnDate != null) return BadRequest(new { message = "Book already returned" });
 
             borrowing.ReturnDate = returnDto.ReturnDate;
-
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            // Return DTO with final fine so frontend can show it
+            return Ok(MapBorrowing(borrowing));
         }
 
         // GET: api/borrowings/overdue
         [HttpGet("overdue")]
         public async Task<ActionResult<IEnumerable<BorrowingDto>>> GetOverdueBorrowings()
         {
-            // FIXED: Fetch data first, then filter in memory
-            var borrowings = await _context.Borrowings
+            var now = DateTime.UtcNow;
+            var all = await _context.Borrowings
                 .Include(b => b.User)
                 .Include(b => b.Book)
                 .Where(b => b.ReturnDate == null && b.DueDate != null)
                 .OrderBy(b => b.DueDate)
                 .ToListAsync();
 
-            var currentDate = DateTime.UtcNow;
-            var overdueBorrowings = borrowings
-                .Where(b => b.DueDate.Value < currentDate)
-                .Select(b => new BorrowingDto
-                {
-                    Id = b.Id,
-                    UserId = b.UserId,
-                    UserFullname = b.User.Fullname,
-                    BookId = b.BookId,
-                    BookTitle = b.Book.Title,
-                    BorrowDate = b.BorrowDate,
-                    ReturnDate = b.ReturnDate,
-                    DueDate = b.DueDate,
-                    IsOverdue = true
-                })
-                .ToList();
+            var overdue = all.Where(b => b.DueDate!.Value < now).Select(MapBorrowing);
+            return Ok(overdue);
+        }
 
-            return Ok(overdueBorrowings);
+        // GET: api/borrowings/fines  — all active fines summary
+        [HttpGet("fines")]
+        public async Task<ActionResult<object>> GetFinesSummary()
+        {
+            var now = DateTime.UtcNow;
+            var overdues = await _context.Borrowings
+                .Include(b => b.User)
+                .Include(b => b.Book)
+                .Where(b => b.ReturnDate == null && b.DueDate != null && b.DueDate < now)
+                .ToListAsync();
+
+            var result = overdues.Select(b => new
+            {
+                BorrowingId = b.Id,
+                UserId = b.UserId,
+                UserFullname = b.User?.Fullname,
+                BookTitle = b.Book?.Title,
+                DueDate = b.DueDate,
+                OverdueDays = (int)(now - b.DueDate!.Value).TotalDays,
+                Fine = CalculateFine(b.DueDate, null)
+            });
+
+            return Ok(new
+            {
+                TotalFineAmd = result.Sum(r => r.Fine),
+                Items = result
+            });
         }
 
         // DELETE: api/borrowings/5
@@ -210,15 +191,10 @@ namespace LibraryCafe.Api.Controllers
         public async Task<IActionResult> DeleteBorrowing(int id)
         {
             var borrowing = await _context.Borrowings.FindAsync(id);
-
-            if (borrowing == null)
-            {
-                return NotFound(new { message = "Borrowing not found" });
-            }
+            if (borrowing == null) return NotFound(new { message = "Borrowing not found" });
 
             _context.Borrowings.Remove(borrowing);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }

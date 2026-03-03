@@ -31,19 +31,11 @@ namespace LibraryCafe.Api.Controllers
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(status))
-            {
                 query = query.Where(o => o.Status.ToLower() == status.ToLower());
-            }
-
             if (fromDate.HasValue)
-            {
                 query = query.Where(o => o.OrderDate >= fromDate.Value);
-            }
-
             if (toDate.HasValue)
-            {
                 query = query.Where(o => o.OrderDate <= toDate.Value);
-            }
 
             var orders = await query
                 .OrderByDescending(o => o.OrderDate)
@@ -81,12 +73,9 @@ namespace LibraryCafe.Api.Controllers
                     .ThenInclude(oi => oi.MenuItem)
                 .FirstOrDefaultAsync(o => o.Id == id);
 
-            if (order == null)
-            {
-                return NotFound(new { message = "Order not found" });
-            }
+            if (order == null) return NotFound(new { message = "Order not found" });
 
-            var orderDto = new CafeOrderDto
+            return Ok(new CafeOrderDto
             {
                 Id = order.Id,
                 UserId = order.UserId,
@@ -104,66 +93,48 @@ namespace LibraryCafe.Api.Controllers
                     Price = oi.MenuItem.Price,
                     Subtotal = oi.MenuItem.Price * oi.Quantity
                 }).ToList()
-            };
-
-            return Ok(orderDto);
+            });
         }
 
-        // POST: api/cafeorders
+        // POST: api/cafeorders - payment is always cash (no wallet deduction)
         [HttpPost]
-        public async Task<ActionResult<CafeOrderDto>> CreateCafeOrder(CafeOrderCreateDto orderDto)
+        public async Task<ActionResult<CafeOrderDto>> CreateCafeOrder(CafeOrderCreateDto dto)
         {
-            // Validate user
-            var user = await _context.Users.FindAsync(orderDto.UserId);
-            if (user == null)
-            {
-                return BadRequest(new { message = "User not found" });
-            }
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null) return BadRequest(new { message = "User not found" });
 
-            // Validate menu items and calculate total
             decimal totalAmount = 0;
             var orderItems = new List<CafeOrderItem>();
 
-            foreach (var item in orderDto.Items)
+            foreach (var item in dto.Items)
             {
                 var menuItem = await _context.MenuItems.FindAsync(item.ItemId);
                 if (menuItem == null)
-                {
                     return BadRequest(new { message = $"Menu item with ID {item.ItemId} not found" });
-                }
 
                 totalAmount += menuItem.Price * item.Quantity;
-
-                orderItems.Add(new CafeOrderItem
-                {
-                    ItemId = item.ItemId,
-                    Quantity = item.Quantity
-                });
+                orderItems.Add(new CafeOrderItem { ItemId = item.ItemId, Quantity = item.Quantity });
             }
 
             var order = new CafeOrder
             {
-                UserId = orderDto.UserId,
-                OrderDate = DateTime.Now,
+                UserId = dto.UserId,
+                OrderDate = DateTime.UtcNow,
                 TotalAmount = totalAmount,
-                OrderType = orderDto.OrderType,
-                Status = "Pending",
+                OrderType = dto.OrderType,
+                Status = "Pending",           // payment collected at desk
                 OrderItems = orderItems
             };
 
             _context.CafeOrders.Add(order);
             await _context.SaveChangesAsync();
 
-            // Reload with navigation properties
             await _context.Entry(order).Reference(o => o.User).LoadAsync();
             await _context.Entry(order).Collection(o => o.OrderItems).LoadAsync();
-
             foreach (var item in order.OrderItems)
-            {
                 await _context.Entry(item).Reference(oi => oi.MenuItem).LoadAsync();
-            }
 
-            var resultDto = new CafeOrderDto
+            return CreatedAtAction(nameof(GetCafeOrder), new { id = order.Id }, new CafeOrderDto
             {
                 Id = order.Id,
                 UserId = order.UserId,
@@ -181,32 +152,22 @@ namespace LibraryCafe.Api.Controllers
                     Price = oi.MenuItem.Price,
                     Subtotal = oi.MenuItem.Price * oi.Quantity
                 }).ToList()
-            };
-
-            return CreatedAtAction(nameof(GetCafeOrder), new { id = order.Id }, resultDto);
+            });
         }
 
         // PUT: api/cafeorders/5/status
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateOrderStatus(int id, CafeOrderUpdateStatusDto statusDto)
+        public async Task<IActionResult> UpdateOrderStatus(int id, CafeOrderUpdateStatusDto dto)
         {
             var order = await _context.CafeOrders.FindAsync(id);
+            if (order == null) return NotFound(new { message = "Order not found" });
 
-            if (order == null)
-            {
-                return NotFound(new { message = "Order not found" });
-            }
-
-            var validStatuses = new[] { "Pending", "Preparing", "Ready", "Completed", "Cancelled" };
-            if (!validStatuses.Contains(statusDto.Status))
-            {
+            var valid = new[] { "Pending", "Preparing", "Ready", "Completed", "Cancelled" };
+            if (!valid.Contains(dto.Status))
                 return BadRequest(new { message = "Invalid status" });
-            }
 
-            order.Status = statusDto.Status;
-
+            order.Status = dto.Status;
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -215,20 +176,13 @@ namespace LibraryCafe.Api.Controllers
         public async Task<IActionResult> DeleteCafeOrder(int id)
         {
             var order = await _context.CafeOrders.FindAsync(id);
-
-            if (order == null)
-            {
-                return NotFound(new { message = "Order not found" });
-            }
+            if (order == null) return NotFound(new { message = "Order not found" });
 
             if (order.Status != "Pending" && order.Status != "Cancelled")
-            {
                 return BadRequest(new { message = "Cannot delete order in current status" });
-            }
 
             _context.CafeOrders.Remove(order);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -237,24 +191,41 @@ namespace LibraryCafe.Api.Controllers
         public async Task<ActionResult<object>> GetOrderStatistics()
         {
             var totalOrders = await _context.CafeOrders.CountAsync();
-            var totalRevenue = await _context.CafeOrders.SumAsync(o => o.TotalAmount);
-            var todayOrders = await _context.CafeOrders
-                .Where(o => o.OrderDate.Date == DateTime.Today)
-                .CountAsync();
+            var totalRevenue = await _context.CafeOrders.SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
+            var today = DateTime.UtcNow.Date;
+            var todayOrders = await _context.CafeOrders.CountAsync(o => o.OrderDate.Date == today);
             var todayRevenue = await _context.CafeOrders
-                .Where(o => o.OrderDate.Date == DateTime.Today)
+                .Where(o => o.OrderDate.Date == today)
                 .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
 
-            var statistics = new
+            return Ok(new
             {
                 TotalOrders = totalOrders,
                 TotalRevenue = totalRevenue,
                 TodayOrders = todayOrders,
                 TodayRevenue = todayRevenue,
                 AverageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
-            };
+            });
+        }
 
-            return Ok(statistics);
+        // GET: api/cafeorders/daily?days=7  - for analytics chart
+        [HttpGet("daily")]
+        public async Task<ActionResult<object>> GetDailyOrders([FromQuery] int days = 7)
+        {
+            var from = DateTime.UtcNow.Date.AddDays(-days + 1);
+            var orders = await _context.CafeOrders
+                .Where(o => o.OrderDate.Date >= from)
+                .ToListAsync();
+
+            var result = Enumerable.Range(0, days).Select(i =>
+            {
+                var date = from.AddDays(i);
+                var count = orders.Count(o => o.OrderDate.Date == date);
+                var revenue = orders.Where(o => o.OrderDate.Date == date).Sum(o => o.TotalAmount);
+                return new { Date = date.ToString("MMM d"), Count = count, Revenue = revenue };
+            });
+
+            return Ok(result);
         }
     }
 }

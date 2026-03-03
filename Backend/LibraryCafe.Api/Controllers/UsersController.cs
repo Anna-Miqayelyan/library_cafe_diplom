@@ -11,6 +11,7 @@ namespace LibraryCafe.Api.Controllers
     public class UsersController : ControllerBase
     {
         private readonly LibraryCafeDbContext _context;
+        private const decimal FinePerDay = 50m;
 
         public UsersController(LibraryCafeDbContext context)
         {
@@ -22,15 +23,8 @@ namespace LibraryCafe.Api.Controllers
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
             var users = await _context.Users
-                .Select(u => new UserDto
-                {
-                    Id = u.Id,
-                    Fullname = u.Fullname,
-                    Email = u.Email,
-                    Role = u.Role
-                })
+                .Select(u => new UserDto { Id = u.Id, Fullname = u.Fullname, Email = u.Email, Role = u.Role })
                 .ToListAsync();
-
             return Ok(users);
         }
 
@@ -39,117 +33,70 @@ namespace LibraryCafe.Api.Controllers
         public async Task<ActionResult<UserDto>> GetUser(int id)
         {
             var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
-
-            var userDto = new UserDto
-            {
-                Id = user.Id,
-                Fullname = user.Fullname,
-                Email = user.Email,
-                Role = user.Role
-            };
-
-            return Ok(userDto);
+            if (user == null) return NotFound(new { message = "User not found" });
+            return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
         }
 
         // POST: api/users/register
         [HttpPost("register")]
-        public async Task<ActionResult<UserDto>> Register(UserRegisterDto registerDto)
+        public async Task<ActionResult<UserDto>> Register(UserRegisterDto dto)
         {
-            // Check if email already exists
-            if (await _context.Users.AnyAsync(u => u.Email == registerDto.Email))
-            {
+            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 return BadRequest(new { message = "Email already registered" });
-            }
 
-            // Hash password (in production, use BCrypt or similar)
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+            // Basic password validation
+            if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
+                return BadRequest(new { message = "Password must be at least 6 characters" });
 
             var user = new User
             {
-                Fullname = registerDto.Fullname,
-                Email = registerDto.Email,
-                PasswordHash = passwordHash,
-                Role = registerDto.Role
+                Fullname = dto.Fullname,
+                Email = dto.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Role = dto.Role
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            var userDto = new UserDto
-            {
-                Id = user.Id,
-                Fullname = user.Fullname,
-                Email = user.Email,
-                Role = user.Role
-            };
-
-            return CreatedAtAction(nameof(GetUser), new { id = user.Id }, userDto);
+            return CreatedAtAction(nameof(GetUser), new { id = user.Id },
+                new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
         }
 
         // POST: api/users/login
         [HttpPost("login")]
-        public async Task<ActionResult<UserDto>> Login(UserLoginDto loginDto)
+        public async Task<ActionResult<UserDto>> Login(UserLoginDto dto)
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == loginDto.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-            if (user == null)
-            {
+            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized(new { message = "Invalid email or password" });
-            }
 
-            // Verify password (in production, use BCrypt or similar)
-            bool isValidPassword = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash);
-
-            if (!isValidPassword)
-            {
-                return Unauthorized(new { message = "Invalid email or password" });
-            }
-
-            var userDto = new UserDto
-            {
-                Id = user.Id,
-                Fullname = user.Fullname,
-                Email = user.Email,
-                Role = user.Role
-            };
-
-            return Ok(userDto);
+            return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
         }
 
         // PUT: api/users/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, UserUpdateDto updateDto)
+        public async Task<IActionResult> UpdateUser(int id, UserUpdateDto dto)
         {
             var user = await _context.Users.FindAsync(id);
+            if (user == null) return NotFound(new { message = "User not found" });
 
-            if (user == null)
+            if (dto.Fullname != null) user.Fullname = dto.Fullname;
+            if (dto.Email != null)
             {
-                return NotFound(new { message = "User not found" });
-            }
-
-            if (updateDto.Fullname != null) user.Fullname = updateDto.Fullname;
-            if (updateDto.Email != null)
-            {
-                // Check if new email already exists
-                if (await _context.Users.AnyAsync(u => u.Email == updateDto.Email && u.Id != id))
-                {
+                if (await _context.Users.AnyAsync(u => u.Email == dto.Email && u.Id != id))
                     return BadRequest(new { message = "Email already in use" });
-                }
-                user.Email = updateDto.Email;
+                user.Email = dto.Email;
             }
-            if (updateDto.Password != null)
+            if (dto.Password != null)
             {
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updateDto.Password);
+                if (dto.Password.Length < 6)
+                    return BadRequest(new { message = "Password must be at least 6 characters" });
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             }
 
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -158,15 +105,10 @@ namespace LibraryCafe.Api.Controllers
         public async Task<IActionResult> DeleteUser(int id)
         {
             var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
+            if (user == null) return NotFound(new { message = "User not found" });
 
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -174,26 +116,34 @@ namespace LibraryCafe.Api.Controllers
         [HttpGet("{id}/borrowings")]
         public async Task<ActionResult<IEnumerable<BorrowingDto>>> GetUserBorrowings(int id)
         {
+            var now = DateTime.UtcNow;
             var borrowings = await _context.Borrowings
                 .Include(b => b.Book)
                 .Include(b => b.User)
                 .Where(b => b.UserId == id)
                 .OrderByDescending(b => b.BorrowDate)
-                .Select(b => new BorrowingDto
+                .ToListAsync();
+
+            var result = borrowings.Select(b =>
+            {
+                var overdueDays = b.DueDate.HasValue && b.ReturnDate == null && b.DueDate < now
+                    ? (int)(now - b.DueDate.Value).TotalDays : 0;
+                return new BorrowingDto
                 {
                     Id = b.Id,
                     UserId = b.UserId,
-                    UserFullname = b.User.Fullname,
+                    UserFullname = b.User?.Fullname ?? "",
                     BookId = b.BookId,
-                    BookTitle = b.Book.Title,
+                    BookTitle = b.Book?.Title ?? "",
                     BorrowDate = b.BorrowDate,
                     ReturnDate = b.ReturnDate,
                     DueDate = b.DueDate,
-                    IsOverdue = b.DueDate.HasValue && b.ReturnDate == null && b.DueDate < DateTime.Now
-                })
-                .ToListAsync();
+                    IsOverdue = overdueDays > 0,
+                    OverdueFine = overdueDays * FinePerDay
+                };
+            });
 
-            return Ok(borrowings);
+            return Ok(result);
         }
 
         // GET: api/users/5/orders
@@ -228,6 +178,32 @@ namespace LibraryCafe.Api.Controllers
                 .ToListAsync();
 
             return Ok(orders);
+        }
+
+        // GET: api/users/5/fines  - total overdue fines for a user
+        [HttpGet("{id}/fines")]
+        public async Task<ActionResult<object>> GetUserFines(int id)
+        {
+            var now = DateTime.UtcNow;
+            var active = await _context.Borrowings
+                .Include(b => b.Book)
+                .Where(b => b.UserId == id && b.ReturnDate == null && b.DueDate < now)
+                .ToListAsync();
+
+            var items = active.Select(b => new
+            {
+                BorrowingId = b.Id,
+                BookTitle = b.Book?.Title,
+                DueDate = b.DueDate,
+                OverdueDays = (int)(now - b.DueDate!.Value).TotalDays,
+                Fine = (int)(now - b.DueDate!.Value).TotalDays * FinePerDay
+            });
+
+            return Ok(new
+            {
+                TotalFineAmd = items.Sum(i => i.Fine),
+                Items = items
+            });
         }
     }
 }

@@ -285,7 +285,7 @@
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>ISBN</th><th>Shelf</th><th>Status</th><th>Action</th></tr></thead>
+                            <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>ISBN</th><th>Shelf</th><th>Copies</th><th>Status</th><th>Action</th></tr></thead>
                             <tbody id="libBooksTable"></tbody>
                         </table>
                     </div>
@@ -398,16 +398,72 @@
             </div>
         </div>
 
+        <!-- AI ASSISTANT PAGE -->
+        <div class="page" id="aiPage">
+            <div class="container">
+                <div class="dash-banner">
+                    <div class="dash-inner">
+                        <p class="dash-eyebrow">Powered by AI</p>
+                        <h2>Your <em>Reading Assistant</em></h2>
+                        <p>Book recommendations, historical trivia, café pairings and more</p>
+                    </div>
+                </div>
+                <div class="ai-layout">
+                    <!-- Chat column -->
+                    <div class="section ai-chat-section">
+                        <div class="sec-head"><h2>Ask <em>AI</em></h2></div>
+                        <div class="ai-quick-btns">
+                            <button class="ai-q-btn" onclick="aiQuick('recommend')">📚 Recommend books</button>
+                            <button class="ai-q-btn" onclick="aiQuick('history')">📅 Today in history</button>
+                            <button class="ai-q-btn" onclick="aiQuick('cafe')">☕ Café pairing for my book</button>
+                            <button class="ai-q-btn" onclick="aiQuick('summary')">✨ Summarize a classic</button>
+                        </div>
+                        <div class="ai-messages" id="aiMessages">
+                            <div class="ai-msg">
+                                <div class="ai-avatar">AI</div>
+                                <div class="ai-bubble">👋 Hi! I'm your Library Café assistant. Ask me for book recommendations, historical events, café pairings, or anything about reading culture!</div>
+                            </div>
+                        </div>
+                        <div class="ai-input-row">
+                            <input type="text" id="aiInput" class="ai-input" placeholder="Ask anything about books, history, recommendations…" onkeydown="if(event.key==='Enter')sendAiMessage()">
+                            <button class="btn btn-primary" onclick="sendAiMessage()">Send</button>
+                        </div>
+                    </div>
+                    <!-- Sidebar column -->
+                    <div class="section">
+                        <div class="sec-head">
+                            <h2>Today in <em>History</em></h2>
+                            <button class="btn btn-ghost btn-sm" onclick="loadTodayHistory()">Load</button>
+                        </div>
+                        <div id="historyWidget" class="ai-history-list">
+                            <div class="ai-hist-item">
+                                <span class="ai-hist-year">Tip</span>
+                                <span>Click "Load" to fetch today's historical events.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="sec-head"><h2>Reading <em>Suggestions</em></h2></div>
+                        <div id="aiSuggest" class="ai-suggest-list">
+                            <p style="color:var(--mist);font-size:.85rem;font-style:italic">Click "Recommend books" to get personalised picks.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </div><!-- /mainApp -->
     <!-- MODALS -->
     <div class="modal" id="addBookModal">
         <div class="modal-box">
             <div class="modal-head">
-                <h2>Add New <em>Book</em></h2>
+                <h2 id="addBookTitle">Add New <em>Book</em></h2>
                 <button class="m-close" onclick="closeModal('addBookModal')">
                     <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                 </button>
             </div>
+            <input type="hidden" id="bkEditId">
             <div class="form-group"><label>Title</label><input type="text" id="bkTitle" placeholder="Book title"></div>
             <div class="form-group"><label>Author</label><input type="text" id="bkAuthor" placeholder="Author name"></div>
             <div class="form-group">
@@ -416,7 +472,10 @@
             </div>
             <div class="form-group"><label>ISBN</label><input type="text" id="bkISBN" placeholder="978-..."></div>
             <div class="form-group"><label>Bookshelf</label><input type="text" id="bkShelf" placeholder="e.g. A-12"></div>
-            <button class="btn btn-primary" style="width:100%;margin-top:.5rem" onclick="addBook()">Add to Collection</button>
+            <div class="form-group"><label>Number of Copies</label><input type="number" id="bkCount" placeholder="1" min="1" value="1"></div>
+            <div class="form-group"><label>Cover Image URL <span style="color:var(--mist);font-weight:300">(optional)</span></label><input type="text" id="bkImage" placeholder="https://... or leave empty"></div>
+            <div class="form-group"><label>PDF URL <span style="color:var(--mist);font-weight:300">(optional)</span></label><input type="text" id="bkPdf" placeholder="https://... or leave empty"></div>
+            <button class="btn btn-primary" style="width:100%;margin-top:.5rem" id="bkSubmitBtn" onclick="submitBook()">Add to Collection</button>
         </div>
     </div>
 

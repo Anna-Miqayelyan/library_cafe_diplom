@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LibraryCafe.Core.Entities
 {
-    [Table("books")] // exact table name in your DB
+    [Table("books")]
     public class Book
     {
         [Column("bookid")]
@@ -23,6 +23,19 @@ namespace LibraryCafe.Core.Entities
         [Column("bookshelf")]
         public string Bookshelf { get; set; } = null!;
 
+        // NEW: multiple physical copies
+        [Column("totalcount")]
+        public int TotalCount { get; set; } = 1;
+
+        // NEW: cover image URL / path
+        [Column("imagepath")]
+        public string? ImagePath { get; set; }
+
+        // NEW: PDF URL for reading in-browser
+        [Column("pdfurl")]
+        public string? PdfUrl { get; set; }
+
+        // Navigation
         public ICollection<Borrowing> Borrowings { get; set; } = new List<Borrowing>();
         public ICollection<BookReview> Reviews { get; set; } = new List<BookReview>();
     }

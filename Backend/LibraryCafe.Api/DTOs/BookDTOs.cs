@@ -1,6 +1,5 @@
 namespace LibraryCafe.Api.DTOs
 {
-    // For creating/updating books
     public class BookCreateDto
     {
         public string Title { get; set; } = null!;
@@ -8,6 +7,11 @@ namespace LibraryCafe.Api.DTOs
         public string Category { get; set; } = null!;
         public string ISBN { get; set; } = null!;
         public string Bookshelf { get; set; } = null!;
+
+        // NEW: multiple copies, cover image, pdf
+        public int TotalCount { get; set; } = 1;
+        public string? ImagePath { get; set; }
+        public string? PdfUrl { get; set; }
     }
 
     public class BookUpdateDto
@@ -17,9 +21,11 @@ namespace LibraryCafe.Api.DTOs
         public string? Category { get; set; }
         public string? ISBN { get; set; }
         public string? Bookshelf { get; set; }
+        public int? TotalCount { get; set; }
+        public string? ImagePath { get; set; }
+        public string? PdfUrl { get; set; }
     }
 
-    // For reading books
     public class BookDto
     {
         public int Id { get; set; }
@@ -29,5 +35,14 @@ namespace LibraryCafe.Api.DTOs
         public string ISBN { get; set; } = null!;
         public string Bookshelf { get; set; } = null!;
         public bool IsAvailable { get; set; }
+
+        // NEW
+        public int TotalCount { get; set; }
+        public int BorrowedCount { get; set; }
+        public int AvailableCount { get; set; }
+        public string? ImagePath { get; set; }
+        public string? PdfUrl { get; set; }
+        public double? AverageRating { get; set; }
+        public int ReviewCount { get; set; }
     }
 }
