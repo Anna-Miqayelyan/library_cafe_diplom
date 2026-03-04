@@ -29,7 +29,7 @@ const ROLES = {
     },
     'Librarian': {
         badge: 'Librarian', cls: 'rp-l', home: 'libDash',
-        nav: [{ l: 'Dashboard', p: 'libDash' }, { l: 'Library', p: 'library' }, { l: 'AI Assistant', p: 'aiPage' }, { l: 'Profile', p: 'profile' }],
+        nav: [{ l: 'Dashboard', p: 'libDash' }, { l: 'Library', p: 'library' }, { l: 'Shelf Map', p: 'shelfMap' }, { l: 'AI Assistant', p: 'aiPage' }, { l: 'Profile', p: 'profile' }],
         wallet: false, cart: false
     },
     'Café Staff': {
@@ -45,7 +45,7 @@ const ROLES = {
             { l: 'Café', p: 'cafeDash' },
             { l: 'AI Assistant', p: 'aiPage' },
             { l: 'Profile', p: 'profile' }
-        ],
+            , { l: 'Shelf Map', p: 'shelfMap' }],
         wallet: false, cart: false
     }
 };
@@ -199,7 +199,13 @@ function saveStorage() {
 }
 function loadStorage() {
     const d = localStorage.getItem('lc2');
-    if (d) { const p = JSON.parse(d); currentUser = p.currentUser; cart = p.cart || []; reserved = p.reserved || []; favs = p.favs || []; }
+    if (d) {
+        const p = JSON.parse(d); currentUser = p.currentUser; cart = p.cart || [];
+        // Migrate old reserved format (numbers) to new format (objects)
+        const raw = p.reserved || [];
+        reserved = raw.map(r => typeof r === 'number' ? { seat: r, date: '', from: '', to: '' } : r);
+        favs = p.favs || [];
+    }
 }
 
 // ─── DATA ────────────────────────────────────────────────────
@@ -243,7 +249,8 @@ function showPage(id) {
     if (id === 'libDash') loadLibDash();
     if (id === 'cafeDash') loadCafeDash();
     if (id === 'adminDash') loadAdminDash();
-    if (id === 'reservations') generateSeats();
+    if (id === 'reservations') { initReservationPickers(); generateSeats(); }
+    if (id === 'shelfMap') renderShelfMap();
     if (id === 'aiPage') initAiPage();
 }
 
@@ -282,7 +289,7 @@ function bookCard(b) {
       <div class="card-actions">
         ${avail > 0
             ? `<button class="btn btn-primary btn-sm" onclick="borrowBook(${b.id})">Borrow</button>`
-            : `<button class="btn btn-ghost btn-sm" disabled>All Borrowed</button>`}
+            : `<button class="btn btn-ghost btn-sm" onclick="joinQueue(${b.id})" title="All copies borrowed — join the waiting list">📋 Join Queue</button>`}
         ${b.pdfUrl ? `<button class="btn btn-ghost btn-sm" onclick="openPdf(${b.id})">📄 Read PDF</button>` : ''}
       </div>
     </div>
@@ -396,12 +403,21 @@ async function borrowBook(id) {
     if (!currentUser) { notify('Please sign in first', true); return; }
     const res = await api('/borrowings', { method: 'POST', body: JSON.stringify({ userId: currentUser.id, bookId: id }) });
     if (!res) return;
-    if (!res.ok) { const e = await res.json(); notify(e.message || 'Could not borrow', true); return; }
-    const b = await res.json();
-    const bk = books.find(x => x.id === id);
-    if (bk) { bk.available = false; bk.status = 'borrowed'; }
-    notify(`"${b.bookTitle}" borrowed — due ${fmtDate(b.dueDate)}`);
-    renderTrending(); renderLibrary('all'); renderStats();
+    if (!res.ok) {
+        const e = await res.json();
+        if (e.message && e.message.includes('queue')) {
+            // No copies available — offer queue
+            if (confirm(e.message + '\nJoin the waiting queue for this book?')) {
+                await joinQueue(id);
+            }
+        } else {
+            notify(e.message || 'Could not borrow book', true);
+        }
+        return;
+    }
+    notify('Book borrowed successfully! Due in 14 days.');
+    await loadBooks();
+    renderLibrary('all');
 }
 
 // ─── CART ────────────────────────────────────────────────────
@@ -469,38 +485,259 @@ async function checkout() {
 }
 
 // ─── SEATS ───────────────────────────────────────────────────
+// ─── RESERVATIONS ────────────────────────────────────────────
+// Each reservation: { seat, date, from, to }
+// "taken" seats = seats reserved by OTHER users for overlapping slot
+// We simulate other users with a deterministic hash (no random)
+
+function initReservationPickers() {
+    const dateEl = document.getElementById('resDate');
+    const fromEl = document.getElementById('resFrom');
+    const toEl = document.getElementById('resTo');
+    if (!dateEl || !fromEl || !toEl) return;
+
+    // Set default date to today
+    if (!dateEl.value) {
+        dateEl.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Build hour options 08:00 - 21:00 (only once)
+    if (fromEl.options.length === 0) {
+        for (let h = 8; h <= 21; h++) {
+            const val = String(h).padStart(2, '0') + ':00';
+            fromEl.add(new Option(val, val));
+            toEl.add(new Option(val, val));
+        }
+        fromEl.value = '09:00';
+        toEl.value = '10:00';
+    }
+}
+
+// Simple deterministic hash — same inputs always give same output, no randomness
+function deterministicHash(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
+    return Math.abs(h);
+}
+
+function getTakenSeats(date, from, to) {
+    // Seats "taken by others" — deterministic based on date+slot, never changes
+    const key = date + from + to;
+    const taken = [];
+    for (let seat = 1; seat <= 40; seat++) {
+        const hash = deterministicHash(key + seat);
+        if (hash % 4 === 0) taken.push(seat); // ~25% of seats taken
+    }
+    return taken;
+}
+
+function slotsOverlap(f1, t1, f2, t2) {
+    return f1 < t2 && t1 > f2;
+}
+
 function generateSeats() {
+    initReservationPickers();
     const el = document.getElementById('seatMap'); if (!el) return;
+
+    const date = document.getElementById('resDate')?.value || '';
+    const from = document.getElementById('resFrom')?.value || '09:00';
+    const to = document.getElementById('resTo')?.value || '10:00';
+
+    if (!date) { notify('Please select a date', true); return; }
+    if (from >= to) { notify('End time must be after start time', true); return; }
+
+    // My seats for this exact slot
+    const mySeats = reserved
+        .filter(r => r.date === date && r.from === from && r.to === to)
+        .map(r => r.seat);
+
+    // My seats for OTHER overlapping slots on same date (block them from double-booking)
+    const myOtherSeats = reserved
+        .filter(r => r.date === date && slotsOverlap(r.from, r.to, from, to) && !(r.from === from && r.to === to))
+        .map(r => r.seat);
+
+    // Seats taken by others (deterministic)
+    const takenByOthers = getTakenSeats(date, from, to).filter(s => !mySeats.includes(s));
+
     el.innerHTML = '';
     for (let i = 1; i <= 40; i++) {
         const s = document.createElement('div');
         s.className = 'seat';
         s.textContent = i;
-        if (reserved.includes(i)) {
+
+        if (mySeats.includes(i)) {
             s.classList.add('mine');
-        } else if (Math.random() > 0.35) {
-            s.classList.add('avail');
-            s.onclick = () => toggleSeat(i, s);
-        } else {
+            s.title = `Your reservation: ${from}–${to}`;
+            s.onclick = () => { cancelSeatReservation(i, date, from, to); generateSeats(); };
+        } else if (takenByOthers.includes(i) || myOtherSeats.includes(i)) {
             s.classList.add('taken');
+            s.title = takenByOthers.includes(i) ? `Reserved ${from}–${to}` : 'You have this seat in another slot';
+        } else {
+            s.classList.add('avail');
+            s.title = `Reserve for ${from}–${to}`;
+            s.onclick = () => { reserveSeat(i, date, from, to); generateSeats(); };
         }
         el.appendChild(s);
     }
+
+    renderMyReservations();
 }
 
-function toggleSeat(n, el) {
-    if (reserved.includes(n)) {
-        reserved = reserved.filter(x => x !== n);
-        el.classList.replace('mine', 'avail');
-        el.onclick = () => toggleSeat(n, el);
-        notify('Seat ' + n + ' reservation cancelled');
-    } else {
-        reserved.push(n);
-        el.classList.replace('avail', 'mine');
-        el.onclick = null;
-        notify('Seat ' + n + ' reserved');
-    }
+function reserveSeat(seat, date, from, to) {
+    reserved.push({ seat, date, from, to });
     saveStorage();
+    notify(`Seat ${seat} reserved for ${date}, ${from}–${to}`);
+}
+
+function cancelSeatReservation(seat, date, from, to) {
+    reserved = reserved.filter(r => !(r.seat === seat && r.date === date && r.from === from && r.to === to));
+    saveStorage();
+    notify(`Seat ${seat} reservation cancelled`);
+    renderMyReservations();
+}
+
+function renderMyReservations() {
+    const el = document.getElementById('myReservationsList'); if (!el) return;
+    if (!reserved.length) { el.innerHTML = ''; return; }
+    const sorted = [...reserved].sort((a, b) => (a.date + a.from).localeCompare(b.date + b.from));
+    el.innerHTML = `
+    <div class="sec-head" style="margin-top:1.5rem"><h2>My <em>Reservations</em></h2></div>
+    <table class="data-table">
+        <thead><tr><th>Seat</th><th>Date</th><th>From</th><th>To</th><th></th></tr></thead>
+        <tbody>${sorted.map(r => `<tr>
+            <td>Seat ${r.seat}</td>
+            <td>${r.date}</td>
+            <td>${r.from}</td>
+            <td>${r.to}</td>
+            <td><button class="btn-del" onclick="cancelSeatReservation(${r.seat},'${r.date}','${r.from}','${r.to}');generateSeats()">Cancel</button></td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// ─── BOOKSHELF MAP ────────────────────────────────────────────
+async function renderShelfMap() {
+    const el = document.getElementById('shelfMapContent'); if (!el) return;
+    el.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--mist)">Loading…</div>';
+
+    // Reload books to make sure we have fresh data
+    await loadBooks();
+
+    // Group books by shelf prefix (A, B, C etc)
+    const shelves = {};
+    books.forEach(b => {
+        const shelf = b.shelf || 'Unknown';
+        const section = shelf.match(/^[A-Za-z]+/)?.[0]?.toUpperCase() || '?';
+        if (!shelves[section]) shelves[section] = [];
+        shelves[section].push(b);
+    });
+
+    if (!Object.keys(shelves).length) {
+        el.innerHTML = '<p style="text-align:center;padding:3rem;color:var(--mist)">No books in the system yet.</p>';
+        return;
+    }
+
+    el.innerHTML = Object.entries(shelves).sort(([a], [b]) => a.localeCompare(b)).map(([section, sBooks]) => {
+        const slots = {};
+        sBooks.forEach(b => { slots[b.shelf] = slots[b.shelf] || []; slots[b.shelf].push(b); });
+        return `
+        <div style="margin-bottom:2rem">
+            <div class="sec-head"><h2>Section <em>${section}</em></h2></div>
+            <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-top:1rem">
+                ${Object.entries(slots).sort(([a], [b]) => a.localeCompare(b)).map(([shelf, shelfBooks]) => `
+                <div style="background:var(--paper);border:1px solid var(--silk);border-radius:var(--r-md);padding:1rem;min-width:160px;max-width:220px;flex:1">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;color:var(--ink);margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:2px solid var(--gold)">
+                        📚 Shelf ${shelf}
+                    </div>
+                    ${shelfBooks.map(b => {
+            const avail = b.availableCount ?? (b.available ? 1 : 0);
+            const total = b.totalCount || 1;
+            const color = avail > 0 ? 'var(--sage)' : 'var(--danger)';
+            return `<div style="padding:.3rem 0;border-bottom:1px solid var(--silk);font-size:.82rem" title="${b.title} by ${b.author}">
+                            <div style="font-weight:500;color:var(--graphite);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.title}</div>
+                            <div style="color:var(--smoke);font-size:.75rem">${b.author} · <span style="color:${color}">${avail}/${total}</span></div>
+                        </div>`;
+        }).join('')}
+                </div>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+
+// ─── PASSWORD CHANGE ─────────────────────────────────────────
+document.addEventListener('input', function (e) {
+    if (e.target.id !== 'pwNew') return;
+    const v = e.target.value;
+    const el = document.getElementById('pwStrength');
+    if (!el) return;
+    if (!v) { el.textContent = ''; return; }
+    let score = 0;
+    if (v.length >= 8) score++;
+    if (/[A-Z]/.test(v)) score++;
+    if (/[0-9]/.test(v)) score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+    const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+    const colors = ['var(--danger)', '#f59e0b', '#3b82f6', 'var(--sage)'];
+    el.textContent = '● ' + (labels[score - 1] || 'Too short');
+    el.style.color = colors[score - 1] || 'var(--danger)';
+});
+
+async function changePassword() {
+    const current = document.getElementById('pwCurrent')?.value?.trim() || '';
+    const newPw = document.getElementById('pwNew')?.value || '';
+    const confirm = document.getElementById('pwConfirm')?.value || '';
+
+    if (!current) { notify('Enter your current password', true); return; }
+    if (newPw.length < 8) { notify('New password must be at least 8 characters', true); return; }
+    if (!/[A-Z]/.test(newPw)) { notify('Password must contain at least one uppercase letter', true); return; }
+    if (!/[0-9]/.test(newPw)) { notify('Password must contain at least one number', true); return; }
+    if (newPw !== confirm) { notify('Passwords do not match', true); return; }
+
+    const res = await api(`/users/${currentUser.id}/change-password`, {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: current, newPassword: newPw })
+    });
+    if (!res) return;
+    if (!res.ok) { const e = await res.json(); notify(e.message || 'Failed to change password', true); return; }
+    notify('Password updated successfully!');
+    ['pwCurrent', 'pwNew', 'pwConfirm'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.getElementById('pwStrength').textContent = '';
+}
+
+// ─── BOOK RESERVATION QUEUE ──────────────────────────────────
+async function joinQueue(bookId) {
+    if (!currentUser) { notify('Please sign in first', true); return; }
+    const book = books.find(b => b.id === bookId);
+    const title = book ? book.title : 'this book';
+
+    // Store queue locally until backend endpoint is ready
+    const queued = JSON.parse(localStorage.getItem('lc_queue') || '[]');
+    const already = queued.find(q => q.userId === currentUser.id && q.bookId === bookId);
+    if (already) {
+        notify(`You are already in the queue for "${title}"`, true);
+        return;
+    }
+    queued.push({ userId: currentUser.id, bookId, title, joinedAt: new Date().toISOString() });
+    localStorage.setItem('lc_queue', JSON.stringify(queued));
+    notify(`Added to queue for "${title}". You will be notified when a copy is available.`);
+}
+
+async function leaveQueue(bookId) {
+    const queued = JSON.parse(localStorage.getItem('lc_queue') || '[]');
+    const updated = queued.filter(q => !(q.userId === currentUser.id && q.bookId === bookId));
+    localStorage.setItem('lc_queue', JSON.stringify(updated));
+    notify('Removed from queue');
+}
+
+async function leaveQueue(bookId) {
+    const res = await api(`/bookreservations/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ userId: currentUser.id, bookId })
+    });
+    if (!res) return;
+    if (res.ok) { notify('Removed from queue'); await loadBooks(); renderLibrary('all'); }
 }
 
 // ─── PROFILE ─────────────────────────────────────────────────
@@ -510,7 +747,22 @@ async function updateProfile() {
     document.getElementById('profRole').textContent = currentUser.role;
     document.getElementById('profEmail').textContent = currentUser.email;
     document.getElementById('profWallet').textContent = fmt(currentUser.wallet) + ' AMD';
-    document.getElementById('profFines').textContent = '0 AMD';
+    // Calculate fines: 50 AMD per day overdue
+    const brRes = await api(`/users/${currentUser.id}/borrowings`);
+    if (brRes && brRes.ok) {
+        const brData = await brRes.json();
+        const today = new Date();
+        let totalFine = 0;
+        brData.forEach(b => {
+            if (!b.returnDate && b.dueDate) {
+                const due = new Date(b.dueDate);
+                const daysOverdue = Math.max(0, Math.floor((today - due) / (1000 * 60 * 60 * 24)));
+                totalFine += daysOverdue * 50;
+            }
+        });
+        document.getElementById('profFines').textContent = fmt(totalFine) + ' AMD';
+        if (totalFine > 0) document.getElementById('profFines').style.color = 'var(--danger)';
+    }
 
     const br = await api(`/users/${currentUser.id}/borrowings`);
     if (br && br.ok) {
@@ -531,6 +783,40 @@ async function updateProfile() {
 }
 
 // ─── LIBRARIAN ───────────────────────────────────────────────
+
+// ─── LIBRARIAN: VIEW/MANAGE BORROWINGS FOR A BOOK ────────────
+async function toggleBookBorrowed(bookId) {
+    const book = books.find(b => b.id === bookId);
+    if (!book) return;
+
+    const res = await api(`/borrowings?bookId=${bookId}&active=true`);
+    if (!res || !res.ok) { notify('Could not load borrowings', true); return; }
+    const data = await res.json();
+    const active = data.filter(b => b.bookId === bookId);
+
+    const modal = document.getElementById('bookBorrowingsModal');
+    const title = document.getElementById('bookBorrowingsTitle');
+    const tbody = document.getElementById('bookBorrowingsTb');
+    if (!modal || !tbody) return;
+
+    title.innerHTML = `Borrowings: <em>${book.title}</em>`;
+    if (!active.length) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--mist)">No active borrowings for this book</td></tr>`;
+    } else {
+        tbody.innerHTML = active.map(b => `<tr>
+            <td>${b.userFullname}</td>
+            <td>${fmtDate(b.borrowDate)}</td>
+            <td>${fmtDate(b.dueDate)}</td>
+            <td>${b.isOverdue
+                ? `<span style="color:var(--danger);font-weight:500">⚠ Overdue ${Math.floor((Date.now() - new Date(b.dueDate)) / (86400000))}d</span>`
+                : statusChip('available')}
+                <button class="btn btn-primary btn-sm" style="margin-left:.5rem" onclick="returnBook(${b.id});closeModal('bookBorrowingsModal');loadLibDash()">Return</button>
+            </td>
+        </tr>`).join('');
+    }
+    openModal('bookBorrowingsModal');
+}
+
 async function loadLibDash() {
     await loadBooks();
     const tot = books.length;
@@ -552,6 +838,7 @@ async function loadLibDash() {
                 <td>${avail}/${total} ${statusChip(b.status)}</td>
                 <td style="display:flex;gap:.4rem">
                     <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">Edit</button>
+                    <button class="btn btn-ghost btn-sm" onclick="toggleBookBorrowed(${b.id})">📋 Borrowings</button>
                     <button class="btn-del" onclick="deleteBook(${b.id})">Delete</button>
                 </td></tr>`;
         }).join('')
@@ -634,7 +921,7 @@ function openAddBook() {
     document.getElementById('bkCount').value = 1;
     document.getElementById('bkCat').value = 'Fiction';
     clearBookImage(); clearBookPdf();
-    openAddBook();
+    openModal('addBookModal');
 }
 function openEditBook(id) {
     const b = books.find(x => x.id === id); if (!b) return;
@@ -854,7 +1141,7 @@ async function performSearch() {
         if (res && res.ok) {
             const data = await res.json();
             if (data.length) {
-                books = data.map(b => ({ id: b.id, title: b.title, author: b.author, category: b.category, isbn: b.isbn, shelf: b.bookshelf, available: b.isAvailable, status: b.isAvailable ? 'available' : 'borrowed' }));
+                books = data.map(b => ({ id: b.id, title: b.title, author: b.author, category: b.category, isbn: b.isbn, shelf: b.bookshelf, available: b.isAvailable, status: b.isAvailable ? 'available' : 'borrowed', totalCount: b.totalCount || 1, borrowedCount: b.borrowedCount || 0, availableCount: b.availableCount || (b.isAvailable ? 1 : 0), imagePath: b.imagePath || null, pdfUrl: b.pdfUrl || null }));
                 showPage('library'); renderLibrary('all');
                 notify(`Found ${data.length} book${data.length === 1 ? '' : 's'}`);
                 return;

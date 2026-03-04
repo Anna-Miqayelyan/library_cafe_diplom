@@ -205,5 +205,30 @@ namespace LibraryCafe.Api.Controllers
                 Items = items
             });
         }
+
+        // POST: api/users/5/change-password
+        [HttpPost("{id}/change-password")]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto dto)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null) return NotFound(new { message = "User not found" });
+
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+                return BadRequest(new { message = "Current password is incorrect" });
+
+            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 8)
+                return BadRequest(new { message = "New password must be at least 8 characters" });
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Password updated successfully" });
+        }
+    }
+
+    // DTO for password change
+    public class ChangePasswordDto
+    {
+        public string CurrentPassword { get; set; } = "";
+        public string NewPassword { get; set; } = "";
     }
 }

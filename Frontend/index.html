@@ -206,18 +206,53 @@
             </div>
         </div>
 
+        <!-- BOOKSHELF MAP -->
+        <div class="page" id="shelfMap">
+            <div class="container">
+                <div class="dash-banner">
+                    <div class="dash-inner">
+                        <p class="dash-eyebrow">Library Layout</p>
+                        <h2>Bookshelf <em>Map</em></h2>
+                        <p>Visual overview of all shelves and their books</p>
+                    </div>
+                </div>
+                <div class="section" id="shelfMapContent">
+                    <div style="text-align:center;padding:3rem;color:var(--mist)">Loading shelf map…</div>
+                </div>
+            </div>
+        </div>
+
         <!-- RESERVATIONS -->
         <div class="page" id="reservations">
             <div class="container">
                 <div class="section">
                     <div class="sec-head"><h2>Seat <em>Reservations</em></h2></div>
-                    <p style="color:var(--mist);margin-bottom:1.8rem;font-size:.88rem;font-weight:300;line-height:1.7">Select an available seat to reserve your study spot for the session.</p>
+                    <p style="color:var(--mist);margin-bottom:1.2rem;font-size:.88rem;font-weight:300;line-height:1.7">Pick a time slot, then click an available seat to reserve your study spot.</p>
+
+                    <!-- Time slot picker -->
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1.5rem;background:var(--paper);border:1px solid var(--silk);border-radius:var(--r-md);padding:1.2rem">
+                        <div class="form-group" style="margin:0;flex:1;min-width:140px">
+                            <label>Date</label>
+                            <input type="date" id="resDate" style="width:100%">
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:120px">
+                            <label>From</label>
+                            <select id="resFrom" style="width:100%"></select>
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:120px">
+                            <label>To</label>
+                            <select id="resTo" style="width:100%"></select>
+                        </div>
+                        <button class="btn btn-primary" onclick="generateSeats()">Check Availability</button>
+                    </div>
+
                     <div class="legend-row">
                         <div class="legend-item"><span class="leg-sw ls-a"></span>Available</div>
-                        <div class="legend-item"><span class="leg-sw ls-t"></span>Occupied</div>
+                        <div class="legend-item"><span class="leg-sw ls-t"></span>Reserved <span id="takenTimeHint" style="font-size:.75rem;color:var(--mist)"></span></div>
                         <div class="legend-item"><span class="leg-sw ls-m"></span>Your Reservation</div>
                     </div>
                     <div class="seat-map" id="seatMap"></div>
+                    <div id="myReservationsList" style="margin-top:1.5rem"></div>
                 </div>
             </div>
         </div>
@@ -238,6 +273,16 @@
                             <div class="info-row"><span class="info-k">Wallet Balance</span><span class="info-v" id="profWallet">0 AMD</span></div>
                             <div class="info-row"><span class="info-k">Books Borrowed</span><span class="info-v" id="profBorrowed">0</span></div>
                             <div class="info-row"><span class="info-k">Current Fines</span><span class="info-v" id="profFines">0 AMD</span></div>
+                            <div class="info-row" style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--silk)">
+                                <span class="info-k" style="align-self:flex-start;padding-top:.3rem">Change Password</span>
+                                <div style="display:flex;flex-direction:column;gap:.6rem;flex:1">
+                                    <input type="password" id="pwCurrent" placeholder="Current password" class="form-control" style="padding:.6rem .9rem;border:1px solid var(--silk);border-radius:var(--r-sm);font-family:inherit">
+                                    <input type="password" id="pwNew" placeholder="New password (min 8 chars)" class="form-control" style="padding:.6rem .9rem;border:1px solid var(--silk);border-radius:var(--r-sm);font-family:inherit">
+                                    <input type="password" id="pwConfirm" placeholder="Confirm new password" class="form-control" style="padding:.6rem .9rem;border:1px solid var(--silk);border-radius:var(--r-sm);font-family:inherit">
+                                    <div id="pwStrength" style="font-size:.78rem;margin-top:-.2rem"></div>
+                                    <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="changePassword()">Update Password</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -539,6 +584,23 @@
                 </button>
             </div>
             <iframe id="pdfViewer" style="flex:1;width:100%;border:none;border-radius:0 0 var(--r-lg) var(--r-lg)"></iframe>
+        </div>
+    </div>
+
+
+    <!-- BOOK BORROWINGS MODAL (Librarian) -->
+    <div class="modal" id="bookBorrowingsModal">
+        <div class="modal-box" style="max-width:680px">
+            <div class="modal-head">
+                <h2 id="bookBorrowingsTitle">Book <em>Borrowings</em></h2>
+                <button class="m-close" onclick="closeModal('bookBorrowingsModal')">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Borrower</th><th>Borrowed</th><th>Due</th><th>Status</th></tr></thead>
+                <tbody id="bookBorrowingsTb"></tbody>
+            </table>
         </div>
     </div>
 
