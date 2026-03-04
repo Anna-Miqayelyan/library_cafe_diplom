@@ -281,11 +281,11 @@
                 <div class="section">
                     <div class="sec-head">
                         <h2>Book <em>Catalog</em></h2>
-                        <button class="btn btn-primary btn-sm" onclick="openModal('addBookModal')">+ Add Book</button>
+                        <button class="btn btn-primary btn-sm" onclick="openAddBook()">+ Add Book</button>
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>ISBN</th><th>Shelf</th><th>Copies</th><th>Status</th><th>Action</th></tr></thead>
+                            <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>ISBN</th><th>Shelf</th><th>Status</th><th>Action</th></tr></thead>
                             <tbody id="libBooksTable"></tbody>
                         </table>
                     </div>
@@ -377,7 +377,7 @@
                 <div class="section">
                     <div class="sec-head">
                         <h2>All <em>Books</em></h2>
-                        <button class="btn btn-primary btn-sm" onclick="openModal('addBookModal')">+ Add Book</button>
+                        <button class="btn btn-primary btn-sm" onclick="openAddBook()">+ Add Book</button>
                     </div>
                     <div class="table-wrap">
                         <table>
@@ -456,7 +456,7 @@
     </div><!-- /mainApp -->
     <!-- MODALS -->
     <div class="modal" id="addBookModal">
-        <div class="modal-box">
+        <div class="modal-box" style="max-height:90vh;overflow-y:auto">
             <div class="modal-head">
                 <h2 id="addBookTitle">Add New <em>Book</em></h2>
                 <button class="m-close" onclick="closeModal('addBookModal')">
@@ -473,8 +473,22 @@
             <div class="form-group"><label>ISBN</label><input type="text" id="bkISBN" placeholder="978-..."></div>
             <div class="form-group"><label>Bookshelf</label><input type="text" id="bkShelf" placeholder="e.g. A-12"></div>
             <div class="form-group"><label>Number of Copies</label><input type="number" id="bkCount" placeholder="1" min="1" value="1"></div>
-            <div class="form-group"><label>Cover Image URL <span style="color:var(--mist);font-weight:300">(optional)</span></label><input type="text" id="bkImage" placeholder="https://... or leave empty"></div>
-            <div class="form-group"><label>PDF URL <span style="color:var(--mist);font-weight:300">(optional)</span></label><input type="text" id="bkPdf" placeholder="https://... or leave empty"></div>
+            <div class="form-group">
+                <label>Cover Image <span style="color:var(--mist);font-weight:300">(optional)</span></label>
+                <input type="file" id="bkImageFile" accept="image/*" onchange="previewBookImage(this)">
+                <div id="bkImagePreview" style="margin-top:.5rem;display:none">
+                    <img id="bkImagePreviewImg" style="max-width:100%;max-height:160px;border-radius:var(--r-sm);object-fit:cover">
+                    <button type="button" onclick="clearBookImage()" style="display:block;margin-top:.3rem;font-size:.8rem;color:var(--danger);background:none;border:none;cursor:pointer">✕ Remove image</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>PDF File <span style="color:var(--mist);font-weight:300">(optional)</span></label>
+                <input type="file" id="bkPdfFile" accept="application/pdf" onchange="previewBookPdf(this)">
+                <div id="bkPdfPreview" style="margin-top:.3rem;font-size:.85rem;color:var(--smoke);display:none">
+                    <span id="bkPdfName"></span>
+                    <button type="button" onclick="clearBookPdf()" style="margin-left:.5rem;font-size:.8rem;color:var(--danger);background:none;border:none;cursor:pointer">✕ Remove</button>
+                </div>
+            </div>
             <button class="btn btn-primary" style="width:100%;margin-top:.5rem" id="bkSubmitBtn" onclick="submitBook()">Add to Collection</button>
         </div>
     </div>
@@ -511,6 +525,20 @@
                 <span class="cart-tot-n"><span id="cartTotal">0</span> AMD</span>
             </div>
             <button class="btn btn-primary" style="width:100%;margin-top:1.5rem;padding:1rem" onclick="checkout()">Place Order</button>
+        </div>
+    </div>
+
+
+    <!-- PDF VIEWER MODAL -->
+    <div class="modal" id="pdfModal" style="z-index:2000">
+        <div class="modal-box" style="max-width:900px;width:95vw;height:90vh;display:flex;flex-direction:column;padding:0">
+            <div class="modal-head" style="padding:1.2rem 1.5rem;flex-shrink:0">
+                <h2 id="pdfModalTitle">Book <em>PDF</em></h2>
+                <button class="m-close" onclick="closeModal('pdfModal')">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <iframe id="pdfViewer" style="flex:1;width:100%;border:none;border-radius:0 0 var(--r-lg) var(--r-lg)"></iframe>
         </div>
     </div>
 

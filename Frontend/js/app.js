@@ -265,13 +265,11 @@ function bookCard(b) {
     const fav = favs.some(f => f.id === b.id && f.type === 'book');
     const cats = { Fiction: 'F', Technology: 'T', Science: 'S', 'Non-Fiction': 'N' };
     const imgHtml = b.imagePath
-        ? `<img src="${b.imagePath}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-sm)">`
+        ? `<img src="${b.imagePath}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-sm) var(--r-sm) 0 0">`
         : `<div class="card-img-icon">${cats[b.category] || '◈'}</div>`;
     const avail = b.availableCount ?? (b.available ? 1 : 0);
     const total = b.totalCount || 1;
-    const copyBadge = total > 1
-        ? `<span style="font-size:.75rem;color:var(--smoke);margin-left:.4rem">${avail}/${total} copies</span>`
-        : '';
+    const copyBadge = total > 1 ? `<span style="font-size:.75rem;color:var(--smoke);margin-left:.4rem">${avail}/${total} copies</span>` : '';
     return `
   <div class="card">
     <button class="fav-btn ${fav ? 'on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
@@ -285,9 +283,20 @@ function bookCard(b) {
         ${avail > 0
             ? `<button class="btn btn-primary btn-sm" onclick="borrowBook(${b.id})">Borrow</button>`
             : `<button class="btn btn-ghost btn-sm" disabled>All Borrowed</button>`}
+        ${b.pdfUrl ? `<button class="btn btn-ghost btn-sm" onclick="openPdf(${b.id})">📄 Read PDF</button>` : ''}
       </div>
     </div>
   </div>`;
+}
+
+
+// ─── PDF VIEWER ──────────────────────────────────────────────
+function openPdf(id) {
+    const b = books.find(x => x.id === id);
+    if (!b || !b.pdfUrl) { notify('No PDF available for this book', true); return; }
+    document.getElementById('pdfModalTitle').innerHTML = `${b.title} <em>PDF</em>`;
+    document.getElementById('pdfViewer').src = b.pdfUrl;
+    openModal('pdfModal');
 }
 
 // ─── MENU CARD ───────────────────────────────────────────────
@@ -538,20 +547,15 @@ async function loadLibDash() {
             const avail = b.availableCount ?? (b.available ? 1 : 0);
             const total = b.totalCount || 1;
             return `<tr>
-                <td>${b.title}</td>
-                <td>${b.author}</td>
-                <td>${b.category}</td>
-                <td>${b.isbn || '—'}</td>
-                <td>${b.shelf || '—'}</td>
-                <td><span style="font-size:.8rem">${avail}/${total}</span> ${statusChip(b.status)}</td>
-                <td>${statusChip(b.status)}</td>
+                <td>${b.title}</td><td>${b.author}</td><td>${b.category}</td>
+                <td>${b.isbn || '—'}</td><td>${b.shelf || '—'}</td>
+                <td>${avail}/${total} ${statusChip(b.status)}</td>
                 <td style="display:flex;gap:.4rem">
                     <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">Edit</button>
                     <button class="btn-del" onclick="deleteBook(${b.id})">Delete</button>
-                </td>
-            </tr>`;
+                </td></tr>`;
         }).join('')
-        : `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No books yet</td></tr>`;
+        : `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No books yet</td></tr>`;
 
     const br = await api('/borrowings?active=true');
     if (br && br.ok) {
@@ -563,21 +567,77 @@ async function loadLibDash() {
     }
 }
 
-// Opens modal for adding a new book
+// ─── FILE → BASE64 HELPER ──────────────────────────────────
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Resize + compress image before upload (max 800px, 70% quality)
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const MAX = 800;
+                let w = img.width, h = img.height;
+                if (w > MAX || h > MAX) {
+                    if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+                    else { w = Math.round(w * MAX / h); h = MAX; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+function previewBookImage(input) {
+    const file = input.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('bkImagePreviewImg').src = e.target.result;
+        document.getElementById('bkImagePreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+function clearBookImage() {
+    const f = document.getElementById('bkImageFile'); if (f) f.value = '';
+    const p = document.getElementById('bkImagePreview'); if (p) p.style.display = 'none';
+    const i = document.getElementById('bkImagePreviewImg'); if (i) i.src = '';
+}
+function previewBookPdf(input) {
+    const file = input.files[0]; if (!file) return;
+    const n = document.getElementById('bkPdfName'); if (n) n.textContent = '📄 ' + file.name;
+    const p = document.getElementById('bkPdfPreview'); if (p) p.style.display = 'block';
+}
+function clearBookPdf() {
+    const f = document.getElementById('bkPdfFile'); if (f) f.value = '';
+    const p = document.getElementById('bkPdfPreview'); if (p) p.style.display = 'none';
+    const n = document.getElementById('bkPdfName'); if (n) n.textContent = '';
+}
 function openAddBook() {
     document.getElementById('bkEditId').value = '';
     document.getElementById('addBookTitle').innerHTML = 'Add New <em>Book</em>';
     document.getElementById('bkSubmitBtn').textContent = 'Add to Collection';
-    ['bkTitle', 'bkAuthor', 'bkISBN', 'bkShelf', 'bkImage', 'bkPdf'].forEach(id => document.getElementById(id).value = '');
+    ['bkTitle', 'bkAuthor', 'bkISBN', 'bkShelf'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('bkCount').value = 1;
     document.getElementById('bkCat').value = 'Fiction';
-    openModal('addBookModal');
+    clearBookImage(); clearBookPdf();
+    openAddBook();
 }
-
-// Opens modal pre-filled for editing
 function openEditBook(id) {
-    const b = books.find(x => x.id === id);
-    if (!b) return;
+    const b = books.find(x => x.id === id); if (!b) return;
     document.getElementById('bkEditId').value = b.id;
     document.getElementById('addBookTitle').innerHTML = 'Edit <em>Book</em>';
     document.getElementById('bkSubmitBtn').textContent = 'Save Changes';
@@ -587,12 +647,17 @@ function openEditBook(id) {
     document.getElementById('bkISBN').value = b.isbn || '';
     document.getElementById('bkShelf').value = b.shelf || '';
     document.getElementById('bkCount').value = b.totalCount || 1;
-    document.getElementById('bkImage').value = b.imagePath || '';
-    document.getElementById('bkPdf').value = b.pdfUrl || '';
+    clearBookImage(); clearBookPdf();
+    if (b.imagePath) {
+        document.getElementById('bkImagePreviewImg').src = b.imagePath;
+        document.getElementById('bkImagePreview').style.display = 'block';
+    }
+    if (b.pdfUrl) {
+        document.getElementById('bkPdfName').textContent = '📄 PDF already uploaded';
+        document.getElementById('bkPdfPreview').style.display = 'block';
+    }
     openModal('addBookModal');
 }
-
-// Handles both add and edit
 async function submitBook() {
     const editId = document.getElementById('bkEditId')?.value || '';
     const title = document.getElementById('bkTitle')?.value.trim() || '';
@@ -601,33 +666,46 @@ async function submitBook() {
     const isbn = document.getElementById('bkISBN')?.value.trim() || '';
     const bookshelf = document.getElementById('bkShelf')?.value.trim() || '';
     const totalCount = parseInt(document.getElementById('bkCount')?.value) || 1;
-    const imagePath = document.getElementById('bkImage')?.value.trim() || null;
-    const pdfUrl = document.getElementById('bkPdf')?.value.trim() || null;
-
     if (!title || !author || !isbn || !bookshelf) { notify('Please fill all required fields', true); return; }
 
-    const body = JSON.stringify({ title, author, category, isbn, bookshelf, totalCount, imagePath, pdfUrl });
+    const imageFile = document.getElementById('bkImageFile')?.files[0];
+    const pdfFile = document.getElementById('bkPdfFile')?.files[0];
+    const btn = document.getElementById('bkSubmitBtn');
+    const origText = btn.textContent;
+    btn.textContent = 'Saving…'; btn.disabled = true;
 
-    let res;
-    if (editId) {
-        res = await api(`/books/${editId}`, { method: 'PUT', body });
-        if (!res) return;
-        if (!res.ok) { const e = await res.json(); notify(e.message || 'Update failed', true); return; }
-        notify(`"${title}" updated`);
-    } else {
-        res = await api('/books', { method: 'POST', body });
-        if (!res) return;
-        if (!res.ok) { const e = await res.json(); notify(e.message || 'Failed', true); return; }
-        notify(`"${title}" added to collection`);
+    try {
+        // Use FormData so files are sent as real streams — no base64 conversion, no slowdown
+        const fd = new FormData();
+        fd.append('title', title);
+        fd.append('author', author);
+        fd.append('category', category);
+        fd.append('isbn', isbn);
+        fd.append('bookshelf', bookshelf);
+        fd.append('totalCount', totalCount);
+        if (imageFile) fd.append('imageFile', imageFile);
+        if (pdfFile) fd.append('pdfFile', pdfFile);
+
+        const url = editId ? `${API}/books/${editId}/upload` : `${API}/books/upload`;
+        const method = editId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, { method, body: fd });
+        if (!res.ok) {
+            const e = await res.json().catch(() => ({}));
+            notify(e.message || 'Failed to save book', true);
+            btn.textContent = origText; btn.disabled = false;
+            return;
+        }
+        notify(editId ? `"${title}" updated` : `"${title}" added to collection`);
+        btn.textContent = origText; btn.disabled = false;
+        closeModal('addBookModal');
+        await loadBooks(); loadLibDash();
+        if (currentUser.role === 'Admin') loadAdminDash();
+    } catch (err) {
+        notify('Error saving book: ' + err.message, true);
+        btn.textContent = origText; btn.disabled = false;
     }
-
-    closeModal('addBookModal');
-    await loadBooks();
-    loadLibDash();
-    if (currentUser.role === 'Admin') loadAdminDash();
 }
-
-// Keep old name as alias so existing onclick="addBook()" buttons still work
 function addBook() { submitBook(); }
 
 async function deleteBook(id) {
@@ -734,14 +812,12 @@ async function loadAdminDash() {
     if (bk) bk.innerHTML = books.map(b => {
         const avail = b.availableCount ?? (b.available ? 1 : 0);
         const total = b.totalCount || 1;
-        return `<tr>
-            <td>${b.title}</td><td>${b.author}</td><td>${b.category}</td>
+        return `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.category}</td>
             <td>${avail}/${total} ${statusChip(b.status)}</td>
             <td style="display:flex;gap:.4rem">
                 <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">Edit</button>
                 <button class="btn-del" onclick="deleteBook(${b.id})">Delete</button>
-            </td>
-        </tr>`;
+            </td></tr>`;
     }).join('');
 
     const or = await api('/cafeorders');

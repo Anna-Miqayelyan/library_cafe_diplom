@@ -1,4 +1,4 @@
-using LibraryCafe.Api.DTOs;
+﻿using LibraryCafe.Api.DTOs;
 using LibraryCafe.Core.Entities;
 using LibraryCafe.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +17,6 @@ namespace LibraryCafe.Api.Controllers
             _context = context;
         }
 
-        // ?? helpers ????????????????????????????????????????????
         private static BookDto MapBook(Book b)
         {
             var activeBorrowings = b.Borrowings?.Count(br => br.ReturnDate == null) ?? 0;
@@ -84,9 +83,9 @@ namespace LibraryCafe.Api.Controllers
             return Ok(MapBook(book));
         }
 
-        // POST: api/books
+        // POST: api/books (JSON, no files)
         [HttpPost]
-        public async Task<ActionResult<BookDto>> CreateBook(BookCreateDto bookDto)
+        public async Task<ActionResult<BookDto>> CreateBook([FromBody] BookCreateDto bookDto)
         {
             if (await _context.Books.AnyAsync(b => b.ISBN == bookDto.ISBN))
                 return BadRequest(new { message = "A book with this ISBN already exists" });
@@ -105,13 +104,41 @@ namespace LibraryCafe.Api.Controllers
 
             _context.Books.Add(book);
             await _context.SaveChangesAsync();
-
             return CreatedAtAction(nameof(GetBook), new { id = book.Id }, MapBook(book));
         }
 
-        // PUT: api/books/5
+        // POST: api/books/upload (multipart, with files)
+        [HttpPost("upload")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(52428800)]
+        public async Task<ActionResult<BookDto>> CreateBookWithFiles([FromForm] BookUploadForm form)
+        {
+            if (await _context.Books.AnyAsync(b => b.ISBN == form.ISBN))
+                return BadRequest(new { message = "A book with this ISBN already exists" });
+
+            var book = new Book
+            {
+                Title = form.Title,
+                Author = form.Author,
+                Category = form.Category,
+                ISBN = form.ISBN,
+                Bookshelf = form.Bookshelf,
+                TotalCount = form.TotalCount > 0 ? form.TotalCount : 1
+            };
+
+            if (form.ImageFile != null && form.ImageFile.Length > 0)
+                book.ImagePath = await ReadFileAsDataUrl(form.ImageFile);
+            if (form.PdfFile != null && form.PdfFile.Length > 0)
+                book.PdfUrl = await ReadFileAsDataUrl(form.PdfFile);
+
+            _context.Books.Add(book);
+            await _context.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetBook), new { id = book.Id }, MapBook(book));
+        }
+
+        // PUT: api/books/5 (JSON, no files)
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBook(int id, BookUpdateDto bookDto)
+        public async Task<IActionResult> UpdateBook(int id, [FromBody] BookUpdateDto bookDto)
         {
             var book = await _context.Books.FindAsync(id);
             if (book == null)
@@ -135,6 +162,31 @@ namespace LibraryCafe.Api.Controllers
             }
 
             return NoContent();
+        }
+
+        // PUT: api/books/5/upload (multipart, with files)
+        [HttpPut("{id}/upload")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(52428800)]
+        public async Task<IActionResult> UpdateBookWithFiles(int id, [FromForm] BookUploadForm form)
+        {
+            var book = await _context.Books.FindAsync(id);
+            if (book == null) return NotFound(new { message = "Book not found" });
+
+            book.Title = form.Title;
+            book.Author = form.Author;
+            book.Category = form.Category;
+            book.ISBN = form.ISBN;
+            book.Bookshelf = form.Bookshelf;
+            book.TotalCount = form.TotalCount > 0 ? form.TotalCount : 1;
+
+            if (form.ImageFile != null && form.ImageFile.Length > 0)
+                book.ImagePath = await ReadFileAsDataUrl(form.ImageFile);
+            if (form.PdfFile != null && form.PdfFile.Length > 0)
+                book.PdfUrl = await ReadFileAsDataUrl(form.PdfFile);
+
+            await _context.SaveChangesAsync();
+            return Ok(MapBook(book));
         }
 
         // DELETE: api/books/5
@@ -167,7 +219,7 @@ namespace LibraryCafe.Api.Controllers
             return Ok(cats);
         }
 
-        // GET: api/books/5/reviews  - convenience endpoint
+        // GET: api/books/5/reviews
         [HttpGet("{id}/reviews")]
         public async Task<ActionResult<IEnumerable<BookReviewDto>>> GetBookReviews(int id)
         {
@@ -190,5 +242,27 @@ namespace LibraryCafe.Api.Controllers
 
             return Ok(reviews);
         }
+
+        // Helper
+        private static async Task<string> ReadFileAsDataUrl(IFormFile file)
+        {
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+            return $"data:{file.ContentType};base64,{base64}";
+        }
+    }
+
+    // Form model for file uploads
+    public class BookUploadForm
+    {
+        public string Title { get; set; } = "";
+        public string Author { get; set; } = "";
+        public string Category { get; set; } = "Fiction";
+        public string ISBN { get; set; } = "";
+        public string Bookshelf { get; set; } = "";
+        public int TotalCount { get; set; } = 1;
+        public IFormFile? ImageFile { get; set; }
+        public IFormFile? PdfFile { get; set; }
     }
 }
