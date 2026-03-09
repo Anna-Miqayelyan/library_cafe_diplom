@@ -26,6 +26,6 @@ namespace LibraryCafe.Core.Entities
         // Navigation properties
         public User User { get; set; } = null!;
         public ICollection<CafeOrderItem> OrderItems { get; set; } = new List<CafeOrderItem>();
-        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+       // public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     }
 }

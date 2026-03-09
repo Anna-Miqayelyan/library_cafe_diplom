@@ -20,11 +20,9 @@ namespace LibraryCafe.Core.Entities
         [Column("comment")]
         public string? Comment { get; set; }
 
-        // NEW: timestamp so reviews can be sorted by date
         [Column("createdat")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation
         public User User { get; set; } = null!;
         public MenuItem MenuItem { get; set; } = null!;
     }

@@ -8,7 +8,6 @@ namespace LibraryCafe.Api.DTOs
         public string ISBN { get; set; } = null!;
         public string Bookshelf { get; set; } = null!;
 
-        // NEW: multiple copies, cover image, pdf
         public int TotalCount { get; set; } = 1;
         public string? ImagePath { get; set; }
         public string? PdfUrl { get; set; }
@@ -36,7 +35,6 @@ namespace LibraryCafe.Api.DTOs
         public string Bookshelf { get; set; } = null!;
         public bool IsAvailable { get; set; }
 
-        // NEW
         public int TotalCount { get; set; }
         public int BorrowedCount { get; set; }
         public int AvailableCount { get; set; }

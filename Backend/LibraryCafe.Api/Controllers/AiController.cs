@@ -75,7 +75,6 @@ public class AiController : ControllerBase
                 }
             }
 
-            // Cloudflare response: { "result": { "response": "..." } }
             using var doc = JsonDocument.Parse(body);
             var text = doc.RootElement
                 .GetProperty("result")

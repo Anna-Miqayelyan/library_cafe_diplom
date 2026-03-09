@@ -1,4 +1,4 @@
-﻿// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 //  LIBRARY CAFÉ — app.js
 // ═══════════════════════════════════════════════════════════
 
@@ -17,35 +17,35 @@ const ROLES = {
     'Student': {
         badge: 'Student', cls: 'rp-s', home: 'home',
         nav: [
-            { l: 'Home', p: 'home' },
-            { l: 'Library', p: 'library' },
-            { l: 'Café', p: 'cafe' },
-            { l: 'Favorites', p: 'favorites' },
-            { l: 'Reservations', p: 'reservations' },
-            { l: 'AI Assistant', p: 'aiPage' },
-            { l: 'Profile', p: 'profile' }
+            { lk: 'home', p: 'home' },
+            { lk: 'library', p: 'library' },
+            { lk: 'cafe', p: 'cafe' },
+            { lk: 'favorites', p: 'favorites' },
+            { lk: 'reservations', p: 'reservations' },
+            { lk: 'aiAssistant', p: 'aiPage' },
+            { lk: 'profile', p: 'profile' }
         ],
-        wallet: true, cart: true
+        wallet: false, cart: false
     },
     'Librarian': {
         badge: 'Librarian', cls: 'rp-l', home: 'libDash',
-        nav: [{ l: 'Dashboard', p: 'libDash' }, { l: 'Library', p: 'library' }, { l: 'Shelf Map', p: 'shelfMap' }, { l: 'AI Assistant', p: 'aiPage' }, { l: 'Profile', p: 'profile' }],
+        nav: [{ lk: 'dashboard', p: 'libDash' }, { lk: 'library', p: 'library' }, { lk: 'shelfMap', p: 'shelfMap' }, { lk: 'aiAssistant', p: 'aiPage' }, { lk: 'profile', p: 'profile' }],
         wallet: false, cart: false
     },
     'Café Staff': {
         badge: 'Café Staff', cls: 'rp-c', home: 'cafeDash',
-        nav: [{ l: 'Dashboard', p: 'cafeDash' }, { l: 'Profile', p: 'profile' }],
+        nav: [{ lk: 'dashboard', p: 'cafeDash' }, { lk: 'profile', p: 'profile' }],
         wallet: false, cart: false
     },
     'Admin': {
         badge: 'Admin', cls: 'rp-a', home: 'adminDash',
         nav: [
-            { l: 'Dashboard', p: 'adminDash' },
-            { l: 'Library', p: 'libDash' },
-            { l: 'Café', p: 'cafeDash' },
-            { l: 'AI Assistant', p: 'aiPage' },
-            { l: 'Profile', p: 'profile' }
-            , { l: 'Shelf Map', p: 'shelfMap' }],
+            { lk: 'dashboard', p: 'adminDash' },
+            { lk: 'library', p: 'libDash' },
+            { lk: 'cafe', p: 'cafeDash' },
+            { lk: 'aiAssistant', p: 'aiPage' },
+            { lk: 'profile', p: 'profile' }
+            , { lk: 'shelfMap', p: 'shelfMap' }],
         wallet: false, cart: false
     }
 };
@@ -53,6 +53,11 @@ const ROLES = {
 // ─── INIT ────────────────────────────────────────────────────
 window.onload = () => {
     loadStorage();
+    // Apply language (default: Armenian)
+    applyTranslations();
+    document.querySelectorAll('.lang-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.lang === currentLang)
+    );
     if (currentUser) showApp();
     else document.getElementById('authScreen').style.display = 'flex';
 };
@@ -148,6 +153,7 @@ function logout() {
 
 // ─── SHOW APP ────────────────────────────────────────────────
 async function showApp() {
+    if (typeof applyTranslations !== "undefined") applyTranslations();
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainNav').style.display = 'block';
     document.getElementById('mainApp').style.display = 'block';
@@ -156,7 +162,7 @@ async function showApp() {
 
     // Nav
     document.getElementById('navLinks').innerHTML = cfg.nav.map(n =>
-        `<li><a onclick="showPage('${n.p}')">${n.l}</a></li>`
+        `<li><a onclick="showPage('${n.p}')">${typeof t !== 'undefined' ? t(n.lk) : n.lk}</a></li>`
     ).join('');
 
     document.getElementById('logoBtn').onclick = () => showPage(cfg.home);
@@ -166,16 +172,13 @@ async function showApp() {
     rp.textContent = cfg.badge;
     rp.className = 'role-pill ' + cfg.cls;
 
-    // Wallet / cart
-    document.getElementById('walletDisplay').style.display = cfg.wallet ? 'block' : 'none';
-    document.getElementById('cartBtn').style.display = cfg.cart ? 'block' : 'none';
-    if (cfg.wallet) document.getElementById('walletDisplay').textContent = fmt(currentUser.wallet) + ' AMD';
+
 
     // Hero greeting
     const hn = document.getElementById('heroName');
     if (hn) {
         const first = currentUser.name.split(' ')[0];
-        hn.innerHTML = `Good to see <em>${first}</em> again.`;
+        hn.innerHTML = `${t("welcomeBack")}, <em>${first}</em>!`;
     }
 
     await loadBooks();
@@ -249,7 +252,7 @@ function showPage(id) {
     if (id === 'libDash') loadLibDash();
     if (id === 'cafeDash') loadCafeDash();
     if (id === 'adminDash') loadAdminDash();
-    if (id === 'reservations') { initReservationPickers(); generateSeats(); }
+    if (id === 'reservations') { initReservationPickers(); generateSeats(); initNotifBtn(); }
     if (id === 'shelfMap') renderShelfMap();
     if (id === 'aiPage') initAiPage();
 }
@@ -264,7 +267,13 @@ function statusChip(s) {
         available: 'c-av', borrowed: 'c-bo', Overdue: 'c-bo', Pending: 'c-pe',
         Preparing: 'c-pr', Ready: 'c-re', Completed: 'c-do', Cancelled: 'c-ca'
     };
-    return chip(s, m[s] || 'c-av');
+    const labels = {
+        available: t('statusAvailable'), borrowed: t('statusBorrowed'),
+        Overdue: t('statusOverdue'), Pending: t('statusPending'),
+        Preparing: t('statusPreparing'), Ready: t('statusReady'),
+        Completed: t('statusCompleted'), Cancelled: 'Cancelled'
+    };
+    return chip(labels[s] || s, m[s] || 'c-av');
 }
 
 // ─── BOOK CARD ───────────────────────────────────────────────
@@ -276,7 +285,7 @@ function bookCard(b) {
         : `<div class="card-img-icon">${cats[b.category] || '◈'}</div>`;
     const avail = b.availableCount ?? (b.available ? 1 : 0);
     const total = b.totalCount || 1;
-    const copyBadge = total > 1 ? `<span style="font-size:.75rem;color:var(--smoke);margin-left:.4rem">${avail}/${total} copies</span>` : '';
+    const copyBadge = total > 1 ? `<span style="font-size:.75rem;color:var(--smoke);margin-left:.4rem">${avail}/${total} ${t("copies")}</span>` : '';
     return `
   <div class="card">
     <button class="fav-btn ${fav ? 'on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
@@ -288,9 +297,10 @@ function bookCard(b) {
       <div style="display:flex;align-items:center;gap:.3rem;margin:.3rem 0">${statusChip(b.status)}${copyBadge}</div>
       <div class="card-actions">
         ${avail > 0
-            ? `<button class="btn btn-primary btn-sm" onclick="borrowBook(${b.id})">Borrow</button>`
-            : `<button class="btn btn-ghost btn-sm" onclick="joinQueue(${b.id})" title="All copies borrowed — join the waiting list">📋 Join Queue</button>`}
-        ${b.pdfUrl ? `<button class="btn btn-ghost btn-sm" onclick="openPdf(${b.id})">📄 Read PDF</button>` : ''}
+            ? `<button class="btn btn-primary btn-sm" onclick="borrowBook(${b.id})">${t("borrow")}</button>`
+            : `<button class="btn btn-ghost btn-sm" onclick="joinQueue(${b.id})">${t("joinQueue")}</button>`}
+        ${b.pdfUrl ? `<button class="btn btn-ghost btn-sm" onclick="openPdf(${b.id})">${t("readPdf")}</button>` : ''}
+        <button class="btn btn-ghost btn-sm fav-action-btn ${fav ? 'fav-on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
       </div>
     </div>
   </div>`;
@@ -322,7 +332,8 @@ function menuCard(m) {
       <div class="card-title">${m.name}</div>
       <div class="card-price">${fmt(m.price)} AMD</div>
       <div class="card-actions">
-        <button class="btn btn-primary btn-sm" onclick="addToCart(${m.id})">Add to Cart</button>
+        <button class="btn btn-primary btn-sm" onclick="addToCart(${m.id})">${t("addToCart")}</button>
+        <button class="btn btn-ghost btn-sm fav-action-btn ${fav ? 'fav-on' : ''}" onclick="event.stopPropagation();toggleFav(${m.id},'menu')">${fav ? '♥' : '♡'}</button>
       </div>
     </div>
   </div>`;
@@ -400,7 +411,7 @@ function renderFavs() {
 
 // ─── BORROW ──────────────────────────────────────────────────
 async function borrowBook(id) {
-    if (!currentUser) { notify('Please sign in first', true); return; }
+    if (!currentUser) { notify(t('notifySignIn'), true); return; }
     const res = await api('/borrowings', { method: 'POST', body: JSON.stringify({ userId: currentUser.id, bookId: id }) });
     if (!res) return;
     if (!res.ok) {
@@ -415,7 +426,7 @@ async function borrowBook(id) {
         }
         return;
     }
-    notify('Book borrowed successfully! Due in 14 days.');
+    notify(t('notifyBorrowed'));
     await loadBooks();
     renderLibrary('all');
 }
@@ -478,8 +489,6 @@ async function checkout() {
     if (!res) return;
     if (!res.ok) { const e = await res.json(); notify(e.message || 'Order failed', true); return; }
 
-    currentUser.wallet -= total;
-    document.getElementById('walletDisplay').textContent = fmt(currentUser.wallet) + ' AMD';
     notify('Order placed — total ' + fmt(total) + ' AMD');
     cart = []; updateCartBadge(); closeModal('cartModal'); saveStorage();
 }
@@ -490,26 +499,21 @@ async function checkout() {
 // "taken" seats = seats reserved by OTHER users for overlapping slot
 // We simulate other users with a deterministic hash (no random)
 
+
 function initReservationPickers() {
-    const dateEl = document.getElementById('resDate');
-    const fromEl = document.getElementById('resFrom');
-    const toEl = document.getElementById('resTo');
-    if (!dateEl || !fromEl || !toEl) return;
-
-    // Set default date to today
-    if (!dateEl.value) {
-        dateEl.value = new Date().toISOString().split('T')[0];
-    }
-
-    // Build hour options 08:00 - 21:00 (only once)
-    if (fromEl.options.length === 0) {
-        for (let h = 8; h <= 21; h++) {
-            const val = String(h).padStart(2, '0') + ':00';
-            fromEl.add(new Option(val, val));
-            toEl.add(new Option(val, val));
+    const dateEl=document.getElementById('resDate');
+    const fromEl=document.getElementById('resFrom');
+    const toEl  =document.getElementById('resTo');
+    if(!dateEl||!fromEl||!toEl) return;
+    if(!dateEl.value) dateEl.value=new Date().toISOString().split('T')[0];
+    if(fromEl.options.length===0){
+        for(let h=9;h<=20;h++){
+            const val=String(h).padStart(2,'0')+':00';
+            fromEl.add(new Option(val,val));
+            toEl.add(new Option(val,val));
         }
-        fromEl.value = '09:00';
-        toEl.value = '10:00';
+        fromEl.value='09:00';
+        toEl.value='10:00';
     }
 }
 
@@ -520,15 +524,9 @@ function deterministicHash(str) {
     return Math.abs(h);
 }
 
+
 function getTakenSeats(date, from, to) {
-    // Seats "taken by others" — deterministic based on date+slot, never changes
-    const key = date + from + to;
-    const taken = [];
-    for (let seat = 1; seat <= 40; seat++) {
-        const hash = deterministicHash(key + seat);
-        if (hash % 4 === 0) taken.push(seat); // ~25% of seats taken
-    }
-    return taken;
+    return [];
 }
 
 function slotsOverlap(f1, t1, f2, t2) {
@@ -537,81 +535,138 @@ function slotsOverlap(f1, t1, f2, t2) {
 
 function generateSeats() {
     initReservationPickers();
-    const el = document.getElementById('seatMap'); if (!el) return;
+    const el = document.getElementById('seatMap');
+    if (!el) return;
 
     const date = document.getElementById('resDate')?.value || '';
     const from = document.getElementById('resFrom')?.value || '09:00';
-    const to = document.getElementById('resTo')?.value || '10:00';
+    const to   = document.getElementById('resTo')?.value   || '10:00';
 
     if (!date) { notify('Please select a date', true); return; }
     if (from >= to) { notify('End time must be after start time', true); return; }
 
-    // My seats for this exact slot
-    const mySeats = reserved
-        .filter(r => r.date === date && r.from === from && r.to === to)
-        .map(r => r.seat);
+    const HOURS = ['09','10','11','12','13','14','15','16','17','18','19','20'];
 
-    // My seats for OTHER overlapping slots on same date (block them from double-booking)
-    const myOtherSeats = reserved
-        .filter(r => r.date === date && slotsOverlap(r.from, r.to, from, to) && !(r.from === from && r.to === to))
-        .map(r => r.seat);
+    const myTables  = reserved.filter(r=>r.date===date&&r.from===from&&r.to===to).map(r=>r.seat);
+    const myOverlap = reserved.filter(r=>r.date===date&&slotsOverlap(r.from,r.to,from,to)&&!(r.from===from&&r.to===to)).map(r=>r.seat);
+    const takenByOthers = getTakenSeats(date,from,to).filter(t=>!myTables.includes(t)&&!myOverlap.includes(t));
 
-    // Seats taken by others (deterministic)
-    const takenByOthers = getTakenSeats(date, from, to).filter(s => !mySeats.includes(s));
+    // Per-table hourly state: 'mine' | 'other' | 'free'
+    const occ = {};
+    for (let t=1;t<=7;t++) { occ[t]={}; HOURS.forEach(h=>{ occ[t][h]='free'; }); }
 
-    el.innerHTML = '';
-    for (let i = 1; i <= 40; i++) {
-        const s = document.createElement('div');
-        s.className = 'seat';
-        s.textContent = i;
+    // My reservations mark occupied hours
+    reserved.filter(r=>r.date===date).forEach(r=>{
+        HOURS.forEach((h,hi)=>{
+            if (hi>=HOURS.length-1) return;
+            const nxt = HOURS[hi+1]+':00';
+            if (slotsOverlap(r.from,r.to,h+':00',nxt) && occ[r.seat])
+                occ[r.seat][h]='mine';
+        });
+    });
+    //// Others' bookings (deterministic)
+    //for (let t=1;t<=7;t++){
+    //    HOURS.forEach((h,hi)=>{
+    //        if (hi>=HOURS.length-1) return;
+    //        const hf=h+':00', ht=HOURS[hi+1]+':00';
+    //        if (deterministicHash(date+hf+ht+'tbl'+t)%3===0 && occ[t][h]==='free')
+    //            occ[t][h]='other';
+    //    });
+    //}
 
-        if (mySeats.includes(i)) {
-            s.classList.add('mine');
-            s.title = `Your reservation: ${from}–${to}`;
-            s.onclick = () => { cancelSeatReservation(i, date, from, to); generateSeats(); };
-        } else if (takenByOthers.includes(i) || myOtherSeats.includes(i)) {
-            s.classList.add('taken');
-            s.title = takenByOthers.includes(i) ? `Reserved ${from}–${to}` : 'You have this seat in another slot';
-        } else {
-            s.classList.add('avail');
-            s.title = `Reserve for ${from}–${to}`;
-            s.onclick = () => { reserveSeat(i, date, from, to); generateSeats(); };
+    el.innerHTML='';
+    const names  = ['Table 1','Table 2','Table 3','Table 4','Table 5','Table 6','Table 7'];
+    const emojis = ['\u{1F4DA}','\u{1F4DA}','\u2615','\u2615','\u2615','\u{1F4BB}','\u{1F4BB}'];
+
+    for (let t=1;t<=7;t++){
+        const isMine  = myTables.includes(t);
+        const isTaken = takenByOthers.includes(t)||myOverlap.includes(t);
+
+        const card = document.createElement('div');
+        card.className='tc '+(isMine?'tc-mine':isTaken?'tc-taken':'tc-free');
+
+        // header
+        card.innerHTML=`<div class="tc-hdr">
+            <span class="tc-em">${emojis[t-1]}</span>
+            <span class="tc-nm">${names[t-1]}</span>
+            ${isMine?'<span class="tc-tag tag-mine">\u2713 Yours</span>':isTaken?'<span class="tc-tag tag-taken">Unavailable</span>':'<span class="tc-tag tag-free">Available</span>'}
+        </div>`;
+
+        // hour grid
+        const grid=document.createElement('div');
+        grid.className='tc-grid';
+        HOURS.forEach((h,hi)=>{
+            if(hi>=HOURS.length-1) return;
+            const hf=h+':00', ht=HOURS[hi+1]+':00';
+            const state=occ[t][h];
+            const cell=document.createElement('div');
+            cell.className='tc-cell tc-'+state;
+            cell.title=hf+'\u2013'+ht+' \u2014 '+(state==='mine'?'Your booking':state==='other'?'Reserved':'Free \u2014 click to reserve');
+            const lbl=document.createElement('span');
+            lbl.className='tc-hlbl';
+            lbl.textContent=h;
+            cell.appendChild(lbl);
+            if(state==='free'){
+                cell.onclick=()=>{reserveSeat(t,date,hf,ht);generateSeats();};
+                cell.style.cursor='pointer';
+            }
+            grid.appendChild(cell);
+        });
+        card.appendChild(grid);
+
+        // action button for selected slot
+        if(isMine){
+            const btn=document.createElement('button');
+            btn.className='btn btn-ghost tc-btn';
+            btn.textContent='\u2715 Cancel '+from+'\u2013'+to;
+            btn.onclick=()=>{cancelSeatReservation(t,date,from,to);generateSeats();};
+            card.appendChild(btn);
+        } else if(!isTaken){
+            const btn=document.createElement('button');
+            btn.className='btn btn-primary tc-btn';
+            btn.textContent='Reserve '+from+'\u2013'+to;
+            btn.onclick=()=>{reserveSeat(t,date,from,to);generateSeats();};
+            card.appendChild(btn);
         }
-        el.appendChild(s);
-    }
 
+        el.appendChild(card);
+    }
     renderMyReservations();
 }
 
+
+
 function reserveSeat(seat, date, from, to) {
-    reserved.push({ seat, date, from, to });
+    reserved.push({seat,date,from,to});
     saveStorage();
-    notify(`Seat ${seat} reserved for ${date}, ${from}–${to}`);
+    notify('Table '+seat+' reserved '+from+'–'+to);
+    if(typeof scheduleReservationNotification==='function')
+        scheduleReservationNotification(seat,date,from);
 }
 
+
 function cancelSeatReservation(seat, date, from, to) {
-    reserved = reserved.filter(r => !(r.seat === seat && r.date === date && r.from === from && r.to === to));
+    reserved=reserved.filter(r=>!(r.seat===seat&&r.date===date&&r.from===from&&r.to===to));
     saveStorage();
-    notify(`Seat ${seat} reservation cancelled`);
+    notify('Table '+seat+' reservation cancelled');
     renderMyReservations();
 }
 
 function renderMyReservations() {
-    const el = document.getElementById('myReservationsList'); if (!el) return;
-    if (!reserved.length) { el.innerHTML = ''; return; }
-    const sorted = [...reserved].sort((a, b) => (a.date + a.from).localeCompare(b.date + b.from));
-    el.innerHTML = `
-    <div class="sec-head" style="margin-top:1.5rem"><h2>My <em>Reservations</em></h2></div>
-    <table class="data-table">
-        <thead><tr><th>Seat</th><th>Date</th><th>From</th><th>To</th><th></th></tr></thead>
-        <tbody>${sorted.map(r => `<tr>
-            <td>Seat ${r.seat}</td>
-            <td>${r.date}</td>
-            <td>${r.from}</td>
-            <td>${r.to}</td>
-            <td><button class="btn-del" onclick="cancelSeatReservation(${r.seat},'${r.date}','${r.from}','${r.to}');generateSeats()">Cancel</button></td>
-        </tr>`).join('')}</tbody>
-    </table>`;
+    const el=document.getElementById('myReservationsList');
+    if(!el) return;
+    if(!reserved.length){el.innerHTML='';return;}
+    const sorted=[...reserved].sort((a,b)=>(a.date+a.from).localeCompare(b.date+b.from));
+    const rows=sorted.map(r=>{
+        const oc='cancelSeatReservation('+r.seat+',\''+r.date+'\',\''+r.from+'\',\''+r.to+'\');generateSeats()';
+        return '<div class="my-res-row">'
+             +'<div class="my-res-tbl">T'+r.seat+'</div>'
+             +'<span class="my-res-info">'+r.date+' &nbsp; '+r.from+'–'+r.to+'</span>'
+             +'<button class="my-res-del" onclick="'+oc+'" title="Cancel">✕</button>'
+             +'</div>';
+    }).join('');
+    el.innerHTML='<p class="my-res-title">'+t('myReservations')+'</p>'
+               +'<div class="my-res-list">'+rows+'</div>';
 }
 
 // ─── BOOKSHELF MAP ────────────────────────────────────────────
@@ -676,9 +731,9 @@ document.addEventListener('input', function (e) {
     if (/[A-Z]/.test(v)) score++;
     if (/[0-9]/.test(v)) score++;
     if (/[^A-Za-z0-9]/.test(v)) score++;
-    const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+    const labels = [t('pwWeak'), t('pwFair'), t('pwGood'), t('pwStrong')];
     const colors = ['var(--danger)', '#f59e0b', '#3b82f6', 'var(--sage)'];
-    el.textContent = '● ' + (labels[score - 1] || 'Too short');
+    el.textContent = '● ' + (labels[score - 1] || t('pwTooShort'));
     el.style.color = colors[score - 1] || 'var(--danger)';
 });
 
@@ -699,7 +754,7 @@ async function changePassword() {
     });
     if (!res) return;
     if (!res.ok) { const e = await res.json(); notify(e.message || 'Failed to change password', true); return; }
-    notify('Password updated successfully!');
+    notify(t('notifyPasswordUpdated'));
     ['pwCurrent', 'pwNew', 'pwConfirm'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
@@ -708,7 +763,7 @@ async function changePassword() {
 
 // ─── BOOK RESERVATION QUEUE ──────────────────────────────────
 async function joinQueue(bookId) {
-    if (!currentUser) { notify('Please sign in first', true); return; }
+    if (!currentUser) { notify(t('notifySignIn'), true); return; }
     const book = books.find(b => b.id === bookId);
     const title = book ? book.title : 'this book';
 
@@ -728,7 +783,7 @@ async function leaveQueue(bookId) {
     const queued = JSON.parse(localStorage.getItem('lc_queue') || '[]');
     const updated = queued.filter(q => !(q.userId === currentUser.id && q.bookId === bookId));
     localStorage.setItem('lc_queue', JSON.stringify(updated));
-    notify('Removed from queue');
+    notify(t('notifyQueueLeft'));
 }
 
 async function leaveQueue(bookId) {
@@ -737,7 +792,7 @@ async function leaveQueue(bookId) {
         body: JSON.stringify({ userId: currentUser.id, bookId })
     });
     if (!res) return;
-    if (res.ok) { notify('Removed from queue'); await loadBooks(); renderLibrary('all'); }
+    if (res.ok) { notify(t('notifyQueueLeft')); await loadBooks(); renderLibrary('all'); }
 }
 
 // ─── PROFILE ─────────────────────────────────────────────────
@@ -746,24 +801,6 @@ async function updateProfile() {
     document.getElementById('profName').textContent = currentUser.name;
     document.getElementById('profRole').textContent = currentUser.role;
     document.getElementById('profEmail').textContent = currentUser.email;
-    document.getElementById('profWallet').textContent = fmt(currentUser.wallet) + ' AMD';
-    // Calculate fines: 50 AMD per day overdue
-    const brRes = await api(`/users/${currentUser.id}/borrowings`);
-    if (brRes && brRes.ok) {
-        const brData = await brRes.json();
-        const today = new Date();
-        let totalFine = 0;
-        brData.forEach(b => {
-            if (!b.returnDate && b.dueDate) {
-                const due = new Date(b.dueDate);
-                const daysOverdue = Math.max(0, Math.floor((today - due) / (1000 * 60 * 60 * 24)));
-                totalFine += daysOverdue * 50;
-            }
-        });
-        document.getElementById('profFines').textContent = fmt(totalFine) + ' AMD';
-        if (totalFine > 0) document.getElementById('profFines').style.color = 'var(--danger)';
-    }
-
     const br = await api(`/users/${currentUser.id}/borrowings`);
     if (br && br.ok) {
         const data = await br.json();
@@ -789,7 +826,7 @@ async function toggleBookBorrowed(bookId) {
     const book = books.find(b => b.id === bookId);
     if (!book) return;
 
-    const res = await api(`/borrowings?bookId=${bookId}&active=true`);
+    const res = await api(`/borrowings?active=true`);
     if (!res || !res.ok) { notify('Could not load borrowings', true); return; }
     const data = await res.json();
     const active = data.filter(b => b.bookId === bookId);
@@ -817,6 +854,118 @@ async function toggleBookBorrowed(bookId) {
     openModal('bookBorrowingsModal');
 }
 
+
+// ─── LIBRARIAN: BORROW BOOK FOR STUDENT ──────────────────────
+async function openLibBorrowModal(bookId) {
+    const book = books.find(b => b.id === bookId);
+    if (!book) return;
+    const res = await api('/users');
+    if (!res || !res.ok) { notify('Could not load users', true); return; }
+    const users = await res.json();
+    const students = users.filter(u => u.role === 'Student');
+    document.getElementById('libBorrowTitle').innerHTML = `${t('borrow')}: <em>${book.title}</em>`;
+    document.getElementById('libBorrowBookId').value = bookId;
+    const sel = document.getElementById('libBorrowUser');
+    sel.innerHTML = students.length
+        ? students.map(u => `<option value="${u.id}">${u.fullname} (${u.email})</option>`).join('')
+        : '<option disabled>No students registered</option>';
+    document.getElementById('libBorrowDays').value = 14;
+    openModal('libBorrowModal');
+}
+
+async function submitLibBorrow() {
+    const bookId = parseInt(document.getElementById('libBorrowBookId').value);
+    const userId = parseInt(document.getElementById('libBorrowUser').value);
+    const days = parseInt(document.getElementById('libBorrowDays').value) || 14;
+    if (!bookId || !userId) { notify(t('notifyFillFields'), true); return; }
+    const res = await api('/borrowings', {
+        method: 'POST',
+        body: JSON.stringify({ userId, bookId, durationDays: days })
+    });
+    if (!res) return;
+    if (!res.ok) { const e = await res.json().catch(() => ({})); notify(e.message || 'Could not borrow', true); return; }
+    notify(t('notifyBorrowed'));
+    closeModal('libBorrowModal');
+    await loadLibDash();
+}
+
+
+// ─── 15-MINUTE RESERVATION NOTIFICATIONS ───────────────────────────────
+function requestNotifPermission() {
+    if (!('Notification' in window)) { notify('Notifications not supported', true); return; }
+    Notification.requestPermission().then(perm => {
+        const btn = document.getElementById('notifBtn');
+        if (perm === 'granted') {
+            if (btn) { btn.textContent = '🔔 Reminders On'; btn.classList.add('notif-on'); }
+            notify('Reminders enabled! You will be notified 15 min before each reservation.');
+            reserved.forEach(r => scheduleReservationNotification(r.seat, r.date, r.from));
+        } else {
+            if (btn) btn.textContent = '🔕 Reminders Off';
+            notify('Permission denied', true);
+        }
+    });
+}
+
+function scheduleReservationNotification(tableNum, date, from) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const resTime  = new Date(date + 'T' + from + ':00');
+    const notifyAt = new Date(resTime.getTime() - 15 * 60 * 1000);
+    const delay    = notifyAt - new Date();
+    if (delay <= 0) return;
+    setTimeout(() => {
+        const still = reserved.find(r => r.seat===tableNum && r.date===date && r.from===from);
+        if (!still) return;
+        showNotifBanner(tableNum, date, from);
+        const n = new Notification('📚 Library Café — Reminder', {
+            body: 'Table ' + tableNum + ' starts at ' + from + ' (15 min remaining)',
+            tag: 'res-' + tableNum + '-' + date + '-' + from
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+    }, delay);
+}
+
+function showNotifBanner(tableNum, date, from) {
+    const old = document.getElementById('res-notif-banner');
+    if (old) old.remove();
+    const b = document.createElement('div');
+    b.id = 'res-notif-banner';
+    b.className = 'res-notif-banner';
+    b.innerHTML =
+        '<div class="rnb-inner">' +
+          '<span class="rnb-icon">🔔</span>' +
+          '<div class="rnb-text">' +
+            '<strong>Reservation in 15 minutes</strong>' +
+            '<span>Table ' + tableNum + ' at ' + from + ' — ' + date + '</span>' +
+          '</div>' +
+          '<div class="rnb-actions">' +
+            '<button class="btn btn-primary btn-sm" onclick="dismissNotifBanner()">Got it!</button>' +
+            '<button class="btn btn-ghost btn-sm" onclick="cancelFromBanner(' + tableNum + ',\'' + date + '\',\'' + from + '\')">Cancel reservation</button>' +
+          '</div>' +
+        '</div>';
+    document.body.appendChild(b);
+    setTimeout(() => { const el=document.getElementById('res-notif-banner'); if(el) el.remove(); }, 60000);
+}
+
+function dismissNotifBanner() {
+    const b = document.getElementById('res-notif-banner');
+    if (b) { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); }
+}
+
+function cancelFromBanner(tableNum, date, from) {
+    const r = reserved.find(r2 => r2.seat===tableNum && r2.date===date && r2.from===from);
+    if (r) cancelSeatReservation(r.seat, r.date, r.from, r.to);
+    dismissNotifBanner(); generateSeats();
+}
+
+function initNotifBtn() {
+    const btn = document.getElementById('notifBtn');
+    if (!btn) return;
+    if (!('Notification' in window)) { btn.style.display='none'; return; }
+    if (Notification.permission === 'granted') {
+        btn.textContent = '🔔 Reminders On'; btn.classList.add('notif-on');
+    }
+}
+
 async function loadLibDash() {
     await loadBooks();
     const tot = books.length;
@@ -837,20 +986,23 @@ async function loadLibDash() {
                 <td>${b.isbn || '—'}</td><td>${b.shelf || '—'}</td>
                 <td>${avail}/${total} ${statusChip(b.status)}</td>
                 <td style="display:flex;gap:.4rem">
-                    <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">Edit</button>
-                    <button class="btn btn-ghost btn-sm" onclick="toggleBookBorrowed(${b.id})">📋 Borrowings</button>
-                    <button class="btn-del" onclick="deleteBook(${b.id})">Delete</button>
+                    <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">${t("edit")}</button>
+                    <button class="btn btn-ghost btn-sm" onclick="toggleBookBorrowed(${b.id})">📋 ${t("activeBorrowings")}</button>
+                    ${avail > 0
+                    ? `<button class="btn btn-primary btn-sm" onclick="openLibBorrowModal(${b.id})">📤 ${t('borrow')}</button>`
+                    : `<button class="btn btn-ghost btn-sm" style="opacity:.45" disabled>📤 ${t('allBorrowed')}</button>`}
+                    <button class="btn-del" onclick="deleteBook(${b.id})">${t("delete")}</button>
                 </td></tr>`;
         }).join('')
-        : `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No books yet</td></tr>`;
+        : `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t("libraryCatalog")}…</td></tr>`;
 
     const br = await api('/borrowings?active=true');
     if (br && br.ok) {
         const data = await br.json();
         const tb = document.getElementById('libBorrTable');
         if (tb) tb.innerHTML = data.length
-            ? data.map(b => `<tr><td>${b.userFullname}</td><td>${b.bookTitle}</td><td>${fmtDate(b.borrowDate)}</td><td>${fmtDate(b.dueDate)}</td><td>${statusChip(b.isOverdue ? 'Overdue' : 'available')}</td><td><button class="btn btn-primary btn-sm" onclick="returnBook(${b.id})">Return</button></td></tr>`).join('')
-            : `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No active borrowings</td></tr>`;
+            ? data.map(b => `<tr><td>${b.userFullname}</td><td>${b.bookTitle}</td><td>${fmtDate(b.borrowDate)}</td><td>${fmtDate(b.dueDate)}</td><td>${statusChip(b.isOverdue ? 'Overdue' : 'available')}</td><td><button class="btn btn-primary btn-sm" onclick="returnBook(${b.id})">${t("returnBook")}</button></td></tr>`).join('')
+            : `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t("activeBorrowings")}…</td></tr>`;
     }
 }
 
@@ -915,8 +1067,8 @@ function clearBookPdf() {
 }
 function openAddBook() {
     document.getElementById('bkEditId').value = '';
-    document.getElementById('addBookTitle').innerHTML = 'Add New <em>Book</em>';
-    document.getElementById('bkSubmitBtn').textContent = 'Add to Collection';
+    document.getElementById('addBookTitle').innerHTML = t('addNewBook');
+    document.getElementById('bkSubmitBtn').textContent = t('addToCollection');
     ['bkTitle', 'bkAuthor', 'bkISBN', 'bkShelf'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('bkCount').value = 1;
     document.getElementById('bkCat').value = 'Fiction';
@@ -926,8 +1078,8 @@ function openAddBook() {
 function openEditBook(id) {
     const b = books.find(x => x.id === id); if (!b) return;
     document.getElementById('bkEditId').value = b.id;
-    document.getElementById('addBookTitle').innerHTML = 'Edit <em>Book</em>';
-    document.getElementById('bkSubmitBtn').textContent = 'Save Changes';
+    document.getElementById('addBookTitle').innerHTML = t('editBook');
+    document.getElementById('bkSubmitBtn').textContent = t('saveChanges');
     document.getElementById('bkTitle').value = b.title;
     document.getElementById('bkAuthor').value = b.author;
     document.getElementById('bkCat').value = b.category;
@@ -953,7 +1105,7 @@ async function submitBook() {
     const isbn = document.getElementById('bkISBN')?.value.trim() || '';
     const bookshelf = document.getElementById('bkShelf')?.value.trim() || '';
     const totalCount = parseInt(document.getElementById('bkCount')?.value) || 1;
-    if (!title || !author || !isbn || !bookshelf) { notify('Please fill all required fields', true); return; }
+    if (!title || !author || !isbn || !bookshelf) { notify(t('notifyFillFields'), true); return; }
 
     const imageFile = document.getElementById('bkImageFile')?.files[0];
     const pdfFile = document.getElementById('bkPdfFile')?.files[0];
@@ -1008,7 +1160,7 @@ async function returnBook(borrowingId) {
     const res = await api(`/borrowings/${borrowingId}/return`, { method: 'PUT', body: JSON.stringify({ returnDate: new Date().toISOString() }) });
     if (!res) return;
     if (!res.ok) { notify('Failed to process return', true); return; }
-    notify('Book returned successfully'); loadLibDash(); await loadBooks();
+    notify(t('notifyReturned')); loadLibDash(); await loadBooks();
 }
 
 // ─── CAFÉ STAFF ──────────────────────────────────────────────
@@ -1102,8 +1254,8 @@ async function loadAdminDash() {
         return `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.category}</td>
             <td>${avail}/${total} ${statusChip(b.status)}</td>
             <td style="display:flex;gap:.4rem">
-                <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">Edit</button>
-                <button class="btn-del" onclick="deleteBook(${b.id})">Delete</button>
+                <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">${t("edit")}</button>
+                <button class="btn-del" onclick="deleteBook(${b.id})">${t("delete")}</button>
             </td></tr>`;
     }).join('');
 

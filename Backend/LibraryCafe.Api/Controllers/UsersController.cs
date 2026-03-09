@@ -18,7 +18,6 @@ namespace LibraryCafe.Api.Controllers
             _context = context;
         }
 
-        // GET: api/users
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
@@ -28,7 +27,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(users);
         }
 
-        // GET: api/users/5
         [HttpGet("{id}")]
         public async Task<ActionResult<UserDto>> GetUser(int id)
         {
@@ -37,14 +35,12 @@ namespace LibraryCafe.Api.Controllers
             return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
         }
 
-        // POST: api/users/register
         [HttpPost("register")]
         public async Task<ActionResult<UserDto>> Register(UserRegisterDto dto)
         {
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 return BadRequest(new { message = "Email already registered" });
 
-            // Basic password validation
             if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
                 return BadRequest(new { message = "Password must be at least 6 characters" });
 
@@ -63,7 +59,6 @@ namespace LibraryCafe.Api.Controllers
                 new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
         }
 
-        // POST: api/users/login
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(UserLoginDto dto)
         {
@@ -75,7 +70,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
         }
 
-        // PUT: api/users/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(int id, UserUpdateDto dto)
         {
@@ -100,7 +94,6 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // DELETE: api/users/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
@@ -112,7 +105,6 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // GET: api/users/5/borrowings
         [HttpGet("{id}/borrowings")]
         public async Task<ActionResult<IEnumerable<BorrowingDto>>> GetUserBorrowings(int id)
         {
@@ -146,7 +138,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(result);
         }
 
-        // GET: api/users/5/orders
         [HttpGet("{id}/orders")]
         public async Task<ActionResult<IEnumerable<CafeOrderDto>>> GetUserOrders(int id)
         {
@@ -180,7 +171,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(orders);
         }
 
-        // GET: api/users/5/fines  - total overdue fines for a user
         [HttpGet("{id}/fines")]
         public async Task<ActionResult<object>> GetUserFines(int id)
         {
@@ -206,7 +196,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // POST: api/users/5/change-password
         [HttpPost("{id}/change-password")]
         public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto dto)
         {
@@ -225,7 +214,6 @@ namespace LibraryCafe.Api.Controllers
         }
     }
 
-    // DTO for password change
     public class ChangePasswordDto
     {
         public string CurrentPassword { get; set; } = "";

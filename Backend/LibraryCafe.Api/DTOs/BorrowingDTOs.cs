@@ -22,7 +22,6 @@ namespace LibraryCafe.Api.DTOs
         public DateTime? DueDate { get; set; }
         public bool IsOverdue { get; set; }
 
-        // NEW: fine amount (50 AMD per overdue day)
         public decimal OverdueFine { get; set; }
     }
 

@@ -17,7 +17,6 @@ namespace LibraryCafe.Api.Controllers
             _context = context;
         }
 
-        // GET: api/menuitems
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MenuItemDto>>> GetMenuItems(
             [FromQuery] string? category = null)
@@ -45,7 +44,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(menuItems);
         }
 
-        // GET: api/menuitems/5
         [HttpGet("{id}")]
         public async Task<ActionResult<MenuItemDto>> GetMenuItem(int id)
         {
@@ -70,7 +68,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(menuItemDto);
         }
 
-        // POST: api/menuitems
         [HttpPost]
         public async Task<ActionResult<MenuItemDto>> CreateMenuItem(MenuItemCreateDto menuItemDto)
         {
@@ -96,7 +93,6 @@ namespace LibraryCafe.Api.Controllers
             return CreatedAtAction(nameof(GetMenuItem), new { id = menuItem.Id }, resultDto);
         }
 
-        // PUT: api/menuitems/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateMenuItem(int id, MenuItemUpdateDto menuItemDto)
         {
@@ -116,7 +112,6 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // DELETE: api/menuitems/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMenuItem(int id)
         {
@@ -133,7 +128,6 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // GET: api/menuitems/categories
         [HttpGet("categories")]
         public async Task<ActionResult<IEnumerable<string>>> GetCategories()
         {

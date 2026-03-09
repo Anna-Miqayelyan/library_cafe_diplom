@@ -17,7 +17,6 @@ namespace LibraryCafe.Core.Entities
         [Column("quantity")]
         public int Quantity { get; set; }
 
-        // Navigation properties
         public CafeOrder Order { get; set; } = null!;
         public MenuItem MenuItem { get; set; } = null!;
     }

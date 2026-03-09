@@ -43,7 +43,6 @@ namespace LibraryCafe.Api.Controllers
             };
         }
 
-        // GET: api/books
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(
             [FromQuery] string? category = null,
@@ -67,7 +66,7 @@ namespace LibraryCafe.Api.Controllers
             return Ok(books.Select(MapBook));
         }
 
-        // GET: api/books/5
+ 
         [HttpGet("{id}")]
         public async Task<ActionResult<BookDto>> GetBook(int id)
         {
@@ -83,7 +82,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(MapBook(book));
         }
 
-        // POST: api/books (JSON, no files)
         [HttpPost]
         public async Task<ActionResult<BookDto>> CreateBook([FromBody] BookCreateDto bookDto)
         {
@@ -107,7 +105,6 @@ namespace LibraryCafe.Api.Controllers
             return CreatedAtAction(nameof(GetBook), new { id = book.Id }, MapBook(book));
         }
 
-        // POST: api/books/upload (multipart, with files)
         [HttpPost("upload")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(52428800)]
@@ -136,7 +133,7 @@ namespace LibraryCafe.Api.Controllers
             return CreatedAtAction(nameof(GetBook), new { id = book.Id }, MapBook(book));
         }
 
-        // PUT: api/books/5 (JSON, no files)
+       
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateBook(int id, [FromBody] BookUpdateDto bookDto)
         {
@@ -164,7 +161,6 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // PUT: api/books/5/upload (multipart, with files)
         [HttpPut("{id}/upload")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(52428800)]
@@ -189,7 +185,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(MapBook(book));
         }
 
-        // DELETE: api/books/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBook(int id)
         {
@@ -207,7 +202,6 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // GET: api/books/categories
         [HttpGet("categories")]
         public async Task<ActionResult<IEnumerable<string>>> GetCategories()
         {
@@ -219,7 +213,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(cats);
         }
 
-        // GET: api/books/5/reviews
         [HttpGet("{id}/reviews")]
         public async Task<ActionResult<IEnumerable<BookReviewDto>>> GetBookReviews(int id)
         {
@@ -243,7 +236,7 @@ namespace LibraryCafe.Api.Controllers
             return Ok(reviews);
         }
 
-        // Helper
+        
         private static async Task<string> ReadFileAsDataUrl(IFormFile file)
         {
             using var ms = new MemoryStream();
@@ -253,7 +246,6 @@ namespace LibraryCafe.Api.Controllers
         }
     }
 
-    // Form model for file uploads
     public class BookUploadForm
     {
         public string Title { get; set; } = "";

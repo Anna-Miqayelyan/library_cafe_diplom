@@ -17,7 +17,7 @@ namespace LibraryCafe.Api.DTOs
         public string BookTitle { get; set; } = null!;
         public int Rating { get; set; }
         public string? Comment { get; set; }
-        public DateTime CreatedAt { get; set; }   // NEW
+        public DateTime CreatedAt { get; set; }  
     }
 
     public class CafeReviewCreateDto
@@ -37,6 +37,6 @@ namespace LibraryCafe.Api.DTOs
         public string ItemName { get; set; } = null!;
         public int Rating { get; set; }
         public string? Comment { get; set; }
-        public DateTime CreatedAt { get; set; }   // NEW
+        public DateTime CreatedAt { get; set; }   
     }
 }

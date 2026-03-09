@@ -17,7 +17,6 @@ namespace LibraryCafe.Api.Controllers
             _context = context;
         }
 
-        // GET: api/cafeorders
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CafeOrderDto>>> GetCafeOrders(
             [FromQuery] string? status = null,
@@ -63,7 +62,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(orders);
         }
 
-        // GET: api/cafeorders/5
         [HttpGet("{id}")]
         public async Task<ActionResult<CafeOrderDto>> GetCafeOrder(int id)
         {
@@ -96,7 +94,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // POST: api/cafeorders - payment is always cash (no wallet deduction)
         [HttpPost]
         public async Task<ActionResult<CafeOrderDto>> CreateCafeOrder(CafeOrderCreateDto dto)
         {
@@ -122,7 +119,7 @@ namespace LibraryCafe.Api.Controllers
                 OrderDate = DateTime.UtcNow,
                 TotalAmount = totalAmount,
                 OrderType = dto.OrderType,
-                Status = "Pending",           // payment collected at desk
+                Status = "Pending",       
                 OrderItems = orderItems
             };
 
@@ -155,7 +152,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // PUT: api/cafeorders/5/status
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateOrderStatus(int id, CafeOrderUpdateStatusDto dto)
         {
@@ -171,7 +167,6 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // DELETE: api/cafeorders/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCafeOrder(int id)
         {
@@ -186,7 +181,6 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // GET: api/cafeorders/statistics
         [HttpGet("statistics")]
         public async Task<ActionResult<object>> GetOrderStatistics()
         {
@@ -208,7 +202,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // GET: api/cafeorders/daily?days=7  - for analytics chart
         [HttpGet("daily")]
         public async Task<ActionResult<object>> GetDailyOrders([FromQuery] int days = 7)
         {

@@ -18,7 +18,6 @@ namespace LibraryCafe.Api.Controllers
             _context = context;
         }
 
-        // ── helper ─────────────────────────────────────────────
         private static decimal CalculateFine(DateTime? dueDate, DateTime? returnDate)
         {
             if (dueDate == null) return 0;
@@ -46,7 +45,6 @@ namespace LibraryCafe.Api.Controllers
             };
         }
 
-        // GET: api/borrowings
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BorrowingDto>>> GetBorrowings(
             [FromQuery] bool? active = null)
@@ -65,7 +63,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(data.Select(MapBorrowing));
         }
 
-        // GET: api/borrowings/5
         [HttpGet("{id}")]
         public async Task<ActionResult<BorrowingDto>> GetBorrowing(int id)
         {
@@ -78,7 +75,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(MapBorrowing(b));
         }
 
-        // POST: api/borrowings
         [HttpPost]
         public async Task<ActionResult<BorrowingDto>> CreateBorrowing(BorrowingCreateDto dto)
         {
@@ -90,13 +86,11 @@ namespace LibraryCafe.Api.Controllers
                 .FirstOrDefaultAsync(b => b.Id == dto.BookId);
             if (book == null) return BadRequest(new { message = "Book not found" });
 
-            // Multi-copy availability check
             var activeBorrowings = book.Borrowings.Count(br => br.ReturnDate == null);
             var totalCopies = book.TotalCount > 0 ? book.TotalCount : 1;
             if (activeBorrowings >= totalCopies)
                 return BadRequest(new { message = "No copies available. Please join the queue." });
 
-            // Determine due date: use provided DueDate, or calculate from DurationDays, or default 14 days
             DateTime dueDate;
             if (dto.DueDate.HasValue)
                 dueDate = dto.DueDate.Value;
@@ -122,7 +116,6 @@ namespace LibraryCafe.Api.Controllers
             return CreatedAtAction(nameof(GetBorrowing), new { id = borrowing.Id }, MapBorrowing(borrowing));
         }
 
-        // PUT: api/borrowings/5/return
         [HttpPut("{id}/return")]
         public async Task<ActionResult<BorrowingDto>> ReturnBook(int id, BorrowingReturnDto returnDto)
         {
@@ -137,11 +130,9 @@ namespace LibraryCafe.Api.Controllers
             borrowing.ReturnDate = returnDto.ReturnDate;
             await _context.SaveChangesAsync();
 
-            // Return DTO with final fine so frontend can show it
             return Ok(MapBorrowing(borrowing));
         }
 
-        // GET: api/borrowings/overdue
         [HttpGet("overdue")]
         public async Task<ActionResult<IEnumerable<BorrowingDto>>> GetOverdueBorrowings()
         {
@@ -157,7 +148,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(overdue);
         }
 
-        // GET: api/borrowings/fines  — all active fines summary
         [HttpGet("fines")]
         public async Task<ActionResult<object>> GetFinesSummary()
         {
@@ -186,7 +176,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // DELETE: api/borrowings/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBorrowing(int id)
         {

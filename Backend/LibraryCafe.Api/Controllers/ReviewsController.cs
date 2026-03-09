@@ -17,9 +17,7 @@ namespace LibraryCafe.Api.Controllers
             _context = context;
         }
 
-        // ══════════════════ BOOK REVIEWS ══════════════════════
 
-        // GET: api/reviews/books?bookId=5
         [HttpGet("books")]
         public async Task<ActionResult<IEnumerable<BookReviewDto>>> GetBookReviews(
             [FromQuery] int? bookId = null)
@@ -50,7 +48,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(reviews);
         }
 
-        // GET: api/reviews/books/5
         [HttpGet("books/{id}")]
         public async Task<ActionResult<BookReviewDto>> GetBookReview(int id)
         {
@@ -74,7 +71,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // POST: api/reviews/books
         [HttpPost("books")]
         public async Task<ActionResult<BookReviewDto>> CreateBookReview(BookReviewCreateDto dto)
         {
@@ -136,7 +132,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // DELETE: api/reviews/books/5
         [HttpDelete("books/{id}")]
         public async Task<IActionResult> DeleteBookReview(int id)
         {
@@ -148,9 +143,7 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
-        // ══════════════════ CAFÉ REVIEWS ══════════════════════
-
-        // GET: api/reviews/cafe?itemId=3
+   
         [HttpGet("cafe")]
         public async Task<ActionResult<IEnumerable<CafeReviewDto>>> GetCafeReviews(
             [FromQuery] int? itemId = null)
@@ -181,7 +174,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(reviews);
         }
 
-        // GET: api/reviews/cafe/5
         [HttpGet("cafe/{id}")]
         public async Task<ActionResult<CafeReviewDto>> GetCafeReview(int id)
         {
@@ -205,7 +197,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // POST: api/reviews/cafe
         [HttpPost("cafe")]
         public async Task<ActionResult<CafeReviewDto>> CreateCafeReview(CafeReviewCreateDto dto)
         {
@@ -218,7 +209,6 @@ namespace LibraryCafe.Api.Controllers
             if (dto.Rating < 1 || dto.Rating > 5)
                 return BadRequest(new { message = "Rating must be between 1 and 5" });
 
-            // Upsert: update if already reviewed
             var existing = await _context.CafeReviews
                 .FirstOrDefaultAsync(r => r.UserId == dto.UserId && r.ItemId == dto.ItemId);
 
@@ -267,7 +257,6 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // DELETE: api/reviews/cafe/5
         [HttpDelete("cafe/{id}")]
         public async Task<IActionResult> DeleteCafeReview(int id)
         {

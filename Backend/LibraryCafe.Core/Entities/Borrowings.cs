@@ -23,7 +23,6 @@ namespace LibraryCafe.Core.Entities
         [Column("duedate")]
         public DateTime? DueDate { get; set; }
 
-        // Navigation properties
         public User User { get; set; } = null!;
         public Book Book { get; set; } = null!;
     }

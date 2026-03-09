@@ -3,7 +3,7 @@ namespace LibraryCafe.Api.DTOs
     public class CafeOrderCreateDto
     {
         public int UserId { get; set; }
-        public string OrderType { get; set; } = null!; // "Dine-in", "Takeout"
+        public string OrderType { get; set; } = null!;
         public List<OrderItemDto> Items { get; set; } = new();
     }
 

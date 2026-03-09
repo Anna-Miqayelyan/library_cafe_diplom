@@ -17,7 +17,6 @@ namespace LibraryCafe.Core.Entities
         [Column("price")]
         public decimal Price { get; set; }
 
-        // Navigation property
         public ICollection<CafeOrderItem> OrderItems { get; set; } = new List<CafeOrderItem>();
         public ICollection<CafeReview> Reviews { get; set; } = new List<CafeReview>();
     }

@@ -10,7 +10,6 @@ namespace LibraryCafe.Data
         {
         }
 
-        // DbSets
         public DbSet<Book> Books => Set<Book>();
         public DbSet<User> Users => Set<User>();
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
@@ -18,7 +17,7 @@ namespace LibraryCafe.Data
         public DbSet<BookReview> BookReviews => Set<BookReview>();
         public DbSet<CafeOrder> CafeOrders => Set<CafeOrder>();
         public DbSet<CafeOrderItem> CafeOrderItems => Set<CafeOrderItem>();
-        public DbSet<Payment> Payments => Set<Payment>();
+      //  public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<CafeReview> CafeReviews => Set<CafeReview>();
         public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
@@ -26,7 +25,6 @@ namespace LibraryCafe.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // ── Borrowing ──────────────────────────────────────────
             modelBuilder.Entity<Borrowing>()
                 .HasOne(b => b.User)
                 .WithMany(u => u.Borrowings)
@@ -39,7 +37,6 @@ namespace LibraryCafe.Data
                 .HasForeignKey(b => b.BookId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ── BookReview ─────────────────────────────────────────
             modelBuilder.Entity<BookReview>()
                 .HasOne(br => br.User)
                 .WithMany(u => u.BookReviews)
@@ -52,25 +49,21 @@ namespace LibraryCafe.Data
                 .HasForeignKey(br => br.BookId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // NEW: one review per user per book (unique constraint)
             modelBuilder.Entity<BookReview>()
                 .HasIndex(br => new { br.UserId, br.BookId })
                 .IsUnique()
                 .HasDatabaseName("UQ_bookreviews_user_book");
 
-            // NEW: default value for CreatedAt on the DB side
             modelBuilder.Entity<BookReview>()
                 .Property(br => br.CreatedAt)
                 .HasDefaultValueSql("now()");
 
-            // ── CafeOrder ──────────────────────────────────────────
             modelBuilder.Entity<CafeOrder>()
                 .HasOne(co => co.User)
                 .WithMany(u => u.CafeOrders)
                 .HasForeignKey(co => co.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ── CafeOrderItem ──────────────────────────────────────
             modelBuilder.Entity<CafeOrderItem>()
                 .HasOne(coi => coi.Order)
                 .WithMany(co => co.OrderItems)
@@ -84,19 +77,18 @@ namespace LibraryCafe.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ── Payment ────────────────────────────────────────────
-            modelBuilder.Entity<Payment>()
-                .HasOne(p => p.Order)
-                .WithMany(co => co.Payments)
-                .HasForeignKey(p => p.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+            //modelBuilder.Entity<Payment>()
+            //    .HasOne(p => p.Order)
+            //    .WithMany(co => co.Payments)
+            //    .HasForeignKey(p => p.OrderId)
+            //    .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Payment>()
-                .HasOne(p => p.User)
-                .WithMany(u => u.Payments)
-                .HasForeignKey(p => p.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+            //modelBuilder.Entity<Payment>()
+            //    .HasOne(p => p.User)
+            //    .WithMany(u => u.Payments)
+            //    .HasForeignKey(p => p.UserId)
+            //    .OnDelete(DeleteBehavior.Restrict);
 
-            // ── CafeReview ─────────────────────────────────────────
             modelBuilder.Entity<CafeReview>()
                 .HasOne(cr => cr.User)
                 .WithMany(u => u.CafeReviews)
@@ -109,18 +101,15 @@ namespace LibraryCafe.Data
                 .HasForeignKey(cr => cr.ItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // NEW: one review per user per menu item (unique constraint)
             modelBuilder.Entity<CafeReview>()
                 .HasIndex(cr => new { cr.UserId, cr.ItemId })
                 .IsUnique()
                 .HasDatabaseName("UQ_cafereviews_user_item");
 
-            // NEW: default value for CreatedAt on the DB side
             modelBuilder.Entity<CafeReview>()
                 .Property(cr => cr.CreatedAt)
                 .HasDefaultValueSql("now()");
 
-            // ── Book: new column defaults ──────────────────────────
             modelBuilder.Entity<Book>()
                 .Property(b => b.TotalCount)
                 .HasDefaultValue(1);
