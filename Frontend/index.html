@@ -349,15 +349,37 @@
                 </div>
                 <div class="section">
                     <div class="sec-head">
-                        <h2 data-i18n="bookCatalog">Գրքի Կատալոգ</h2>
-                        <button class="btn btn-primary btn-sm" data-i18n="addBook" onclick="openAddBook()">+ Ավելացնել Գիրք</button>
+                        <h2>📋 Borrow <em>Requests</em></h2>
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th data-i18n="title">Վերնագիր</th><th data-i18n="author">Հեղինակ</th><th data-i18n="category">Կատեգորիա</th><th>ISBN</th><th data-i18n="shelf">Դարակ</th><th data-i18n="status">Կարգավիճակ</th><th data-i18n="action">Գործողություն</th></tr></thead>
-                            <tbody id="libBooksTable"></tbody>
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Book</th>
+                                    <th>Requested</th>
+                                    <th>Duration</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="libRequestsTb">
+                                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--mist);font-style:italic">Loading…</td></tr>
+                            </tbody>
                         </table>
                     </div>
+                    <div class="section">
+                        <div class="sec-head">
+                            <h2 data-i18n="bookCatalog">Գրքի Կատալոգ</h2>
+                            <button class="btn btn-primary btn-sm" data-i18n="addBook" onclick="openAddBook()">+ Ավելացնել Գիրք</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th data-i18n="title">Վերնագիր</th><th data-i18n="author">Հեղինակ</th><th data-i18n="category">Կատեգորիա</th><th>ISBN</th><th data-i18n="shelf">Դարակ</th><th data-i18n="status">Կարգավիճակ</th><th data-i18n="action">Գործողություն</th></tr></thead>
+                                <tbody id="libBooksTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="activeBorrowings">Ակտիվ Վերցնումներ</h2></div>

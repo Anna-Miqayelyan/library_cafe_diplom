@@ -185,7 +185,6 @@ async function showApp() {
     await loadBooks();
     await loadMenu();
 
-    // Floating cart FAB + modal — injected once, always works
     if (!document.getElementById('cartFab')) {
         const fab = document.createElement('button');
         fab.id = 'cartFab';
@@ -214,6 +213,7 @@ async function showApp() {
         document.body.appendChild(modal);
     }
     requestOrderNotifications();
+    startBorrowRequestPolling();
 
     showPage(cfg.home);
 
@@ -328,7 +328,7 @@ function bookCard(b) {
       <div style="display:flex;align-items:center;gap:.3rem;margin:.3rem 0">${statusChip(b.status)}${copyBadge}</div>
       <div class="card-actions">
         ${avail > 0
-            ? `<button class="btn btn-primary btn-sm" onclick="borrowBook(${b.id})">${t("borrow")}</button>`
+            ? `<button class="btn btn-primary btn-sm" onclick="requestBorrow(${b.id})">📋 Request</button>`
             : `<button class="btn btn-ghost btn-sm" onclick="joinQueue(${b.id})">${t("joinQueue")}</button>`}
         ${b.pdfUrl ? `<button class="btn btn-ghost btn-sm" onclick="openPdf(${b.id})">${t("readPdf")}</button>` : ''}
         <button class="btn btn-ghost btn-sm fav-action-btn ${fav ? 'fav-on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
@@ -442,25 +442,24 @@ function renderFavs() {
 }
 
 // ─── BORROW ──────────────────────────────────────────────────
-async function borrowBook(id) {
-    if (!currentUser) { notify(t('notifySignIn'), true); return; }
-    const res = await api('/borrowings', { method: 'POST', body: JSON.stringify({ userId: currentUser.id, bookId: id }) });
+async function borrowBook(id) { await requestBorrow(id); }
+
+async function requestBorrow(id) {
+    if (!currentUser) { notify('Please sign in', true); return; }
+    const book = books.find(b => b.id === id);
+    if (!book) return;
+
+    const res = await api('/borrowrequests', {
+        method: 'POST',
+        body: JSON.stringify({ userId: currentUser.id, bookId: id, durationDays: 14 })
+    });
     if (!res) return;
-    if (!res.ok) {
-        const e = await res.json();
-        if (e.message && e.message.includes('queue')) {
-            // No copies available — offer queue
-            if (confirm(e.message + '\nJoin the waiting queue for this book?')) {
-                await joinQueue(id);
-            }
-        } else {
-            notify(e.message || 'Could not borrow book', true);
-        }
-        return;
-    }
-    notify(t('notifyBorrowed'));
-    await loadBooks();
-    renderLibrary('all');
+    if (!res.ok) { const e = await res.json().catch(() => ({})); notify(e.message || 'Could not submit request', true); return; }
+
+    const req = await res.json();
+    _seenBorrowStatuses[req.id] = 'Pending';
+    notify('📋 Borrow request sent for "' + book.title + '". The librarian will review it shortly.');
+    await loadBooks(); renderLibrary('all'); renderTrending();
 }
 
 // ─── CART ────────────────────────────────────────────────────
@@ -524,22 +523,18 @@ async function checkout() {
         method: 'POST',
         body: JSON.stringify({ userId: currentUser.id, orderType: 'Dine-in', items: cart.map(i => ({ itemId: i.id, quantity: i.qty })) })
     });
-
-    if (btn) { btn.disabled = false; btn.textContent = 'Place Order'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Place Order (Cash)'; }
     if (!res) return;
     if (!res.ok) { const e = await res.json().catch(() => ({})); notify(e.message || 'Order failed', true); return; }
 
     const order = await res.json().catch(() => null);
-    const orderId = order?.id;
-    notify('✅ Order placed! Total: ' + fmt(total) + ' AMD. We will notify you when it is ready!');
+    notify('✅ Order placed! Total: ' + fmt(total) + ' AMD — we will notify you when it is ready!');
     cart = []; updateCartBadge(); closeModal('cartModal'); saveStorage();
-    if (orderId) startOrderStatusPolling(orderId);
-    requestOrderNotifications();
+    if (order?.id) startOrderStatusPolling(order.id);
 }
 
 // ─── ORDER STATUS POLLING ─────────────────────────────────────────────
 const _orderPollers = {};
-
 function startOrderStatusPolling(orderId) {
     if (_orderPollers[orderId]) return;
     let lastStatus = 'Pending';
@@ -547,34 +542,74 @@ function startOrderStatusPolling(orderId) {
         try {
             const res = await api('/cafeorders/' + orderId);
             if (!res || !res.ok) return;
-            const order = await res.json();
-            if (order.status !== lastStatus) {
-                lastStatus = order.status;
-                showOrderStatusBanner(orderId, order.status);
+            const o = await res.json();
+            if (o.status !== lastStatus) {
+                lastStatus = o.status;
+                showOrderStatusBanner(orderId, o.status);
                 if (Notification.permission === 'granted') {
                     const msgs = { Preparing: 'Your order is being prepared ☕', Ready: 'Your order is READY for pickup! 🔔', Completed: 'Order completed. Enjoy! ✅', Cancelled: 'Your order was cancelled ❌' };
-                    if (msgs[order.status]) new Notification('Library Café — Order #' + orderId, { body: msgs[order.status], tag: 'order-' + orderId });
+                    if (msgs[o.status]) new Notification('Library Café — Order #' + orderId, { body: msgs[o.status], tag: 'order-' + orderId });
                 }
-                if (order.status === 'Completed' || order.status === 'Cancelled') { clearInterval(_orderPollers[orderId]); delete _orderPollers[orderId]; }
+                if (o.status === 'Completed' || o.status === 'Cancelled') { clearInterval(_orderPollers[orderId]); delete _orderPollers[orderId]; }
             }
         } catch { }
     }, 12000);
 }
-
 function showOrderStatusBanner(orderId, status) {
     const old = document.getElementById('order-banner-' + orderId); if (old) old.remove();
-    const cfg = { Preparing: { bg: '#fff8e1', border: '#ffd54f', icon: '👨‍🍳', msg: 'Your order is being prepared…' }, Ready: { bg: '#e8f5e9', border: '#66bb6a', icon: '🔔', msg: 'Your order is READY for pickup!' }, Completed: { bg: '#e3f2fd', border: '#64b5f6', icon: '✅', msg: 'Order completed. Enjoy!' }, Cancelled: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Your order was cancelled.' } };
+    const cfg = { Preparing: { bg: '#fff8e1', border: '#ffd54f', icon: '👨‍🍳', msg: 'Your order is being prepared…' }, Ready: { bg: '#e8f5e9', border: '#66bb6a', icon: '🔔', msg: 'Your order is READY for pickup!' }, Completed: { bg: '#e3f2fd', border: '#64b5f6', icon: '✅', msg: 'Enjoy!' }, Cancelled: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Your order was cancelled.' } };
     const c = cfg[status]; if (!c) return;
     const b = document.createElement('div');
     b.id = 'order-banner-' + orderId;
     b.style.cssText = 'position:fixed;bottom:2rem;left:2rem;z-index:9998;background:' + c.bg + ';border:1.5px solid ' + c.border + ';border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:320px;padding:.85rem 1.1rem;display:flex;align-items:center;gap:.75rem;animation:slideUp .3s ease';
-    b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">Order #' + orderId + ' — ' + status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999;padding:.2rem .3rem">✕</button>';
+    b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">Order #' + orderId + ' — ' + status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999">✕</button>';
     document.body.appendChild(b);
-    if (status !== 'Ready') setTimeout(() => { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); }, 8000);
+    if (status !== 'Ready') setTimeout(() => { if (b.parentNode) { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); } }, 8000);
 }
-
 function requestOrderNotifications() {
     if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+}
+
+// ─── BORROW REQUEST POLLING (student) ────────────────────────────────
+let _borrowRequestPoller = null;
+const _seenBorrowStatuses = {};
+
+function startBorrowRequestPolling() {
+    if (_borrowRequestPoller || !currentUser || currentUser.role !== 'Student') return;
+    _borrowRequestPoller = setInterval(async () => {
+        try {
+            const res = await api('/borrowrequests/user/' + currentUser.id);
+            if (!res || !res.ok) return;
+            const reqs = await res.json();
+            reqs.forEach(r => {
+                const prev = _seenBorrowStatuses[r.id];
+                if (prev && prev !== r.status) {
+                    showBorrowRequestBanner(r);
+                    if (Notification.permission === 'granted') {
+                        const msgs = { Approved: 'Your request for "' + r.bookTitle + '" was APPROVED! Come pick it up 📚', Rejected: 'Your request for "' + r.bookTitle + '" was declined.', Taken: 'Enjoy reading "' + r.bookTitle + '"! ✅' };
+                        if (msgs[r.status]) new Notification('Library Café — Book Request', { body: msgs[r.status], tag: 'breq-' + r.id });
+                    }
+                }
+                _seenBorrowStatuses[r.id] = r.status;
+            });
+        } catch { }
+    }, 10000);
+}
+
+function showBorrowRequestBanner(req) {
+    const old = document.getElementById('breq-banner-' + req.id); if (old) old.remove();
+    const cfg = {
+        Approved: { bg: '#e8f5e9', border: '#66bb6a', icon: '✅', msg: 'Your request was approved! Come pick up "' + req.bookTitle + '".' },
+        Rejected: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Request for "' + req.bookTitle + '" was declined.' },
+        Taken: { bg: '#e3f2fd', border: '#64b5f6', icon: '📚', msg: 'Enjoy "' + req.bookTitle + '"! Return by the due date.' }
+    };
+    const c = cfg[req.status]; if (!c) return;
+    const b = document.createElement('div');
+    b.id = 'breq-banner-' + req.id;
+    b.style.cssText = 'position:fixed;bottom:2rem;right:2rem;z-index:9998;background:' + c.bg + ';border:1.5px solid ' + c.border + ';border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:320px;padding:.85rem 1.1rem;display:flex;align-items:center;gap:.75rem;animation:slideUp .3s ease';
+    b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">Book Request — ' + req.status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999">✕</button>';
+    document.body.appendChild(b);
+    if (req.status !== 'Approved') setTimeout(() => { if (b.parentNode) { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); } }, 9000);
 }
 
 // ─── SEATS ───────────────────────────────────────────────────
@@ -1088,6 +1123,71 @@ async function loadLibDash() {
             ? data.map(b => `<tr><td>${b.userFullname}</td><td>${b.bookTitle}</td><td>${fmtDate(b.borrowDate)}</td><td>${fmtDate(b.dueDate)}</td><td>${statusChip(b.isOverdue ? 'Overdue' : 'available')}</td><td><button class="btn btn-primary btn-sm" onclick="returnBook(${b.id})">${t("returnBook")}</button></td></tr>`).join('')
             : `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t("activeBorrowings")}…</td></tr>`;
     }
+
+    // Pending borrow requests
+    await loadBorrowRequests();
+}
+
+async function loadBorrowRequests() {
+    const res = await api('/borrowrequests?status=Pending');
+    if (!res || !res.ok) return;
+    const reqs = await res.json();
+
+    // Also load approved (waiting for pickup)
+    const resA = await api('/borrowrequests?status=Approved');
+    const approved = (resA && resA.ok) ? await resA.json() : [];
+    const all = [...reqs, ...approved];
+
+    const tb = document.getElementById('libRequestsTb');
+    if (!tb) return;
+
+    if (!all.length) {
+        tb.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--mist);font-style:italic">No pending requests</td></tr>`;
+        return;
+    }
+
+    tb.innerHTML = all.map(r => {
+        const isPending = r.status === 'Pending';
+        const isApproved = r.status === 'Approved';
+        return `<tr>
+            <td>${r.userFullname}</td>
+            <td>${r.bookTitle}<br><span style="font-size:.75rem;color:var(--mist)">${r.bookAuthor}</span></td>
+            <td>${fmtDate(r.requestDate)}</td>
+            <td>${r.durationDays} days</td>
+            <td>
+                <span class="chip ${isPending ? 'c-pe' : 'c-re'}" style="margin-right:.4rem">${r.status}</span>
+                ${isPending ? `
+                    <button class="btn btn-primary btn-sm" onclick="approveRequest(${r.id})">✅ Approve</button>
+                    <button class="btn-del" style="margin-left:.3rem" onclick="rejectRequest(${r.id})">✕ Reject</button>
+                ` : isApproved ? `
+                    <button class="btn btn-primary btn-sm" onclick="markTaken(${r.id})">📚 Mark as Taken</button>
+                ` : ''}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function approveRequest(id) {
+    const res = await api('/borrowrequests/' + id + '/approve', { method: 'PUT', body: '{}' });
+    if (!res || !res.ok) { notify('Failed to approve', true); return; }
+    notify('✅ Request approved — student can now pick up the book.');
+    loadBorrowRequests();
+}
+
+async function rejectRequest(id) {
+    if (!confirm('Reject this borrow request?')) return;
+    const res = await api('/borrowrequests/' + id + '/reject', { method: 'PUT', body: JSON.stringify('') });
+    if (!res || !res.ok) { notify('Failed to reject', true); return; }
+    notify('Request rejected.');
+    loadBorrowRequests();
+}
+
+async function markTaken(id) {
+    const res = await api('/borrowrequests/' + id + '/taken', { method: 'PUT', body: '{}' });
+    if (!res || !res.ok) { notify('Failed to mark as taken', true); return; }
+    notify('📚 Book marked as borrowed!');
+    loadBorrowRequests();
+    await loadBooks(); loadLibDash();
 }
 
 // ─── FILE → BASE64 HELPER ──────────────────────────────────
@@ -1235,8 +1335,7 @@ async function deleteBook(id) {
     if (!confirm('Delete this book from the collection?')) return;
     const res = await api(`/books/${id}`, { method: 'DELETE' });
     if (!res) return;
-    if (!res.ok) { notify('Cannot delete this boo
-    k', true); return; }
+    if (!res.ok) { notify('Cannot delete this book', true); return; }
     notify('Book removed'); loadLibDash();
     if (currentUser.role === 'Admin') loadAdminDash();
 }
@@ -1305,31 +1404,25 @@ async function updateStatus(id, status) {
 }
 
 function openAddMenuItem() {
-    const t = document.getElementById('menuModalTitle');
-    const b = document.getElementById('menuModalSubmitBtn');
-    if (t) t.textContent = 'Add Menu Item';
-    if (b) b.textContent = 'Add to Menu';
+    const t = document.getElementById('menuModalTitle'); const b = document.getElementById('menuModalSubmitBtn');
+    if (t) t.textContent = 'Add Menu Item'; if (b) b.textContent = 'Add to Menu';
     ['miName', 'miPrice'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     const cat = document.getElementById('miCat'); if (cat) cat.value = 'Hot Drinks';
     const prev = document.getElementById('miImagePreview'); if (prev) { prev.style.display = 'none'; prev.src = ''; }
     const fi = document.getElementById('miImage'); if (fi) fi.value = '';
-    window._editingMenuId = null;
-    openModal('menuModal');
+    window._editingMenuId = null; openModal('menuModal');
 }
 function openEditMenuItem(id) {
     const m = menu.find(x => x.id === id); if (!m) return;
-    const t = document.getElementById('menuModalTitle');
-    const b = document.getElementById('menuModalSubmitBtn');
-    if (t) t.textContent = 'Edit Menu Item';
-    if (b) b.textContent = 'Save Changes';
+    const t = document.getElementById('menuModalTitle'); const b = document.getElementById('menuModalSubmitBtn');
+    if (t) t.textContent = 'Edit Menu Item'; if (b) b.textContent = 'Save Changes';
     const nm = document.getElementById('miName'); if (nm) nm.value = m.name;
     const ct = document.getElementById('miCat'); if (ct) ct.value = m.category;
     const pr = document.getElementById('miPrice'); if (pr) pr.value = m.price;
     const prev = document.getElementById('miImagePreview');
     if (prev) { if (m.imageUrl) { prev.src = m.imageUrl; prev.style.display = 'block'; } else { prev.style.display = 'none'; prev.src = ''; } }
     const fi = document.getElementById('miImage'); if (fi) fi.value = '';
-    window._editingMenuId = id;
-    openModal('menuModal');
+    window._editingMenuId = id; openModal('menuModal');
 }
 function previewMenuImage(input) {
     const file = input.files[0]; if (!file) return;
