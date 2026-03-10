@@ -5,6 +5,7 @@ namespace LibraryCafe.Api.DTOs
         public string ItemName { get; set; } = null!;
         public string Category { get; set; } = null!;
         public decimal Price { get; set; }
+        public string? ImageUrl { get; set; }
     }
 
     public class MenuItemUpdateDto
@@ -12,6 +13,7 @@ namespace LibraryCafe.Api.DTOs
         public string? ItemName { get; set; }
         public string? Category { get; set; }
         public decimal? Price { get; set; }
+        public string? ImageUrl { get; set; }
     }
 
     public class MenuItemDto
@@ -20,6 +22,7 @@ namespace LibraryCafe.Api.DTOs
         public string ItemName { get; set; } = null!;
         public string Category { get; set; } = null!;
         public decimal Price { get; set; }
+        public string? ImageUrl { get; set; }
         public double? AverageRating { get; set; }
     }
 }

@@ -406,7 +406,7 @@
                 <div class="section">
                     <div class="sec-head">
                         <h2 data-i18n="menuItems">Ճաշատեսակներ</h2>
-                        <button class="btn btn-primary btn-sm" data-i18n="addItem" onclick="openModal('addMenuModal')">+ Ավելացնել</button>
+                        <button class="btn btn-primary btn-sm" data-i18n="addItem" onclick="openAddMenuItem()">+ Ավելացնել</button>
                     </div>
                     <div class="table-wrap">
                         <table>
@@ -562,21 +562,51 @@
         </div>
     </div>
 
-    <div class="modal" id="addMenuModal">
-        <div class="modal-box">
+    <!-- REPLACE your old addMenuModal div with this entire block -->
+    <div class="modal" id="menuModal">
+        <div class="modal-box" style="max-width:500px">
             <div class="modal-head">
-                <h2 data-i18n="addMenuItem">Ավելացնել Ճաշատեսակ</h2>
-                <button class="m-close" onclick="closeModal('addMenuModal')">
-                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                <h2 id="menuModalTitle">Add <em>Menu Item</em></h2>
+                <button class="m-close" onclick="closeModal('menuModal')">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
                 </button>
             </div>
-            <div class="form-group"><label data-i18n="itemName">Ապրանքի Անուն</label><input type="text" id="miName" data-i18n-ph="itemNamePlaceholder" placeholder="e.g. Cappuccino"></div>
+            <div class="form-group">
+                <label>Item Name</label>
+                <input type="text" id="miName" placeholder="e.g. Cappuccino">
+            </div>
             <div class="form-group">
                 <label>Category</label>
-                <select id="miCat"><option>Hot Drinks</option><option>Cold Drinks</option><option>Breakfast</option><option>Sandwiches</option><option>Salads</option><option>Desserts</option></select>
+                <select id="miCat">
+                    <option>Hot Drinks</option>
+                    <option>Cold Drinks</option>
+                    <option>Breakfast</option>
+                    <option>Sandwiches</option>
+                    <option>Salads</option>
+                    <option>Desserts</option>
+                </select>
             </div>
-            <div class="form-group"><label data-i18n="price">Գին (ՀԴՌ)</label><input type="number" id="miPrice" placeholder="1200"></div>
-            <button class="btn btn-primary" style="width:100%;margin-top:.5rem" onclick="addMenuItem()">Add to Menu</button>
+            <div class="form-group">
+                <label>Price (AMD)</label>
+                <input type="number" id="miPrice" placeholder="1200">
+            </div>
+            <div class="form-group">
+                <label>Photo <span style="color:var(--mist);font-size:.75rem">(optional — JPG/PNG, max 5 MB)</span></label>
+                <img id="miImagePreview" src="" alt="preview"
+                     style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:.6rem">
+                <label class="mi-img-label" for="miImage">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Choose photo
+                </label>
+                <input type="file" id="miImage" accept="image/*" style="display:none" onchange="previewMenuImage(this)">
+            </div>
+            <button class="btn btn-primary" id="menuModalSubmitBtn" style="width:100%;margin-top:.5rem" onclick="submitMenuModal()">
+                Add to Menu
+            </button>
         </div>
     </div>
     <!-- PDF VIEWER MODAL -->

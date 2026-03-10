@@ -2254,3 +2254,106 @@ tbody tr {
         background: #fff0f4
     }
 
+/* Menu item image upload */
+.mi-img-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem 1rem;
+    border: 1.5px dashed var(--silver);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    font-size: .82rem;
+    color: var(--smoke);
+    background: var(--snow);
+    transition: .15s;
+    width: fit-content;
+}
+
+    .mi-img-label:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+        background: #fffdf5;
+    }
+
+
+#cartFab:hover {
+    transform: scale(1.08);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(14px);
+        opacity: 0
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(0);
+        opacity: 1
+    }
+
+    to {
+        transform: translateY(14px);
+        opacity: 0
+    }
+}
+
+.cart-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .7rem 0;
+    border-bottom: 1px solid var(--silk);
+}
+
+.ci-n {
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.ci-p {
+    font-size: .75rem;
+    color: var(--smoke);
+    margin-top: .1rem;
+}
+
+.ci-ctrl {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    flex-shrink: 0;
+}
+
+.qty-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--silver);
+    background: var(--snow);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: .15s;
+}
+
+    .qty-btn:hover {
+        background: var(--ink);
+        color: #fff;
+    }
+
+.qty-n {
+    min-width: 20px;
+    text-align: center;
+    font-size: .85rem;
+    font-weight: 700;
+}}

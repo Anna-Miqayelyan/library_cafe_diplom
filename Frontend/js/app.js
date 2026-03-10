@@ -119,6 +119,7 @@ async function handleLogin() {
     currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, wallet: 20000 };
     saveStorage(); showApp();
     notify('Welcome back, ' + currentUser.name.split(' ')[0]);
+    if (typeof requestOrderNotifications !== 'undefined') requestOrderNotifications();
 }
 
 // ─── REGISTER ────────────────────────────────────────────────
@@ -184,6 +185,36 @@ async function showApp() {
     await loadBooks();
     await loadMenu();
 
+    // Floating cart FAB + modal — injected once, always works
+    if (!document.getElementById('cartFab')) {
+        const fab = document.createElement('button');
+        fab.id = 'cartFab';
+        fab.title = 'View cart';
+        fab.style.cssText = 'display:none;position:fixed;bottom:2rem;right:2rem;z-index:9000;width:60px;height:60px;background:#2c2825;color:#fff;border:none;border-radius:50%;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.3);flex-direction:column;gap:1px;font-family:inherit;transition:.2s';
+        fab.onclick = () => openModal('cartModal');
+        fab.innerHTML = '<span style="font-size:1.4rem;line-height:1">🛒</span><span class="cart-count-badge" style="font-size:.65rem;font-weight:800;line-height:1">0</span>';
+        document.body.appendChild(fab);
+
+        const modal = document.createElement('div');
+        modal.id = 'cartModal';
+        modal.className = 'modal';
+        modal.innerHTML = `<div class="modal-box" style="max-width:520px">
+            <div class="modal-head">
+                <h2>🛒 Your <em>Order</em></h2>
+                <button class="m-close" onclick="closeModal('cartModal')"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="width:20px;height:20px"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div id="cartItems" style="max-height:55vh;overflow-y:auto"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.9rem 0;border-top:1px solid var(--silk);margin-top:.5rem">
+                <span style="font-weight:600;color:var(--smoke)">Total</span>
+                <span style="font-size:1.15rem;font-weight:800;color:var(--ink)"><span id="cartTotal">0</span> AMD</span>
+            </div>
+            <button id="checkoutBtn" class="btn btn-primary" style="width:100%;padding:1rem;font-size:1rem" onclick="checkout()">Place Order (Cash)</button>
+            <p style="text-align:center;font-size:.72rem;color:var(--mist);margin:.5rem 0 0">Payment is made in cash at the counter</p>
+        </div>`;
+        document.body.appendChild(modal);
+    }
+    requestOrderNotifications();
+
     showPage(cfg.home);
 
     const r = currentUser.role;
@@ -232,7 +263,7 @@ async function loadMenu() {
     const res = await api('/menuitems');
     if (res && res.ok) {
         menu = (await res.json()).map(m => ({
-            id: m.id, name: m.itemName, category: m.category, price: m.price
+            id: m.id, name: m.itemName, category: m.category, price: m.price, imageUrl: m.imageUrl || null
         }));
     }
 }
@@ -321,12 +352,13 @@ function menuCard(m) {
     const fav = favs.some(f => f.id === m.id && f.type === 'menu');
     const cats = { 'Hot Drinks': '◉', 'Cold Drinks': '◎', 'Breakfast': '○', 'Sandwiches': '▣', 'Salads': '◈', 'Desserts': '◆' };
     const icon = cats[m.category] || '◈';
+    const imgHtml = m.imageUrl
+        ? `<img src="${m.imageUrl}" alt="${m.name}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-sm) var(--r-sm) 0 0">`
+        : `<div class="card-img-icon">${icon}</div>`;
     return `
   <div class="card">
     <button class="fav-btn ${fav ? 'on' : ''}" onclick="event.stopPropagation();toggleFav(${m.id},'menu')">${fav ? '♥' : '♡'}</button>
-    <div class="card-img">
-      <div class="card-img-icon">${icon}</div>
-    </div>
+    <div class="card-img">${imgHtml}</div>
     <div class="card-body">
       <div class="card-ey">${m.category}</div>
       <div class="card-title">${m.name}</div>
@@ -437,7 +469,7 @@ function addToCart(id) {
     const ex = cart.find(c => c.id === id);
     if (ex) ex.qty++; else cart.push({ ...item, qty: 1 });
     updateCartBadge();
-    notify(item.name + ' added to cart');
+    notify('🛒 ' + item.name + ' added! Tap the cart to order.');
     saveStorage();
 }
 
@@ -454,7 +486,11 @@ function changeQty(id, d) {
 }
 
 function updateCartBadge() {
-    document.getElementById('cartCount').textContent = cart.reduce((s, i) => s + i.qty, 0);
+    const count = cart.reduce((s, i) => s + i.qty, 0);
+    document.querySelectorAll('.cart-count-badge').forEach(el => el.textContent = count);
+    const el = document.getElementById('cartCount'); if (el) el.textContent = count;
+    const fab = document.getElementById('cartFab');
+    if (fab) fab.style.display = count > 0 ? 'flex' : 'none';
 }
 
 function renderCartModal() {
@@ -480,17 +516,65 @@ async function checkout() {
     if (!currentUser) { notify('Please sign in', true); return; }
     if (!cart.length) { notify('Your cart is empty', true); return; }
     const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    if (currentUser.wallet < total) { notify('Insufficient balance', true); return; }
+
+    const btn = document.getElementById('checkoutBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Placing order…'; }
 
     const res = await api('/cafeorders', {
         method: 'POST',
         body: JSON.stringify({ userId: currentUser.id, orderType: 'Dine-in', items: cart.map(i => ({ itemId: i.id, quantity: i.qty })) })
     });
-    if (!res) return;
-    if (!res.ok) { const e = await res.json(); notify(e.message || 'Order failed', true); return; }
 
-    notify('Order placed — total ' + fmt(total) + ' AMD');
+    if (btn) { btn.disabled = false; btn.textContent = 'Place Order'; }
+    if (!res) return;
+    if (!res.ok) { const e = await res.json().catch(() => ({})); notify(e.message || 'Order failed', true); return; }
+
+    const order = await res.json().catch(() => null);
+    const orderId = order?.id;
+    notify('✅ Order placed! Total: ' + fmt(total) + ' AMD. We will notify you when it is ready!');
     cart = []; updateCartBadge(); closeModal('cartModal'); saveStorage();
+    if (orderId) startOrderStatusPolling(orderId);
+    requestOrderNotifications();
+}
+
+// ─── ORDER STATUS POLLING ─────────────────────────────────────────────
+const _orderPollers = {};
+
+function startOrderStatusPolling(orderId) {
+    if (_orderPollers[orderId]) return;
+    let lastStatus = 'Pending';
+    _orderPollers[orderId] = setInterval(async () => {
+        try {
+            const res = await api('/cafeorders/' + orderId);
+            if (!res || !res.ok) return;
+            const order = await res.json();
+            if (order.status !== lastStatus) {
+                lastStatus = order.status;
+                showOrderStatusBanner(orderId, order.status);
+                if (Notification.permission === 'granted') {
+                    const msgs = { Preparing: 'Your order is being prepared ☕', Ready: 'Your order is READY for pickup! 🔔', Completed: 'Order completed. Enjoy! ✅', Cancelled: 'Your order was cancelled ❌' };
+                    if (msgs[order.status]) new Notification('Library Café — Order #' + orderId, { body: msgs[order.status], tag: 'order-' + orderId });
+                }
+                if (order.status === 'Completed' || order.status === 'Cancelled') { clearInterval(_orderPollers[orderId]); delete _orderPollers[orderId]; }
+            }
+        } catch { }
+    }, 12000);
+}
+
+function showOrderStatusBanner(orderId, status) {
+    const old = document.getElementById('order-banner-' + orderId); if (old) old.remove();
+    const cfg = { Preparing: { bg: '#fff8e1', border: '#ffd54f', icon: '👨‍🍳', msg: 'Your order is being prepared…' }, Ready: { bg: '#e8f5e9', border: '#66bb6a', icon: '🔔', msg: 'Your order is READY for pickup!' }, Completed: { bg: '#e3f2fd', border: '#64b5f6', icon: '✅', msg: 'Order completed. Enjoy!' }, Cancelled: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Your order was cancelled.' } };
+    const c = cfg[status]; if (!c) return;
+    const b = document.createElement('div');
+    b.id = 'order-banner-' + orderId;
+    b.style.cssText = 'position:fixed;bottom:2rem;left:2rem;z-index:9998;background:' + c.bg + ';border:1.5px solid ' + c.border + ';border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:320px;padding:.85rem 1.1rem;display:flex;align-items:center;gap:.75rem;animation:slideUp .3s ease';
+    b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">Order #' + orderId + ' — ' + status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999;padding:.2rem .3rem">✕</button>';
+    document.body.appendChild(b);
+    if (status !== 'Ready') setTimeout(() => { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); }, 8000);
+}
+
+function requestOrderNotifications() {
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
 }
 
 // ─── SEATS ───────────────────────────────────────────────────
@@ -501,19 +585,19 @@ async function checkout() {
 
 
 function initReservationPickers() {
-    const dateEl=document.getElementById('resDate');
-    const fromEl=document.getElementById('resFrom');
-    const toEl  =document.getElementById('resTo');
-    if(!dateEl||!fromEl||!toEl) return;
-    if(!dateEl.value) dateEl.value=new Date().toISOString().split('T')[0];
-    if(fromEl.options.length===0){
-        for(let h=9;h<=20;h++){
-            const val=String(h).padStart(2,'0')+':00';
-            fromEl.add(new Option(val,val));
-            toEl.add(new Option(val,val));
+    const dateEl = document.getElementById('resDate');
+    const fromEl = document.getElementById('resFrom');
+    const toEl = document.getElementById('resTo');
+    if (!dateEl || !fromEl || !toEl) return;
+    if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+    if (fromEl.options.length === 0) {
+        for (let h = 9; h <= 20; h++) {
+            const val = String(h).padStart(2, '0') + ':00';
+            fromEl.add(new Option(val, val));
+            toEl.add(new Option(val, val));
         }
-        fromEl.value='09:00';
-        toEl.value='10:00';
+        fromEl.value = '09:00';
+        toEl.value = '10:00';
     }
 }
 
@@ -540,28 +624,28 @@ function generateSeats() {
 
     const date = document.getElementById('resDate')?.value || '';
     const from = document.getElementById('resFrom')?.value || '09:00';
-    const to   = document.getElementById('resTo')?.value   || '10:00';
+    const to = document.getElementById('resTo')?.value || '10:00';
 
     if (!date) { notify('Please select a date', true); return; }
     if (from >= to) { notify('End time must be after start time', true); return; }
 
-    const HOURS = ['09','10','11','12','13','14','15','16','17','18','19','20'];
+    const HOURS = ['09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'];
 
-    const myTables  = reserved.filter(r=>r.date===date&&r.from===from&&r.to===to).map(r=>r.seat);
-    const myOverlap = reserved.filter(r=>r.date===date&&slotsOverlap(r.from,r.to,from,to)&&!(r.from===from&&r.to===to)).map(r=>r.seat);
-    const takenByOthers = getTakenSeats(date,from,to).filter(t=>!myTables.includes(t)&&!myOverlap.includes(t));
+    const myTables = reserved.filter(r => r.date === date && r.from === from && r.to === to).map(r => r.seat);
+    const myOverlap = reserved.filter(r => r.date === date && slotsOverlap(r.from, r.to, from, to) && !(r.from === from && r.to === to)).map(r => r.seat);
+    const takenByOthers = getTakenSeats(date, from, to).filter(t => !myTables.includes(t) && !myOverlap.includes(t));
 
     // Per-table hourly state: 'mine' | 'other' | 'free'
     const occ = {};
-    for (let t=1;t<=7;t++) { occ[t]={}; HOURS.forEach(h=>{ occ[t][h]='free'; }); }
+    for (let t = 1; t <= 7; t++) { occ[t] = {}; HOURS.forEach(h => { occ[t][h] = 'free'; }); }
 
     // My reservations mark occupied hours
-    reserved.filter(r=>r.date===date).forEach(r=>{
-        HOURS.forEach((h,hi)=>{
-            if (hi>=HOURS.length-1) return;
-            const nxt = HOURS[hi+1]+':00';
-            if (slotsOverlap(r.from,r.to,h+':00',nxt) && occ[r.seat])
-                occ[r.seat][h]='mine';
+    reserved.filter(r => r.date === date).forEach(r => {
+        HOURS.forEach((h, hi) => {
+            if (hi >= HOURS.length - 1) return;
+            const nxt = HOURS[hi + 1] + ':00';
+            if (slotsOverlap(r.from, r.to, h + ':00', nxt) && occ[r.seat])
+                occ[r.seat][h] = 'mine';
         });
     });
     //// Others' bookings (deterministic)
@@ -574,58 +658,58 @@ function generateSeats() {
     //    });
     //}
 
-    el.innerHTML='';
-    const names  = ['Table 1','Table 2','Table 3','Table 4','Table 5','Table 6','Table 7'];
-    const emojis = ['\u{1F4DA}','\u{1F4DA}','\u2615','\u2615','\u2615','\u{1F4BB}','\u{1F4BB}'];
+    el.innerHTML = '';
+    const names = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Table 7'];
+    const emojis = ['\u{1F4DA}', '\u{1F4DA}', '\u2615', '\u2615', '\u2615', '\u{1F4BB}', '\u{1F4BB}'];
 
-    for (let t=1;t<=7;t++){
-        const isMine  = myTables.includes(t);
-        const isTaken = takenByOthers.includes(t)||myOverlap.includes(t);
+    for (let t = 1; t <= 7; t++) {
+        const isMine = myTables.includes(t);
+        const isTaken = takenByOthers.includes(t) || myOverlap.includes(t);
 
         const card = document.createElement('div');
-        card.className='tc '+(isMine?'tc-mine':isTaken?'tc-taken':'tc-free');
+        card.className = 'tc ' + (isMine ? 'tc-mine' : isTaken ? 'tc-taken' : 'tc-free');
 
         // header
-        card.innerHTML=`<div class="tc-hdr">
-            <span class="tc-em">${emojis[t-1]}</span>
-            <span class="tc-nm">${names[t-1]}</span>
-            ${isMine?'<span class="tc-tag tag-mine">\u2713 Yours</span>':isTaken?'<span class="tc-tag tag-taken">Unavailable</span>':'<span class="tc-tag tag-free">Available</span>'}
+        card.innerHTML = `<div class="tc-hdr">
+            <span class="tc-em">${emojis[t - 1]}</span>
+            <span class="tc-nm">${names[t - 1]}</span>
+            ${isMine ? '<span class="tc-tag tag-mine">\u2713 Yours</span>' : isTaken ? '<span class="tc-tag tag-taken">Unavailable</span>' : '<span class="tc-tag tag-free">Available</span>'}
         </div>`;
 
         // hour grid
-        const grid=document.createElement('div');
-        grid.className='tc-grid';
-        HOURS.forEach((h,hi)=>{
-            if(hi>=HOURS.length-1) return;
-            const hf=h+':00', ht=HOURS[hi+1]+':00';
-            const state=occ[t][h];
-            const cell=document.createElement('div');
-            cell.className='tc-cell tc-'+state;
-            cell.title=hf+'\u2013'+ht+' \u2014 '+(state==='mine'?'Your booking':state==='other'?'Reserved':'Free \u2014 click to reserve');
-            const lbl=document.createElement('span');
-            lbl.className='tc-hlbl';
-            lbl.textContent=h;
+        const grid = document.createElement('div');
+        grid.className = 'tc-grid';
+        HOURS.forEach((h, hi) => {
+            if (hi >= HOURS.length - 1) return;
+            const hf = h + ':00', ht = HOURS[hi + 1] + ':00';
+            const state = occ[t][h];
+            const cell = document.createElement('div');
+            cell.className = 'tc-cell tc-' + state;
+            cell.title = hf + '\u2013' + ht + ' \u2014 ' + (state === 'mine' ? 'Your booking' : state === 'other' ? 'Reserved' : 'Free \u2014 click to reserve');
+            const lbl = document.createElement('span');
+            lbl.className = 'tc-hlbl';
+            lbl.textContent = h;
             cell.appendChild(lbl);
-            if(state==='free'){
-                cell.onclick=()=>{reserveSeat(t,date,hf,ht);generateSeats();};
-                cell.style.cursor='pointer';
+            if (state === 'free') {
+                cell.onclick = () => { reserveSeat(t, date, hf, ht); generateSeats(); };
+                cell.style.cursor = 'pointer';
             }
             grid.appendChild(cell);
         });
         card.appendChild(grid);
 
         // action button for selected slot
-        if(isMine){
-            const btn=document.createElement('button');
-            btn.className='btn btn-ghost tc-btn';
-            btn.textContent='\u2715 Cancel '+from+'\u2013'+to;
-            btn.onclick=()=>{cancelSeatReservation(t,date,from,to);generateSeats();};
+        if (isMine) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-ghost tc-btn';
+            btn.textContent = '\u2715 Cancel ' + from + '\u2013' + to;
+            btn.onclick = () => { cancelSeatReservation(t, date, from, to); generateSeats(); };
             card.appendChild(btn);
-        } else if(!isTaken){
-            const btn=document.createElement('button');
-            btn.className='btn btn-primary tc-btn';
-            btn.textContent='Reserve '+from+'\u2013'+to;
-            btn.onclick=()=>{reserveSeat(t,date,from,to);generateSeats();};
+        } else if (!isTaken) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-primary tc-btn';
+            btn.textContent = 'Reserve ' + from + '\u2013' + to;
+            btn.onclick = () => { reserveSeat(t, date, from, to); generateSeats(); };
             card.appendChild(btn);
         }
 
@@ -637,36 +721,36 @@ function generateSeats() {
 
 
 function reserveSeat(seat, date, from, to) {
-    reserved.push({seat,date,from,to});
+    reserved.push({ seat, date, from, to });
     saveStorage();
-    notify('Table '+seat+' reserved '+from+'–'+to);
-    if(typeof scheduleReservationNotification==='function')
-        scheduleReservationNotification(seat,date,from);
+    notify('Table ' + seat + ' reserved ' + from + '–' + to);
+    if (typeof scheduleReservationNotification === 'function')
+        scheduleReservationNotification(seat, date, from);
 }
 
 
 function cancelSeatReservation(seat, date, from, to) {
-    reserved=reserved.filter(r=>!(r.seat===seat&&r.date===date&&r.from===from&&r.to===to));
+    reserved = reserved.filter(r => !(r.seat === seat && r.date === date && r.from === from && r.to === to));
     saveStorage();
-    notify('Table '+seat+' reservation cancelled');
+    notify('Table ' + seat + ' reservation cancelled');
     renderMyReservations();
 }
 
 function renderMyReservations() {
-    const el=document.getElementById('myReservationsList');
-    if(!el) return;
-    if(!reserved.length){el.innerHTML='';return;}
-    const sorted=[...reserved].sort((a,b)=>(a.date+a.from).localeCompare(b.date+b.from));
-    const rows=sorted.map(r=>{
-        const oc='cancelSeatReservation('+r.seat+',\''+r.date+'\',\''+r.from+'\',\''+r.to+'\');generateSeats()';
+    const el = document.getElementById('myReservationsList');
+    if (!el) return;
+    if (!reserved.length) { el.innerHTML = ''; return; }
+    const sorted = [...reserved].sort((a, b) => (a.date + a.from).localeCompare(b.date + b.from));
+    const rows = sorted.map(r => {
+        const oc = 'cancelSeatReservation(' + r.seat + ',\'' + r.date + '\',\'' + r.from + '\',\'' + r.to + '\');generateSeats()';
         return '<div class="my-res-row">'
-             +'<div class="my-res-tbl">T'+r.seat+'</div>'
-             +'<span class="my-res-info">'+r.date+' &nbsp; '+r.from+'–'+r.to+'</span>'
-             +'<button class="my-res-del" onclick="'+oc+'" title="Cancel">✕</button>'
-             +'</div>';
+            + '<div class="my-res-tbl">T' + r.seat + '</div>'
+            + '<span class="my-res-info">' + r.date + ' &nbsp; ' + r.from + '–' + r.to + '</span>'
+            + '<button class="my-res-del" onclick="' + oc + '" title="Cancel">✕</button>'
+            + '</div>';
     }).join('');
-    el.innerHTML='<p class="my-res-title">'+t('myReservations')+'</p>'
-               +'<div class="my-res-list">'+rows+'</div>';
+    el.innerHTML = '<p class="my-res-title">' + t('myReservations') + '</p>'
+        + '<div class="my-res-list">' + rows + '</div>';
 }
 
 // ─── BOOKSHELF MAP ────────────────────────────────────────────
@@ -908,12 +992,12 @@ function requestNotifPermission() {
 
 function scheduleReservationNotification(tableNum, date, from) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    const resTime  = new Date(date + 'T' + from + ':00');
+    const resTime = new Date(date + 'T' + from + ':00');
     const notifyAt = new Date(resTime.getTime() - 15 * 60 * 1000);
-    const delay    = notifyAt - new Date();
+    const delay = notifyAt - new Date();
     if (delay <= 0) return;
     setTimeout(() => {
-        const still = reserved.find(r => r.seat===tableNum && r.date===date && r.from===from);
+        const still = reserved.find(r => r.seat === tableNum && r.date === date && r.from === from);
         if (!still) return;
         showNotifBanner(tableNum, date, from);
         const n = new Notification('📚 Library Café — Reminder', {
@@ -932,18 +1016,18 @@ function showNotifBanner(tableNum, date, from) {
     b.className = 'res-notif-banner';
     b.innerHTML =
         '<div class="rnb-inner">' +
-          '<span class="rnb-icon">🔔</span>' +
-          '<div class="rnb-text">' +
-            '<strong>Reservation in 15 minutes</strong>' +
-            '<span>Table ' + tableNum + ' at ' + from + ' — ' + date + '</span>' +
-          '</div>' +
-          '<div class="rnb-actions">' +
-            '<button class="btn btn-primary btn-sm" onclick="dismissNotifBanner()">Got it!</button>' +
-            '<button class="btn btn-ghost btn-sm" onclick="cancelFromBanner(' + tableNum + ',\'' + date + '\',\'' + from + '\')">Cancel reservation</button>' +
-          '</div>' +
+        '<span class="rnb-icon">🔔</span>' +
+        '<div class="rnb-text">' +
+        '<strong>Reservation in 15 minutes</strong>' +
+        '<span>Table ' + tableNum + ' at ' + from + ' — ' + date + '</span>' +
+        '</div>' +
+        '<div class="rnb-actions">' +
+        '<button class="btn btn-primary btn-sm" onclick="dismissNotifBanner()">Got it!</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="cancelFromBanner(' + tableNum + ',\'' + date + '\',\'' + from + '\')">Cancel reservation</button>' +
+        '</div>' +
         '</div>';
     document.body.appendChild(b);
-    setTimeout(() => { const el=document.getElementById('res-notif-banner'); if(el) el.remove(); }, 60000);
+    setTimeout(() => { const el = document.getElementById('res-notif-banner'); if (el) el.remove(); }, 60000);
 }
 
 function dismissNotifBanner() {
@@ -952,7 +1036,7 @@ function dismissNotifBanner() {
 }
 
 function cancelFromBanner(tableNum, date, from) {
-    const r = reserved.find(r2 => r2.seat===tableNum && r2.date===date && r2.from===from);
+    const r = reserved.find(r2 => r2.seat === tableNum && r2.date === date && r2.from === from);
     if (r) cancelSeatReservation(r.seat, r.date, r.from, r.to);
     dismissNotifBanner(); generateSeats();
 }
@@ -960,7 +1044,7 @@ function cancelFromBanner(tableNum, date, from) {
 function initNotifBtn() {
     const btn = document.getElementById('notifBtn');
     if (!btn) return;
-    if (!('Notification' in window)) { btn.style.display='none'; return; }
+    if (!('Notification' in window)) { btn.style.display = 'none'; return; }
     if (Notification.permission === 'granted') {
         btn.textContent = '🔔 Reminders On'; btn.classList.add('notif-on');
     }
@@ -1151,7 +1235,8 @@ async function deleteBook(id) {
     if (!confirm('Delete this book from the collection?')) return;
     const res = await api(`/books/${id}`, { method: 'DELETE' });
     if (!res) return;
-    if (!res.ok) { notify('Cannot delete this book', true); return; }
+    if (!res.ok) { notify('Cannot delete this boo
+    k', true); return; }
     notify('Book removed'); loadLibDash();
     if (currentUser.role === 'Admin') loadAdminDash();
 }
@@ -1178,7 +1263,16 @@ async function loadCafeDash() {
     }
     const mt = document.getElementById('cafeMenuTb');
     if (mt) mt.innerHTML = menu.length
-        ? menu.map(m => `<tr><td>${m.name}</td><td>${m.category}</td><td>${fmt(m.price)} AMD</td><td><button class="btn-del" onclick="deleteMenuItem(${m.id})">Delete</button></td></tr>`).join('')
+        ? menu.map(m => `<tr>
+            <td style="display:flex;align-items:center;gap:.6rem">
+                ${m.imageUrl ? `<img src="${m.imageUrl}" style="width:34px;height:34px;object-fit:cover;border-radius:5px;flex-shrink:0">` : `<div style="width:34px;height:34px;background:var(--snow);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0">☕</div>`}
+                ${m.name}
+            </td>
+            <td>${m.category}</td><td>${fmt(m.price)} AMD</td>
+            <td style="display:flex;gap:.4rem">
+                <button class="btn btn-ghost btn-sm" onclick="openEditMenuItem(${m.id})">✏️ Edit</button>
+                <button class="btn-del" onclick="deleteMenuItem(${m.id})">Delete</button>
+            </td></tr>`).join('')
         : `<tr><td colspan="4" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No menu items yet</td></tr>`;
 }
 
@@ -1210,20 +1304,64 @@ async function updateStatus(id, status) {
     notify(`Order #${id} → ${status}`); loadCafeDash();
 }
 
-async function addMenuItem() {
-    const itemName = document.getElementById('miName').value.trim();
-    const category = document.getElementById('miCat').value;
-    const price = parseFloat(document.getElementById('miPrice').value);
-    if (!itemName || !price) { notify('Please fill all fields', true); return; }
-
-    const res = await api('/menuitems', { method: 'POST', body: JSON.stringify({ itemName, category, price }) });
-    if (!res) return;
-    if (!res.ok) { notify('Failed to add item', true); return; }
-    notify('"' + itemName + '" added to menu');
-    closeModal('addMenuModal');
-    document.getElementById('miName').value = ''; document.getElementById('miPrice').value = '';
-    loadCafeDash();
+function openAddMenuItem() {
+    const t = document.getElementById('menuModalTitle');
+    const b = document.getElementById('menuModalSubmitBtn');
+    if (t) t.textContent = 'Add Menu Item';
+    if (b) b.textContent = 'Add to Menu';
+    ['miName', 'miPrice'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const cat = document.getElementById('miCat'); if (cat) cat.value = 'Hot Drinks';
+    const prev = document.getElementById('miImagePreview'); if (prev) { prev.style.display = 'none'; prev.src = ''; }
+    const fi = document.getElementById('miImage'); if (fi) fi.value = '';
+    window._editingMenuId = null;
+    openModal('menuModal');
 }
+function openEditMenuItem(id) {
+    const m = menu.find(x => x.id === id); if (!m) return;
+    const t = document.getElementById('menuModalTitle');
+    const b = document.getElementById('menuModalSubmitBtn');
+    if (t) t.textContent = 'Edit Menu Item';
+    if (b) b.textContent = 'Save Changes';
+    const nm = document.getElementById('miName'); if (nm) nm.value = m.name;
+    const ct = document.getElementById('miCat'); if (ct) ct.value = m.category;
+    const pr = document.getElementById('miPrice'); if (pr) pr.value = m.price;
+    const prev = document.getElementById('miImagePreview');
+    if (prev) { if (m.imageUrl) { prev.src = m.imageUrl; prev.style.display = 'block'; } else { prev.style.display = 'none'; prev.src = ''; } }
+    const fi = document.getElementById('miImage'); if (fi) fi.value = '';
+    window._editingMenuId = id;
+    openModal('menuModal');
+}
+function previewMenuImage(input) {
+    const file = input.files[0]; if (!file) return;
+    const prev = document.getElementById('miImagePreview'); if (!prev) return;
+    const reader = new FileReader();
+    reader.onload = e => { prev.src = e.target.result; prev.style.display = 'block'; };
+    reader.readAsDataURL(file);
+}
+async function submitMenuModal() {
+    const itemName = (document.getElementById('miName')?.value || '').trim();
+    const category = document.getElementById('miCat')?.value || 'Hot Drinks';
+    const price = parseFloat(document.getElementById('miPrice')?.value || '0');
+    const imageFile = document.getElementById('miImage')?.files[0];
+    if (!itemName || !price) { notify('Please fill name and price', true); return; }
+    const btn = document.getElementById('menuModalSubmitBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    let imageUrl = null;
+    if (imageFile) { try { imageUrl = await compressImage(imageFile); } catch { imageUrl = await readFileAsBase64(imageFile); } }
+    const isEdit = !!window._editingMenuId;
+    const payload = { itemName, category, price };
+    if (imageUrl) payload.imageUrl = imageUrl;
+    else if (isEdit) { const ex = menu.find(x => x.id === window._editingMenuId); if (ex?.imageUrl) payload.imageUrl = ex.imageUrl; }
+    const url = isEdit ? '/menuitems/' + window._editingMenuId : '/menuitems';
+    const method = isEdit ? 'PUT' : 'POST';
+    const result = await api(url, { method, body: JSON.stringify(payload) });
+    if (btn) { btn.disabled = false; btn.textContent = isEdit ? 'Save Changes' : 'Add to Menu'; }
+    if (!result) return;
+    if (!result.ok) { const e = await result.json().catch(() => ({})); notify(e.message || 'Error', true); return; }
+    notify(isEdit ? '"' + itemName + '" updated!' : '"' + itemName + '" added!');
+    closeModal('menuModal'); loadCafeDash();
+}
+async function addMenuItem() { openAddMenuItem(); }
 
 async function deleteMenuItem(id) {
     if (!confirm('Remove this item from the menu?')) return;
