@@ -385,13 +385,13 @@ function renderStats() {
 
 function renderTrending() {
     const el = document.getElementById('trendingBooks'); if (!el) return;
-    const s = books.slice(0, 4);
+    const s = books.slice(0, 5);
     el.innerHTML = s.length ? s.map(bookCard).join('') : empty('The collection is empty');
 }
 
 function renderPopularMenu() {
     const el = document.getElementById('popularMenu'); if (!el) return;
-    const s = menu.slice(0, 4);
+    const s = menu.slice(0, 5);
     el.innerHTML = s.length ? s.map(menuCard).join('') : empty('No menu items yet');
 }
 
