@@ -87,6 +87,18 @@ body {
         background-image: repeating-linear-gradient(0deg,transparent,transparent 79px,rgba(255,255,255,.025) 80px), repeating-linear-gradient(90deg,transparent,transparent 79px,rgba(255,255,255,.025) 80px);
     }
 
+    .auth-left::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        opacity: .045;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23noise)'/%3E%3C/svg%3E");
+        background-repeat: repeat;
+        background-size: 260px 260px;
+    }
+
 .auth-left-inner {
     position: relative;
     z-index: 1
@@ -391,7 +403,7 @@ body {
 
 /* ─── NAV ───────────────────────────────────────────────── */
 nav {
-    background: rgba(254,254,254,.96);
+    background: var(--nav-bg, rgba(254,254,254,.96));
     backdrop-filter: blur(24px);
     border-bottom: 1px solid var(--silver);
     position: sticky;
@@ -2356,4 +2368,383 @@ tbody tr {
     text-align: center;
     font-size: .85rem;
     font-weight: 700;
-}}
+}
+
+}
+
+/* ─── DARK MODE ─────────────────────────────────────────────── */
+[data-theme="dark"] {
+    /* Page backgrounds */
+    --snow: #1a1a1a; /* body bg — deep dark grey */
+    --white: #242424; /* card / panel bg */
+    /* Text scale — inverted */
+    --ink: #f0ede8;
+    --ink-mid: #e2ddd6;
+    --ink-soft: #c8c2b8;
+    --graphite: #a89f93;
+    --smoke: #807870;
+    --mist: #5a5349;
+    --cloud: #3d3830;
+    /* Borders */
+    --silver: #353535;
+    /* Gold stays warm, slightly brighter */
+    --gold: #d4a94e;
+    --gold-lt: #e8c070;
+    --gold-pale: #2e2410;
+    /* Danger */
+    --danger: #e07060;
+    --danger-bg: #2a1a18;
+    /* Shadows deeper */
+    --sh-xs: 0 1px 4px rgba(0,0,0,.4);
+    --sh-sm: 0 2px 12px rgba(0,0,0,.5);
+    --sh-md: 0 8px 32px rgba(0,0,0,.6);
+    --sh-lg: 0 20px 64px rgba(0,0,0,.7);
+    --sh-xl: 0 40px 120px rgba(0,0,0,.8);
+}
+
+    /* Force body and page backgrounds explicitly */
+    [data-theme="dark"],
+    [data-theme="dark"] body {
+        background: #1a1a1a !important;
+        color: #f0ede8 !important;
+    }
+
+        [data-theme="dark"] .page,
+        [data-theme="dark"] .container {
+            background: #1a1a1a;
+        }
+
+        [data-theme="dark"] .section {
+            background: #242424 !important;
+            border-color: #353535 !important;
+        }
+
+        [data-theme="dark"] .card {
+            background: #242424 !important;
+            border-color: #353535;
+        }
+
+            [data-theme="dark"] .card:hover {
+                background: #2a2a2a !important;
+            }
+
+        [data-theme="dark"] .card-title,
+        [data-theme="dark"] .card-author,
+        [data-theme="dark"] .card-ey,
+        [data-theme="dark"] .sec-head h2,
+        [data-theme="dark"] h1, [data-theme="dark"] h2,
+        [data-theme="dark"] h3, [data-theme="dark"] p,
+        [data-theme="dark"] span, [data-theme="dark"] label {
+            color: inherit;
+        }
+
+        [data-theme="dark"] .card-actions {
+            border-top-color: #353535;
+        }
+
+        [data-theme="dark"] .sec-head {
+            border-bottom-color: #353535;
+        }
+
+        /* Nav */
+        [data-theme="dark"] nav {
+            background: rgba(28,28,28,.97);
+            border-bottom-color: var(--silver);
+        }
+
+        /* Auth right panel */
+        [data-theme="dark"] .auth-right {
+            background: #1e1e1e;
+        }
+
+        /* Inputs, selects, textareas */
+        [data-theme="dark"] input:not([type=checkbox]):not([type=radio]),
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea {
+            background: #2e2e2e !important;
+            color: var(--ink) !important;
+            border-color: var(--silver) !important;
+        }
+
+            [data-theme="dark"] input::placeholder,
+            [data-theme="dark"] textarea::placeholder {
+                color: var(--mist) !important;
+            }
+
+        /* Modal boxes */
+        [data-theme="dark"] .modal-box {
+            background: #242424;
+            border-color: var(--silver);
+        }
+
+        [data-theme="dark"] .modal {
+            background: rgba(0,0,0,.75);
+        }
+
+        /* Tables */
+        [data-theme="dark"] table thead tr {
+            background: #2e2e2e;
+        }
+
+        [data-theme="dark"] table tbody tr {
+            border-bottom-color: var(--silver);
+        }
+
+            [data-theme="dark"] table tbody tr:hover {
+                background: #2a2a2a;
+            }
+
+        /* Outline buttons */
+        [data-theme="dark"] .btn-outline,
+        [data-theme="dark"] .btn-ghost {
+            color: var(--ink);
+            border-color: var(--silver);
+        }
+
+            [data-theme="dark"] .btn-outline:hover,
+            [data-theme="dark"] .btn-ghost:hover {
+                background: #2e2e2e;
+            }
+
+        /* Nav links */
+        [data-theme="dark"] .nav-links a {
+            color: var(--smoke);
+        }
+
+            [data-theme="dark"] .nav-links a:hover,
+            [data-theme="dark"] .nav-links a.active {
+                color: var(--ink);
+                background: #2e2e2e;
+            }
+
+        /* Logo */
+        [data-theme="dark"] .logo-mark {
+            border-color: var(--silver);
+            color: var(--ink);
+        }
+
+        [data-theme="dark"] .logo-text {
+            color: var(--ink);
+        }
+
+        /* Tabs */
+        [data-theme="dark"] .tab-btn {
+            color: var(--smoke);
+            border-bottom-color: transparent;
+        }
+
+            [data-theme="dark"] .tab-btn.active {
+                color: var(--ink);
+                border-bottom-color: var(--gold);
+            }
+
+        /* Status / badge colours — keep readable */
+        [data-theme="dark"] .role-pill {
+            border-color: var(--silver);
+        }
+
+        /* Lang toggle */
+        [data-theme="dark"] .lang-btn {
+            color: var(--smoke);
+        }
+
+            [data-theme="dark"] .lang-btn.active {
+                color: var(--ink);
+                background: #2e2e2e;
+            }
+
+        /* Stat cards / hero section */
+        [data-theme="dark"] .hero-section {
+            background: #111111;
+        }
+
+        /* Scrollbar */
+        [data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+        }
+
+/* Theme toggle button */
+.theme-toggle,
+button#themeToggle {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--silver);
+    border-radius: 2px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--graphite);
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: var(--ease);
+}
+
+    button#themeToggle:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+    }
+
+
+/* Theme toggle button */
+.theme-toggle {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--silver);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: var(--ease);
+    background: transparent;
+    color: var(--graphite);
+    font-size: 1rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+    .theme-toggle:hover {
+        background: var(--snow);
+        border-color: var(--ink);
+        color: var(--ink);
+    }
+
+/* Hardcoded status colors — dark mode overrides */
+[data-theme="dark"] .role-pill.student {
+    background: #1a2a1a;
+    border-color: #2a3a2a;
+}
+
+[data-theme="dark"] .role-pill.librarian {
+    background: #1a1a2a;
+    border-color: #2a2a3a;
+}
+
+[data-theme="dark"] .role-pill.staff {
+    background: #2a1a10;
+    border-color: #3a2a18;
+}
+
+[data-theme="dark"] .role-pill.admin {
+    background: #2a1a1a;
+    border-color: #3a2424;
+}
+
+[data-theme="dark"] .tabs {
+    border-bottom-color: #353535;
+}
+
+[data-theme="dark"] .tab {
+    color: #807870;
+}
+
+    [data-theme="dark"] .tab.active {
+        color: #f0ede8;
+        border-bottom-color: #d4a94e;
+    }
+
+    [data-theme="dark"] .tab:hover {
+        background: #2e2e2e;
+        color: #f0ede8;
+    }
+
+[data-theme="dark"] .modal-overlay {
+    background: rgba(0,0,0,.8);
+}
+
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .info-card,
+[data-theme="dark"] .profile-card {
+    background: #242424 !important;
+    border-color: #353535 !important;
+}
+
+[data-theme="dark"] .btn-primary {
+    background: #d4a94e;
+    color: #111;
+    border-color: #d4a94e;
+}
+
+[data-theme="dark"] .btn-ghost,
+[data-theme="dark"] .btn-outline {
+    color: #f0ede8;
+    border-color: #353535;
+}
+
+    [data-theme="dark"] .btn-ghost:hover {
+        background: #2e2e2e;
+    }
+
+/* ═══════════════════════════════════════════════════════════
+   VISUAL FEATURES
+═══════════════════════════════════════════════════════════ */
+
+/* ── Toast notifications ─────────────────────────────────── */
+@keyframes lcToastIn {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes lcToastOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-8px) scale(.97);
+    }
+}
+
+/* Hide old notif bar — replaced by toast */
+.notif {
+    display: none !important;
+}
+
+/* ── Corner ribbon badges ────────────────────────────────── */
+.card {
+    overflow: hidden;
+}
+
+.card-ribbon {
+    position: absolute;
+    top: 12px;
+    right: -28px;
+    z-index: 10;
+    background: var(--gold);
+    color: #1a1a1a;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 4px 36px;
+    transform: rotate(45deg);
+    transform-origin: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.card-ribbon--warn {
+    background: #e07060;
+    color: #fff;
+}
+
+/* ── 3D tilt — ensure card has overflow visible for shadow ── */
+.cards-grid {
+    perspective: 1200px;
+}
+
+.card {
+    transform-style: preserve-3d;
+}

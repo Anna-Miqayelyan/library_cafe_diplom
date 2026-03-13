@@ -1,4 +1,4 @@
-﻿using LibraryCafe.Core.Entities;
+using LibraryCafe.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryCafe.Data

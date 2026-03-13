@@ -52,6 +52,10 @@ const ROLES = {
 
 // ─── INIT ────────────────────────────────────────────────────
 window.onload = () => {
+    var savedTheme = localStorage.getItem('lc_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    var tb = document.getElementById('themeToggle');
+    if (tb) tb.textContent = savedTheme === 'dark' ? '☀' : '☾';
     loadStorage();
     // Apply language (default: Armenian)
     applyTranslations();
@@ -175,11 +179,11 @@ async function showApp() {
 
 
 
-    // Hero greeting
+    // Hero greeting — typewriter effect
     const hn = document.getElementById('heroName');
     if (hn) {
         const first = currentUser.name.split(' ')[0];
-        hn.innerHTML = `${t("welcomeBack")}, <em>${first}</em>!`;
+        typewriterGreeting(hn, t('welcomeBack'), first);
     }
 
     await loadBooks();
@@ -221,6 +225,8 @@ async function showApp() {
     if (r === 'Student') {
         renderStats(); renderTrending(); renderPopularMenu();
         renderLibrary('all'); renderCafe('all'); generateSeats();
+        setTimeout(initCardTilt, 400);
+        setTimeout(initCardTilt, 400);
     }
     if (r === 'Librarian' || r === 'Admin') loadLibDash();
     if (r === 'Café Staff' || r === 'Admin') loadCafeDash();
@@ -270,6 +276,8 @@ async function loadMenu() {
 
 // ─── NAV ─────────────────────────────────────────────────────
 function showPage(id) {
+    if (id === 'home') setTimeout(initHeroCursorGlow, 150);
+    if (id === 'home') setTimeout(initHeroCursorGlow, 100);
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const pg = document.getElementById(id);
     if (pg) pg.classList.add('active');
@@ -317,8 +325,19 @@ function bookCard(b) {
     const avail = b.availableCount ?? (b.available ? 1 : 0);
     const total = b.totalCount || 1;
     const copyBadge = total > 1 ? `<span style="font-size:.75rem;color:var(--smoke);margin-left:.4rem">${avail}/${total} ${t("copies")}</span>` : '';
+    // Corner ribbon
+    let ribbon = '';
+    if (b.availableCount === 1 || (b.totalCount === 1 && b.available)) {
+        ribbon = '<div class="card-ribbon card-ribbon--warn">Last copy</div>';
+    } else if (b.id <= 3) {
+        ribbon = '<div class="card-ribbon">Popular</div>';
+    } else if (b.totalCount && b.availableCount === b.totalCount) {
+        ribbon = '<div class="card-ribbon">New</div>';
+    }
+
     return `
   <div class="card">
+    ${getBookRibbon(b)}
     <button class="fav-btn ${fav ? 'on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
     <div class="card-img">${imgHtml}</div>
     <div class="card-body">
@@ -379,8 +398,13 @@ function empty(msg) {
 function renderStats() {
     const e1 = document.getElementById('statBooks');
     const e2 = document.getElementById('statItems');
-    if (e1) e1.textContent = books.filter(b => b.available).length;
-    if (e2) e2.textContent = menu.length;
+    const avail = books.filter(b => b.available).length;
+    if (e1) animateCounter(e1, avail, 1200);
+    if (e2) animateCounter(e2, menu.length, 1200);
+    // Static stats — also animate
+    document.querySelectorAll('.stat-n[data-target]').forEach(el => {
+        animateCounter(el, parseInt(el.dataset.target), 1400);
+    });
 }
 
 function renderTrending() {
@@ -1547,17 +1571,6 @@ function closeModal(id) { document.getElementById(id).classList.remove('active')
 window.onclick = e => { if (e.target.classList.contains('modal')) e.target.classList.remove('active'); };
 
 // ─── NOTIFY ──────────────────────────────────────────────────
-function notify(msg, isError = false) {
-    const el = document.getElementById('notif');
-    const txt = document.getElementById('notifText');
-    const ico = document.getElementById('notifIcon');
-    txt.textContent = msg;
-    ico.textContent = isError ? '×' : '—';
-    ico.style.color = isError ? '#c8624a' : 'var(--gold)';
-    el.classList.add('show');
-    clearTimeout(el._t);
-    el._t = setTimeout(() => el.classList.remove('show'), 3500);
-}
 // ═══════════════════════════════════════════════════════════
 //  AI ASSISTANT — replace the entire AI section in app.js
 // ═══════════════════════════════════════════════════════════
@@ -1714,4 +1727,171 @@ async function loadTodayHistory() {
             <span>Books have existed for over 5,000 years — the first written records date to ancient Mesopotamia.</span>
         </div>`;
     }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  VISUAL FEATURES
+// ═══════════════════════════════════════════════════════════
+
+// ── Typewriter greeting ──────────────────────────────────────
+function typewriterGreeting(el, welcomeText, firstName) {
+    el.innerHTML = '';
+    el.style.borderRight = '2px solid var(--gold)';
+    el.style.paddingRight = '4px';
+    const full = welcomeText + ', ';
+    let i = 0;
+    function typeChar() {
+        if (i < full.length) {
+            el.textContent = full.slice(0, i + 1);
+            i++;
+            setTimeout(typeChar, 38);
+        } else {
+            el.innerHTML = full + '<em id="_twName" style="color:rgba(255,255,255,.5)"></em>!';
+            const nameEl = document.getElementById('_twName');
+            let j = 0;
+            function typeName() {
+                if (j < firstName.length) {
+                    nameEl.textContent = firstName.slice(0, j + 1);
+                    j++;
+                    setTimeout(typeName, 55);
+                } else {
+                    el.style.borderRight = 'none';
+                    el.style.paddingRight = '0';
+                }
+            }
+            typeName();
+        }
+    }
+    typeChar();
+}
+
+// ── Animated counter ─────────────────────────────────────────
+function animateCounter(el, target, duration) {
+    if (!el) return;
+    const start = performance.now();
+    function update(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(target * ease).toLocaleString();
+        if (progress < 1) requestAnimationFrame(update);
+        else el.textContent = target.toLocaleString();
+    }
+    requestAnimationFrame(update);
+}
+
+// ── Toast notification ───────────────────────────────────────
+function notify(msg, isError) {
+    isError = isError || false;
+    var old = document.getElementById('lcToast');
+    if (old) old.remove();
+
+    var icon = isError ? '✕' : '✓';
+    if (!isError) {
+        if (msg.indexOf('cart') > -1 || msg.indexOf('Cart') > -1) icon = '🛒';
+        else if (msg.indexOf('order') > -1 || msg.indexOf('Order') > -1) icon = '☕';
+        else if (msg.indexOf('book') > -1 || msg.indexOf('Book') > -1) icon = '📚';
+        else if (msg.indexOf('reserv') > -1 || msg.indexOf('Reserv') > -1) icon = '🪑';
+        else if (msg.indexOf('favor') > -1) icon = '♥';
+    }
+
+    var toast = document.createElement('div');
+    toast.id = 'lcToast';
+    toast.style.cssText = 'position:fixed;bottom:2rem;right:2rem;z-index:9999;min-width:280px;max-width:380px;background:var(--white);border:1px solid var(--silver);border-left:3px solid ' + (isError ? '#e07060' : 'var(--gold)') + ';border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.2);display:flex;align-items:center;gap:12px;padding:14px 16px;font-family:inherit;animation:lcToastIn .28s cubic-bezier(.4,0,.2,1);cursor:pointer';
+
+    var iconEl = document.createElement('span');
+    iconEl.style.cssText = 'font-size:1.1rem;flex-shrink:0;line-height:1';
+    iconEl.textContent = icon;
+
+    var textEl = document.createElement('span');
+    textEl.style.cssText = 'font-size:.82rem;color:var(--ink);line-height:1.45;flex:1';
+    textEl.textContent = msg;
+
+    var closeEl = document.createElement('span');
+    closeEl.style.cssText = 'font-size:.75rem;color:var(--mist);flex-shrink:0';
+    closeEl.textContent = '✕';
+
+    toast.appendChild(iconEl);
+    toast.appendChild(textEl);
+    toast.appendChild(closeEl);
+    toast.onclick = function () { dismissToast(toast); };
+    document.body.appendChild(toast);
+
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(function () { dismissToast(toast); }, 3800);
+}
+
+function dismissToast(toast) {
+    if (!toast || !toast.parentNode) return;
+    toast.style.animation = 'lcToastOut .25s cubic-bezier(.4,0,.2,1) forwards';
+    setTimeout(function () { if (toast.parentNode) toast.remove(); }, 250);
+}
+
+// ── Corner ribbons (called inside bookCard) ──────────────────
+function getBookRibbon(b) {
+    var avail = b.availableCount !== undefined ? b.availableCount : (b.available ? 1 : 0);
+    var total = b.totalCount || 1;
+    if (avail === 1 && total > 1) return '<div class="card-ribbon card-ribbon--warn">Last</div>';
+    if (avail === 1 && total === 1 && !b.available) return '';
+    if (b.id <= 3) return '<div class="card-ribbon">Popular</div>';
+    return '';
+}
+
+// ── 3D Card Tilt ─────────────────────────────────────────────
+function initCardTilt() {
+    document.querySelectorAll('.card').forEach(function (card) {
+        if (card._tiltInit) return;
+        card._tiltInit = true;
+        card.style.transition = 'transform .15s ease, box-shadow .15s ease';
+        card.style.willChange = 'transform';
+
+        card.addEventListener('mousemove', function (e) {
+            var r = card.getBoundingClientRect();
+            var x = (e.clientX - r.left) / r.width - 0.5;
+            var y = (e.clientY - r.top) / r.height - 0.5;
+            card.style.transform = 'perspective(600px) rotateY(' + (x * 12) + 'deg) rotateX(' + (-y * 10) + 'deg) scale(1.03)';
+            card.style.boxShadow = (-x * 12) + 'px ' + (y * 12) + 'px 32px rgba(0,0,0,.22)';
+        });
+        card.addEventListener('mouseleave', function () {
+            card.style.transform = 'perspective(600px) rotateY(0) rotateX(0) scale(1)';
+            card.style.boxShadow = '';
+        });
+    });
+}
+
+// Re-init tilt after each render
+var _origRenderLibrary = renderLibrary;
+renderLibrary = function (cat) { _origRenderLibrary(cat); setTimeout(initCardTilt, 200); };
+var _origRenderTrending = renderTrending;
+renderTrending = function () { _origRenderTrending(); setTimeout(initCardTilt, 200); };
+var _origRenderCafe = renderCafe;
+renderCafe = function (cat) { _origRenderCafe(cat); setTimeout(initCardTilt, 200); };
+
+// ── Hero cursor glow ─────────────────────────────────────────
+function initHeroCursorGlow() {
+    var hero = document.querySelector('.hero');
+    if (!hero || hero._glowInit) return;
+    hero._glowInit = true;
+
+    var glow = document.createElement('div');
+    glow.style.cssText = 'position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.13) 0%,transparent 70%);pointer-events:none;transform:translate(-50%,-50%);z-index:0;opacity:0;transition:opacity .3s ease';
+    hero.appendChild(glow);
+
+    hero.addEventListener('mouseenter', function () { glow.style.opacity = '1'; });
+    hero.addEventListener('mouseleave', function () { glow.style.opacity = '0'; });
+    hero.addEventListener('mousemove', function (e) {
+        var r = hero.getBoundingClientRect();
+        glow.style.left = (e.clientX - r.left) + 'px';
+        glow.style.top = (e.clientY - r.top) + 'px';
+    });
+}
+
+// ── Theme toggle ─────────────────────────────────────────────
+function toggleTheme() {
+    var html = document.documentElement;
+    var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('lc_theme', next);
+    var btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = next === 'dark' ? '☀' : '☾';
 }

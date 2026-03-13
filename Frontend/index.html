@@ -49,12 +49,13 @@
                 <span class="logo-text">Library <em>Café</em></span>
             </div>
             <ul class="nav-links" id="navLinks"></ul>
-            <div class="nav-right">
+            <div class="nav-right" id="navRight">
                 <span id="rolePill" class="role-pill"></span>
                 <div class="lang-toggle">
                     <button class="lang-btn active" data-lang="hy" onclick="setLang('hy')">ՀՅ</button>
                     <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
                 </div>
+                <button id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1.5px solid #888;border-radius:2px;cursor:pointer;background:transparent;font-size:1.1rem;line-height:1;flex-shrink:0;color:inherit;">☾</button>
                 <button class="btn btn-ghost btn-sm" data-i18n="signOut" onclick="logout()">Sign out</button>
             </div>
         </div>
@@ -75,14 +76,14 @@
                 <blockquote class="auth-quote">
                     <span data-i18n="authQuote">«Գրադարանը շքեղություն չէ, այլ կյանքի անհրաժեշտություն»</span>
                 </blockquote>
-                <p class="auth-byline">Henry Ward Beecher</p>
+                <p class="auth-byline">Marcus Tullius Cicero</p>
             </div>
         </div>
 
         <!-- Right form panel -->
         <div class="auth-right">
             <div class="auth-box">
-                <p class="auth-eyebrow" data-i18n="authEyebrow">Խելացի Համալսարանական Կենտրոն</p>
+                <p class="auth-eyebrow" data-i18n="authEyebrow">Խելացի Կենտրոն</p>
                 <h1 class="auth-title">Library <em>Café</em></h1>
 
                 <div class="auth-tabs">
@@ -177,9 +178,9 @@
             <div class="container">
                 <div class="stats-row">
                     <div class="stat-cell"><div class="stat-n" id="statBooks">0</div><div class="stat-l" data-i18n="availableBooks">Հասանելի Գրքեր</div></div>
-                    <div class="stat-cell"><div class="stat-n">1,234</div><div class="stat-l" data-i18n="activeMembers">Ակտիվ Անդամներ</div></div>
+                    <div class="stat-cell"><div class="stat-n" data-target="1234">0</div><div class="stat-l" data-i18n="activeMembers">Ակտիվ Անդամներ</div></div>
                     <div class="stat-cell"><div class="stat-n" id="statItems">0</div><div class="stat-l" data-i18n="cafeItems">Սրճարանի Ապրանքներ</div></div>
-                    <div class="stat-cell"><div class="stat-n">12</div><div class="stat-l" data-i18n="upcomingEvents">Առաջիկա Միջոցառումներ</div></div>
+                    <div class="stat-cell"><div class="stat-n" data-target="12">0</div><div class="stat-l" data-i18n="upcomingEvents">Առաջիկա Միջոցառումներ</div></div>
                 </div>
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="trendingBooks">Հայտնի Գրքեր</h2></div>
