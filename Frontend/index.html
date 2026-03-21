@@ -55,11 +55,24 @@
                     <button class="lang-btn active" data-lang="hy" onclick="setLang('hy')">ՀՅ</button>
                     <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
                 </div>
+                <button id="notifBell" onclick="toggleNotifPanel()" title="Notifications" style="position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1.5px solid #888;border-radius:2px;cursor:pointer;background:transparent;font-size:1rem;color:inherit;flex-shrink:0;">&#128276;<span id="notifBadge" style="display:none;position:absolute;top:5px;right:5px;width:7px;height:7px;background:#e07060;border-radius:50%;border:1.5px solid var(--white);pointer-events:none;"></span></button>
                 <button id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1.5px solid #888;border-radius:2px;cursor:pointer;background:transparent;font-size:1.1rem;line-height:1;flex-shrink:0;color:inherit;">☾</button>
                 <button class="btn btn-ghost btn-sm" data-i18n="signOut" onclick="logout()">Sign out</button>
             </div>
         </div>
     </nav>
+
+    <!-- NOTIF OVERLAY (closes panel on outside click) -->
+    <div id="notifOverlay" onclick="closeNotifPanel()" style="display:none;position:fixed;inset:0;z-index:8000;"></div>
+
+    <!-- NOTIF PANEL -->
+    <div id="notifPanel" style="display:none;position:fixed;top:70px;right:1.5rem;z-index:8001;width:340px;max-height:460px;background:var(--white);border:1px solid var(--silver);border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.18);flex-direction:column;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--silver);flex-shrink:0;">
+            <span style="font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);">&#128276; Notifications</span>
+            <button onclick="clearAllNotifs()" style="font-size:.7rem;color:var(--mist);background:none;border:1px solid var(--silver);border-radius:4px;cursor:pointer;padding:3px 8px;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--mist)'">Clear all</button>
+        </div>
+        <div id="notifList" style="overflow-y:auto;flex:1;"></div>
+    </div>
 
     <!-- NOTIFICATION -->
     <div class="notif" id="notif">
@@ -408,7 +421,7 @@
                     <div class="stat-cell"><div class="stat-n" id="csTotal">0</div><div class="stat-l" data-i18n="totalOrders">Ընդամենը Պատվերներ</div></div>
                     <div class="stat-cell"><div class="stat-n" id="csPending">0</div><div class="stat-l" data-i18n="pending">Սպասվող</div></div>
                     <div class="stat-cell"><div class="stat-n" id="csCompleted">0</div><div class="stat-l" data-i18n="completed">Ավարտված</div></div>
-                    <div class="stat-cell"><div class="stat-n" id="csRevenue">0</div><div class="stat-l" data-i18n="todayAmd">Այսօր (ՀԴՌ)</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="csRevenue">0</div><div class="stat-l" data-i18n="todayAmd">Այսօր (Դրամ)</div></div>
                 </div>
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="liveOrders">Ակտիվ Պատվերներ</h2></div>
@@ -455,7 +468,7 @@
                     <div class="stat-cell"><div class="stat-n" id="asUsers">0</div><div class="stat-l" data-i18n="totalUsers">Ընդամենը Օգտատերեր</div></div>
                     <div class="stat-cell"><div class="stat-n" id="asBooks">0</div><div class="stat-l" data-i18n="totalBooks">Ընդամենը Գրքեր</div></div>
                     <div class="stat-cell"><div class="stat-n" id="asOrders">0</div><div class="stat-l" data-i18n="totalOrders">Ընդամենը Պատվերներ</div></div>
-                    <div class="stat-cell"><div class="stat-n" id="asRevenue">0</div><div class="stat-l" data-i18n="revenue">Եկամուտ (ՀԴՌ)</div></div>
+                    <div class="stat-cell"><div class="stat-n" id="asRevenue">0</div><div class="stat-l" data-i18n="revenue">Եկամուտ (Դրամ)</div></div>
                 </div>
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="allUsers">Բոլոր Օգտատերերը</h2></div>

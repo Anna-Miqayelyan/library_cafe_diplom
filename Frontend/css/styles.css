@@ -2748,3 +2748,48 @@ button#themeToggle {
 .card {
     transform-style: preserve-3d;
 }
+
+/* ─── NOTIFICATION PANEL ─────────────────────────────────── */
+#notifBell {
+    transition: border-color .2s, color .2s;
+}
+
+    #notifBell:hover {
+        border-color: var(--gold) !important;
+        color: var(--gold) !important;
+    }
+
+#notifPanel {
+    animation: lcNotifIn .2s cubic-bezier(.4,0,.2,1);
+}
+
+@keyframes lcNotifIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+#notifList::-webkit-scrollbar {
+    width: 3px;
+}
+
+#notifList::-webkit-scrollbar-thumb {
+    background: var(--silver);
+    border-radius: 3px;
+}
+
+[data-theme="dark"] #notifPanel {
+    background: #242424 !important;
+    border-color: #353535 !important;
+    box-shadow: 0 12px 48px rgba(0,0,0,.55) !important;
+}
+
+[data-theme="dark"] #notifBadge {
+    border-color: #242424 !important;
+}

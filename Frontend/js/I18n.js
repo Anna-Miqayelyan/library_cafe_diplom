@@ -71,7 +71,7 @@ const TRANSLATIONS = {
         salads: 'Աղցաններ',
         desserts: 'Քաղցրավենիք',
         addToCart: 'Ավելացնել',
-        amd: 'ՀԴՌ',
+        amd: 'Դրամ',
 
         // Favorites
         myFavorites: 'Իմ Սիրելիները',
@@ -139,7 +139,7 @@ const TRANSLATIONS = {
         totalOrders: 'Ընդամենը Պատվերներ',
         pending: 'Սպասվող',
         completed: 'Ավարտված',
-        todayAmd: 'Այսօր (ՀԴՌ)',
+        todayAmd: 'Այսօր (Դրամ)',
         liveOrders: 'Ակտիվ Պատվերներ',
         all: 'Բոլորը',
         preparing: 'Պատրաստվում է',
@@ -158,7 +158,7 @@ const TRANSLATIONS = {
         adminDashSub: 'Ամբողջական հարթակի կառավարում և վերլուծություն',
         totalUsers: 'Ընդամենը Օգտատերեր',
         totalOrders2: 'Ընդամենը Պատվերներ',
-        revenue: 'Եկամուտ (ՀԴՌ)',
+        revenue: 'Եկամուտ (Դրամ)',
         allUsers: 'Բոլոր Օգտատերերը',
         name: 'Անուն',
         allBooksAdmin: 'Բոլոր Գրքերը',

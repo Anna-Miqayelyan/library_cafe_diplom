@@ -3,20 +3,16 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
 
-// ✅ REGISTER HTTP CLIENT FACTORY - THIS FIXES YOUR ERROR
 builder.Services.AddHttpClient();
 
-// Register DbContext (PostgreSQL)
 builder.Services.AddDbContext<LibraryCafeDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
-// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -33,13 +29,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Swagger
-// Allow large file uploads (PDFs can be big)
+
 builder.WebHost.ConfigureKestrel(o => {
     o.Limits.MaxRequestBodySize = 52428800; // 50 MB
 });
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o => {
-    o.MultipartBodyLengthLimit = 52428800; // 50 MB
+    o.MultipartBodyLengthLimit = 52428800; 
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -47,7 +42,6 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

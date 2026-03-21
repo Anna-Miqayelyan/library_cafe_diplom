@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════════
-//  LIBRARY CAFÉ — app.js
-// ═══════════════════════════════════════════════════════════
-
 const API = 'http://localhost:5226/api';
 
 let books = [];
@@ -581,6 +577,8 @@ function startOrderStatusPolling(orderId) {
 }
 function showOrderStatusBanner(orderId, status) {
     const old = document.getElementById('order-banner-' + orderId); if (old) old.remove();
+    var _om = { Preparing: '👨‍🍳 Order #' + orderId + ' is being prepared...', Ready: '🔔 Order #' + orderId + ' is READY for pickup!', Completed: '✅ Order #' + orderId + ' completed. Enjoy!', Cancelled: '❌ Order #' + orderId + ' was cancelled.' };
+    if (_om[status]) lcNotifAdd(_om[status], 'order');
     const cfg = { Preparing: { bg: '#fff8e1', border: '#ffd54f', icon: '👨‍🍳', msg: 'Your order is being prepared…' }, Ready: { bg: '#e8f5e9', border: '#66bb6a', icon: '🔔', msg: 'Your order is READY for pickup!' }, Completed: { bg: '#e3f2fd', border: '#64b5f6', icon: '✅', msg: 'Enjoy!' }, Cancelled: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Your order was cancelled.' } };
     const c = cfg[status]; if (!c) return;
     const b = document.createElement('div');
@@ -622,6 +620,8 @@ function startBorrowRequestPolling() {
 
 function showBorrowRequestBanner(req) {
     const old = document.getElementById('breq-banner-' + req.id); if (old) old.remove();
+    var _bm = { Approved: '✅ Book "' + req.bookTitle + '" approved! Come pick it up.', Rejected: '❌ Book "' + req.bookTitle + '" request was declined.', Taken: '📚 Enjoy "' + req.bookTitle + '"! Return by the due date.' };
+    if (_bm[req.status]) lcNotifAdd(_bm[req.status], 'book');
     const cfg = {
         Approved: { bg: '#e8f5e9', border: '#66bb6a', icon: '✅', msg: 'Your request was approved! Come pick up "' + req.bookTitle + '".' },
         Rejected: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Request for "' + req.bookTitle + '" was declined.' },
@@ -1783,48 +1783,16 @@ function animateCounter(el, target, duration) {
 // ── Toast notification ───────────────────────────────────────
 function notify(msg, isError) {
     isError = isError || false;
-    var old = document.getElementById('lcToast');
-    if (old) old.remove();
-
-    var icon = isError ? '✕' : '✓';
+    var type = isError ? 'error' : 'info';
+    var m = msg.toLowerCase();
     if (!isError) {
-        if (msg.indexOf('cart') > -1 || msg.indexOf('Cart') > -1) icon = '🛒';
-        else if (msg.indexOf('order') > -1 || msg.indexOf('Order') > -1) icon = '☕';
-        else if (msg.indexOf('book') > -1 || msg.indexOf('Book') > -1) icon = '📚';
-        else if (msg.indexOf('reserv') > -1 || msg.indexOf('Reserv') > -1) icon = '🪑';
-        else if (msg.indexOf('favor') > -1) icon = '♥';
+        if (m.indexOf('cart') > -1) type = 'cart';
+        else if (m.indexOf('order') > -1) type = 'order';
+        else if (m.indexOf('book') > -1 || m.indexOf('borrow') > -1) type = 'book';
+        else if (m.indexOf('reserv') > -1 || m.indexOf('seat') > -1) type = 'seat';
+        else if (m.indexOf('favor') > -1) type = 'fav';
     }
-
-    var toast = document.createElement('div');
-    toast.id = 'lcToast';
-    toast.style.cssText = 'position:fixed;bottom:2rem;right:2rem;z-index:9999;min-width:280px;max-width:380px;background:var(--white);border:1px solid var(--silver);border-left:3px solid ' + (isError ? '#e07060' : 'var(--gold)') + ';border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.2);display:flex;align-items:center;gap:12px;padding:14px 16px;font-family:inherit;animation:lcToastIn .28s cubic-bezier(.4,0,.2,1);cursor:pointer';
-
-    var iconEl = document.createElement('span');
-    iconEl.style.cssText = 'font-size:1.1rem;flex-shrink:0;line-height:1';
-    iconEl.textContent = icon;
-
-    var textEl = document.createElement('span');
-    textEl.style.cssText = 'font-size:.82rem;color:var(--ink);line-height:1.45;flex:1';
-    textEl.textContent = msg;
-
-    var closeEl = document.createElement('span');
-    closeEl.style.cssText = 'font-size:.75rem;color:var(--mist);flex-shrink:0';
-    closeEl.textContent = '✕';
-
-    toast.appendChild(iconEl);
-    toast.appendChild(textEl);
-    toast.appendChild(closeEl);
-    toast.onclick = function () { dismissToast(toast); };
-    document.body.appendChild(toast);
-
-    clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(function () { dismissToast(toast); }, 3800);
-}
-
-function dismissToast(toast) {
-    if (!toast || !toast.parentNode) return;
-    toast.style.animation = 'lcToastOut .25s cubic-bezier(.4,0,.2,1) forwards';
-    setTimeout(function () { if (toast.parentNode) toast.remove(); }, 250);
+    lcNotifAdd(msg, type);
 }
 
 // ── Corner ribbons (called inside bookCard) ──────────────────
@@ -1894,4 +1862,110 @@ function toggleTheme() {
     localStorage.setItem('lc_theme', next);
     var btn = document.getElementById('themeToggle');
     if (btn) btn.textContent = next === 'dark' ? '☀' : '☾';
+}
+// ═══════════════════════════════════════════════════════════
+//  NOTIFICATION PANEL
+// ═══════════════════════════════════════════════════════════
+var _lcNotifs = [];
+
+var _lcNotifIcons = {
+    info: '✓', error: '✕', cart: '🛒',
+    order: '☕', book: '📚', seat: '🪑', fav: '♥'
+};
+
+function lcNotifAdd(msg, type) {
+    type = type || 'info';
+    _lcNotifs.unshift({
+        id: Date.now() + '' + Math.floor(Math.random() * 9999),
+        msg: msg,
+        type: type,
+        time: new Date(),
+        read: false
+    });
+    if (_lcNotifs.length > 60) _lcNotifs.pop();
+
+    // Red badge on bell
+    var badge = document.getElementById('notifBadge');
+    if (badge) badge.style.display = 'block';
+
+    // Re-render list if panel already open
+    var panel = document.getElementById('notifPanel');
+    if (panel && panel.style.display === 'flex') _lcRenderList();
+}
+
+function _lcTimeAgo(date) {
+    var s = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (s < 10) return 'Just now';
+    if (s < 60) return s + 's ago';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return date.toLocaleDateString();
+}
+
+function _lcRenderList() {
+    var list = document.getElementById('notifList');
+    if (!list) return;
+    if (_lcNotifs.length === 0) {
+        list.innerHTML = '<div style="padding:3rem 1rem;text-align:center;color:var(--mist);font-size:.82rem;font-style:italic;">No notifications yet</div>';
+        return;
+    }
+    list.innerHTML = _lcNotifs.map(function (n) {
+        var ic = _lcNotifIcons[n.type] || '•';
+        var bord = n.type === 'error' ? '#e07060' : 'var(--gold)';
+        var bg = n.read ? 'transparent' : 'rgba(201,168,76,.06)';
+        var ago = _lcTimeAgo(n.time);
+        var safe = n.msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<div style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid var(--silver);background:' + bg + ';transition:background .15s"'
+            + ' onmouseenter="this.style.background=\'var(--snow)\'"'
+            + ' onmouseleave="this.style.background=\'' + (n.read ? 'transparent' : 'rgba(201,168,76,.06)') + '\'">'
+            + '<span style="font-size:.95rem;flex-shrink:0;padding-top:1px;padding-left:8px;border-left:2.5px solid ' + bord + ';line-height:1.5">' + ic + '</span>'
+            + '<div style="flex:1;min-width:0">'
+            + '<div style="font-size:.8rem;color:var(--ink);line-height:1.45">' + safe + '</div>'
+            + '<div style="font-size:.68rem;color:var(--mist);margin-top:2px">' + ago + '</div>'
+            + '</div>'
+            + '<button onclick="lcNotifDel(\'' + n.id + '\')" style="background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--mist);flex-shrink:0;padding:0 3px"'
+            + ' onmouseenter="this.style.color=\'var(--ink)\'"'
+            + ' onmouseleave="this.style.color=\'var(--mist)\'">✕</button>'
+            + '</div>';
+    }).join('');
+}
+
+function lcNotifDel(id) {
+    _lcNotifs = _lcNotifs.filter(function (n) { return n.id !== id; });
+    _lcRenderList();
+    if (_lcNotifs.filter(function (n) { return !n.read; }).length === 0) {
+        var badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+    }
+}
+
+function clearAllNotifs() {
+    _lcNotifs = [];
+    _lcRenderList();
+    var badge = document.getElementById('notifBadge');
+    if (badge) badge.style.display = 'none';
+}
+
+function toggleNotifPanel() {
+    var panel = document.getElementById('notifPanel');
+    var overlay = document.getElementById('notifOverlay');
+    if (!panel) return;
+    if (panel.style.display === 'flex') {
+        closeNotifPanel();
+    } else {
+        panel.style.display = 'flex';
+        if (overlay) overlay.style.display = 'block';
+        _lcRenderList();
+        // mark all read, hide badge
+        _lcNotifs.forEach(function (n) { n.read = true; });
+        var badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+    }
+}
+
+function closeNotifPanel() {
+    var panel = document.getElementById('notifPanel');
+    var overlay = document.getElementById('notifOverlay');
+    if (panel) panel.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
 }
