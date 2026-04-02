@@ -289,7 +289,7 @@ function showPage(id) {
     if (id === 'adminDash') loadAdminDash();
     if (id === 'reservations') { initReservationPickers(); generateSeats(); initNotifBtn(); }
     if (id === 'shelfMap') renderShelfMap();
-    if (id === 'aiPage') initAiPage();
+    if (id === 'aiPage') { initAiPage(); renderAiTrending(); }
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────
@@ -394,13 +394,8 @@ function empty(msg) {
 function renderStats() {
     const e1 = document.getElementById('statBooks');
     const e2 = document.getElementById('statItems');
-    const avail = books.filter(b => b.available).length;
-    if (e1) animateCounter(e1, avail, 1200);
+    if (e1) animateCounter(e1, books.filter(b => b.available).length, 1200);
     if (e2) animateCounter(e2, menu.length, 1200);
-    // Static stats — also animate
-    document.querySelectorAll('.stat-n[data-target]').forEach(el => {
-        animateCounter(el, parseInt(el.dataset.target), 1400);
-    });
 }
 
 function renderTrending() {
@@ -1584,6 +1579,7 @@ const AI_COOLDOWN = 3000;
 function initAiPage() {
     if (aiInitialized) return;
     aiInitialized = true;
+    renderAiTrending();
     // Don't auto-call on load — let user click instead
     const el = document.getElementById('historyWidget');
     if (el) el.innerHTML = `<div class="ai-hist-item">
@@ -1681,17 +1677,17 @@ function appendAiTyping() {
 }
 
 // ─── READING SUGGESTIONS SIDEBAR ─────────────────────────────
-function updateAiSuggest(text) {
-    const titles = text.match(/"([^"]+)"/g) || [];
-    if (!titles.length) return;
-    const el = document.getElementById('aiSuggest');
-    if (!el) return;
-    el.innerHTML = titles.slice(0, 5).map(t => `
-        <div class="ai-suggest-item">
-            <span>📖</span>
-            <span>${t.replace(/"/g, '')}</span>
-        </div>`).join('');
-}
+//function updateAiSuggest(text) {
+//    const titles = text.match(/"([^"]+)"/g) || [];
+//    if (!titles.length) return;
+//    const el = document.getElementById('aiSuggest');
+//    if (!el) return;
+//    el.innerHTML = titles.slice(0, 5).map(t => `
+//        <div class="ai-suggest-item">
+//            <span>📖</span>
+//            <span>${t.replace(/"/g, '')}</span>
+//        </div>`).join('');
+//}
 
 // ─── TODAY IN HISTORY (only called when user clicks the button) ──
 async function loadTodayHistory() {
@@ -1968,4 +1964,41 @@ function closeNotifPanel() {
     var overlay = document.getElementById('notifOverlay');
     if (panel) panel.style.display = 'none';
     if (overlay) overlay.style.display = 'none';
+}
+// ─── AI TRENDING BOOKS ────────────────────────────────────────
+function renderAiTrending() {
+    var el = document.getElementById('aiTrendingBooks');
+    if (!el) return;
+    if (!books || books.length === 0) {
+        el.innerHTML = '<p style="color:var(--mist);font-size:.82rem;font-style:italic;">No books loaded yet.</p>';
+        return;
+    }
+    var sorted = books.slice().sort(function (a, b) {
+        return ((b.borrowedCount || 0) - (a.borrowedCount || 0)) || (a.id - b.id);
+    }).slice(0, 8);
+    var medals = ['🥇', '🥈', '🥉'];
+    el.innerHTML = sorted.map(function (b, i) {
+        var avail = b.availableCount !== undefined ? b.availableCount : (b.available ? 1 : 0);
+        var sCol = avail > 0 ? '#2d7a3a' : '#9b3a2a';
+        var sBg = avail > 0 ? '#e8f5e9' : '#fdf2f0';
+        var sTxt = avail > 0 ? 'Available' : 'Borrowed';
+        var img = b.imagePath
+            ? '<img src="' + b.imagePath + '" style="width:44px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.12);">'
+            : '<div style="width:44px;height:60px;background:var(--snow);border-radius:4px;border:1px solid var(--silver);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📚</div>';
+        var rank = medals[i] || ('<span style="font-size:.72rem;font-weight:700;color:var(--mist);">#' + (i + 1) + '</span>');
+        var borrows = b.borrowedCount ? ' <span style="font-size:.65rem;color:var(--mist);">📖 ' + b.borrowedCount + '</span>' : '';
+        var isLast = i === sorted.length - 1;
+        return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;' + (isLast ? '' : 'border-bottom:1px solid var(--silver);') + '">'
+            + '<span style="width:24px;text-align:center;flex-shrink:0;font-size:1.05rem;">' + rank + '</span>'
+            + img
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:1rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + b.title + '</div>'
+            + '<div style="font-size:.73rem;color:var(--smoke);margin-top:2px;">' + b.author + '</div>'
+            + '<div style="margin-top:5px;">'
+            + '<span style="font-size:.64rem;font-weight:600;color:' + sCol + ';background:' + sBg + ';padding:2px 8px;border-radius:99px;">' + sTxt + '</span>'
+            + borrows
+            + '</div>'
+            + '</div>'
+            + '</div>';
+    }).join('');
 }

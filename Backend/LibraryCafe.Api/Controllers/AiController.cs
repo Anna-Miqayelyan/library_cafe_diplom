@@ -89,7 +89,8 @@ public class AiController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "AI request failed.", detail = ex.Message });
+            return StatusCode(500, new { message = "AI 
+                failed.", detail = ex.Message });
         }
     }
 }

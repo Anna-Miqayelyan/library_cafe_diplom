@@ -1827,7 +1827,7 @@ tbody tr {
 }
 
 /* Reading suggestions sidebar */
-.ai-suggest-list {
+/*.ai-suggest-list {
     display: flex;
     flex-direction: column;
     gap: .6rem;
@@ -1844,7 +1844,7 @@ tbody tr {
     border-radius: var(--r-xs);
     border: 1px solid var(--silver);
     line-height: 1.5;
-}
+}*/
 /* ═══════════════════════ RESERVATIONS ══════════════════════════════════ */
 
 .res-picker {

@@ -191,9 +191,7 @@
             <div class="container">
                 <div class="stats-row">
                     <div class="stat-cell"><div class="stat-n" id="statBooks">0</div><div class="stat-l" data-i18n="availableBooks">Հասանելի Գրքեր</div></div>
-                    <div class="stat-cell"><div class="stat-n" data-target="1234">0</div><div class="stat-l" data-i18n="activeMembers">Ակտիվ Անդամներ</div></div>
                     <div class="stat-cell"><div class="stat-n" id="statItems">0</div><div class="stat-l" data-i18n="cafeItems">Սրճարանի Ապրանքներ</div></div>
-                    <div class="stat-cell"><div class="stat-n" data-target="12">0</div><div class="stat-l" data-i18n="upcomingEvents">Առաջիկա Միջոցառումներ</div></div>
                 </div>
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="trendingBooks">Հայտնի Գրքեր</h2></div>
@@ -535,22 +533,28 @@
                         </div>
                     </div>
                     <!-- Sidebar column -->
-                    <div class="section">
-                        <div class="sec-head">
-                            <h2 data-i18n="todayInHistory">Այսօր <em>Պատ. Մեջ</em></h2>
-                            <button class="btn btn-ghost btn-sm" data-i18n="load" onclick="loadTodayHistory()">Բեռնել</button>
-                        </div>
-                        <div id="historyWidget" class="ai-history-list">
-                            <div class="ai-hist-item">
-                                <span class="ai-hist-year">Tip</span>
-                                <span>Click "Load" to fetch today's historical events.</span>
+                    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+                        <div class="section">
+                            <div class="sec-head">
+                                <h2 data-i18n="todayInHistory">Այսօր <em>Պատ. Մեջ</em></h2>
+                                <button class="btn btn-ghost btn-sm" data-i18n="load" onclick="loadTodayHistory()">Բեռնել</button>
+                            </div>
+                            <div id="historyWidget" class="ai-history-list">
+                                <div class="ai-hist-item">
+                                    <span class="ai-hist-year">Tip</span>
+                                    <span>Click "Load" to fetch today's historical events.</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="section">
-                        <div class="sec-head"><h2 data-i18n="readingSuggestions">Ընթ. <em>Առաջ.</em></h2></div>
-                        <div id="aiSuggest" class="ai-suggest-list">
-                            <p style="color:var(--mist);font-size:.85rem;font-style:italic">Click "Recommend books" to get personalised picks.</p>
+                        <!--<div class="section">
+                            <div class="sec-head"><h2 data-i18n="readingSuggestions">Ընթ. <em>Առաջ.</em></h2></div>
+                            <div id="aiSuggest" class="ai-suggest-list">
+                                <p style="color:var(--mist);font-size:.85rem;font-style:italic">Click "Recommend books" to get personalised picks.</p>
+                            </div>
+                        </div>-->
+                        <div class="section">
+                            <div class="sec-head"><h2>&#128293; <em>Trending</em></h2></div>
+                            <div id="aiTrendingBooks"><p style="color:var(--mist);font-size:.82rem;font-style:italic;">Loading...</p></div>
                         </div>
                     </div>
                 </div>
