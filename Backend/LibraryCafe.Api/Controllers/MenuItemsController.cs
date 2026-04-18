@@ -102,6 +102,12 @@ namespace LibraryCafe.Api.Controllers
         {
             var item = await _context.MenuItems.FindAsync(id);
             if (item == null) return NotFound(new { message = "Menu item not found" });
+
+            // Check if any orders reference this item
+            var hasOrders = await _context.CafeOrderItems.AnyAsync(oi => oi.ItemId == id);
+            if (hasOrders)
+                return BadRequest(new { message = "Cannot delete: this item has existing orders. Consider renaming it instead." });
+
             _context.MenuItems.Remove(item);
             await _context.SaveChangesAsync();
             return NoContent();

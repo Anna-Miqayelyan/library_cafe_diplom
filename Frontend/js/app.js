@@ -1507,7 +1507,11 @@ async function deleteMenuItem(id) {
     if (!confirm('Remove this item from the menu?')) return;
     const res = await api(`/menuitems/${id}`, { method: 'DELETE' });
     if (!res) return;
-    if (!res.ok) { notify('Cannot delete item', true); return; }
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        notify(e.message || 'Cannot delete item', true);
+        return;
+    }
     notify('Menu item removed'); loadCafeDash();
 }
 
