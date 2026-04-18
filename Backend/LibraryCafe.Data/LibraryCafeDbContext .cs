@@ -1,6 +1,6 @@
 using LibraryCafe.Core.Entities;
 using Microsoft.EntityFrameworkCore;
-
+using LibraryCafe.Core.Entities;
 namespace LibraryCafe.Data
 {
     public class LibraryCafeDbContext : DbContext
@@ -20,8 +20,9 @@ namespace LibraryCafe.Data
         public DbSet<CafeOrderItem> CafeOrderItems => Set<CafeOrderItem>();
         public DbSet<CafeReview> CafeReviews => Set<CafeReview>();
         public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
-
+        public DbSet<SeatReservation> SeatReservations => Set<SeatReservation>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
+
         {
             base.OnModelCreating(modelBuilder);
 

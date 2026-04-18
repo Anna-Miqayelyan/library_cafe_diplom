@@ -142,8 +142,9 @@ async function handleRegister() {
 
 // ─── LOGOUT ──────────────────────────────────────────────────
 function logout() {
-    currentUser = null; cart = []; reserved = []; favs = [];
-    saveStorage();
+    if (currentUser) localStorage.setItem('lc_favs_' + currentUser.id, JSON.stringify(favs));
+    currentUser = null; cart = []; reserved = [];
+    localStorage.setItem('lc2', JSON.stringify({ currentUser, cart, reserved }));
     document.getElementById('mainNav').style.display = 'none';
     document.getElementById('mainApp').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
@@ -151,7 +152,6 @@ function logout() {
     document.getElementById('loginPass').value = '';
     showLoginTab();
 }
-
 // ─── SHOW APP ────────────────────────────────────────────────
 async function showApp() {
     if (typeof applyTranslations !== "undefined") applyTranslations();
@@ -184,7 +184,8 @@ async function showApp() {
 
     await loadBooks();
     await loadMenu();
-
+    const f = localStorage.getItem('lc_favs_' + currentUser.id);  // ← add this
+    favs = f ? JSON.parse(f) : [];            
     if (!document.getElementById('cartFab')) {
         const fab = document.createElement('button');
         fab.id = 'cartFab';
@@ -231,16 +232,22 @@ async function showApp() {
 
 // ─── STORAGE ─────────────────────────────────────────────────
 function saveStorage() {
-    localStorage.setItem('lc2', JSON.stringify({ currentUser, cart, reserved, favs }));
+    localStorage.setItem('lc2', JSON.stringify({ currentUser, cart, reserved }));
+    if (currentUser) localStorage.setItem('lc_favs_' + currentUser.id, JSON.stringify(favs));
 }
+
 function loadStorage() {
     const d = localStorage.getItem('lc2');
     if (d) {
-        const p = JSON.parse(d); currentUser = p.currentUser; cart = p.cart || [];
-        // Migrate old reserved format (numbers) to new format (objects)
+        const p = JSON.parse(d);
+        currentUser = p.currentUser;
+        cart = p.cart || [];
         const raw = p.reserved || [];
         reserved = raw.map(r => typeof r === 'number' ? { seat: r, date: '', from: '', to: '' } : r);
-        favs = p.favs || [];
+    }
+    if (currentUser) {
+        const f = localStorage.getItem('lc_favs_' + currentUser.id);
+        favs = f ? JSON.parse(f) : [];
     }
 }
 
@@ -663,15 +670,17 @@ function deterministicHash(str) {
 }
 
 
+// ─── SEATS (backend-synced) ───────────────────────────────────
+
 function getTakenSeats(date, from, to) {
-    return [];
+    return []; // now handled by backend fetch in generateSeats
 }
 
 function slotsOverlap(f1, t1, f2, t2) {
     return f1 < t2 && t1 > f2;
 }
 
-function generateSeats() {
+async function generateSeats() {
     initReservationPickers();
     const el = document.getElementById('seatMap');
     if (!el) return;
@@ -683,34 +692,48 @@ function generateSeats() {
     if (!date) { notify('Please select a date', true); return; }
     if (from >= to) { notify('End time must be after start time', true); return; }
 
+    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--mist)">Loading seats…</div>';
+
+    // Fetch ALL reservations for this date from backend
+    let allReservations = [];
+    try {
+        const res = await api('/seatreservations?date=' + date);
+        if (res && res.ok) allReservations = await res.json();
+    } catch { }
+
     const HOURS = ['09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'];
 
-    const myTables = reserved.filter(r => r.date === date && r.from === from && r.to === to).map(r => r.seat);
-    const myOverlap = reserved.filter(r => r.date === date && slotsOverlap(r.from, r.to, from, to) && !(r.from === from && r.to === to)).map(r => r.seat);
-    const takenByOthers = getTakenSeats(date, from, to).filter(t => !myTables.includes(t) && !myOverlap.includes(t));
+    // My reservations = same userId
+    const myRes = allReservations.filter(r => r.userId === currentUser.id);
+    // Others' reservations
+    const othersRes = allReservations.filter(r => r.userId !== currentUser.id);
 
-    // Per-table hourly state: 'mine' | 'other' | 'free'
+    const myTables = myRes.filter(r => r.from === from && r.to === to).map(r => r.seatNumber);
+    const takenByOthers = othersRes
+        .filter(r => slotsOverlap(r.from, r.to, from, to))
+        .map(r => r.seatNumber)
+        .filter(s => !myTables.includes(s));
+
+    // Per-table hourly state
     const occ = {};
     for (let t = 1; t <= 7; t++) { occ[t] = {}; HOURS.forEach(h => { occ[t][h] = 'free'; }); }
 
-    // My reservations mark occupied hours
-    reserved.filter(r => r.date === date).forEach(r => {
+    myRes.forEach(r => {
         HOURS.forEach((h, hi) => {
             if (hi >= HOURS.length - 1) return;
             const nxt = HOURS[hi + 1] + ':00';
-            if (slotsOverlap(r.from, r.to, h + ':00', nxt) && occ[r.seat])
-                occ[r.seat][h] = 'mine';
+            if (slotsOverlap(r.from, r.to, h + ':00', nxt) && occ[r.seatNumber])
+                occ[r.seatNumber][h] = 'mine';
         });
     });
-    //// Others' bookings (deterministic)
-    //for (let t=1;t<=7;t++){
-    //    HOURS.forEach((h,hi)=>{
-    //        if (hi>=HOURS.length-1) return;
-    //        const hf=h+':00', ht=HOURS[hi+1]+':00';
-    //        if (deterministicHash(date+hf+ht+'tbl'+t)%3===0 && occ[t][h]==='free')
-    //            occ[t][h]='other';
-    //    });
-    //}
+    othersRes.forEach(r => {
+        HOURS.forEach((h, hi) => {
+            if (hi >= HOURS.length - 1) return;
+            const nxt = HOURS[hi + 1] + ':00';
+            if (slotsOverlap(r.from, r.to, h + ':00', nxt) && occ[r.seatNumber] && occ[r.seatNumber][h] === 'free')
+                occ[r.seatNumber][h] = 'other';
+        });
+    });
 
     el.innerHTML = '';
     const names = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Table 7'];
@@ -718,19 +741,17 @@ function generateSeats() {
 
     for (let t = 1; t <= 7; t++) {
         const isMine = myTables.includes(t);
-        const isTaken = takenByOthers.includes(t) || myOverlap.includes(t);
+        const isTaken = takenByOthers.includes(t);
 
         const card = document.createElement('div');
         card.className = 'tc ' + (isMine ? 'tc-mine' : isTaken ? 'tc-taken' : 'tc-free');
 
-        // header
         card.innerHTML = `<div class="tc-hdr">
             <span class="tc-em">${emojis[t - 1]}</span>
             <span class="tc-nm">${names[t - 1]}</span>
             ${isMine ? '<span class="tc-tag tag-mine">\u2713 Yours</span>' : isTaken ? '<span class="tc-tag tag-taken">Unavailable</span>' : '<span class="tc-tag tag-free">Available</span>'}
         </div>`;
 
-        // hour grid
         const grid = document.createElement('div');
         grid.className = 'tc-grid';
         HOURS.forEach((h, hi) => {
@@ -745,60 +766,67 @@ function generateSeats() {
             lbl.textContent = h;
             cell.appendChild(lbl);
             if (state === 'free') {
-                cell.onclick = () => { reserveSeat(t, date, hf, ht); generateSeats(); };
+                cell.onclick = () => { reserveSeat(t, date, hf, ht); };
                 cell.style.cursor = 'pointer';
             }
             grid.appendChild(cell);
         });
         card.appendChild(grid);
 
-        // action button for selected slot
         if (isMine) {
             const btn = document.createElement('button');
             btn.className = 'btn btn-ghost tc-btn';
             btn.textContent = '\u2715 Cancel ' + from + '\u2013' + to;
-            btn.onclick = () => { cancelSeatReservation(t, date, from, to); generateSeats(); };
+            btn.onclick = () => { cancelSeatReservation(t, date, from, to); };
             card.appendChild(btn);
         } else if (!isTaken) {
             const btn = document.createElement('button');
             btn.className = 'btn btn-primary tc-btn';
             btn.textContent = 'Reserve ' + from + '\u2013' + to;
-            btn.onclick = () => { reserveSeat(t, date, from, to); generateSeats(); };
+            btn.onclick = () => { reserveSeat(t, date, from, to); };
             card.appendChild(btn);
         }
 
         el.appendChild(card);
     }
-    renderMyReservations();
+    renderMyReservations(myRes);
 }
 
-
-
-function reserveSeat(seat, date, from, to) {
-    reserved.push({ seat, date, from, to });
-    saveStorage();
+async function reserveSeat(seat, date, from, to) {
+    const res = await api('/seatreservations', {
+        method: 'POST',
+        body: JSON.stringify({ userId: currentUser.id, seatNumber: seat, date, from, to })
+    });
+    if (!res) return;
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        notify(e.message || 'Could not reserve seat', true);
+        return;
+    }
     notify('Table ' + seat + ' reserved ' + from + '–' + to);
     if (typeof scheduleReservationNotification === 'function')
         scheduleReservationNotification(seat, date, from);
+    generateSeats();
 }
 
-
-function cancelSeatReservation(seat, date, from, to) {
-    reserved = reserved.filter(r => !(r.seat === seat && r.date === date && r.from === from && r.to === to));
-    saveStorage();
+async function cancelSeatReservation(seat, date, from, to) {
+    const params = new URLSearchParams({ userId: currentUser.id, seatNumber: seat, date, from, to });
+    const res = await api('/seatreservations?' + params.toString(), { method: 'DELETE' });
+    if (!res) return;
+    if (!res.ok) { notify('Could not cancel reservation', true); return; }
     notify('Table ' + seat + ' reservation cancelled');
-    renderMyReservations();
+    generateSeats();
 }
 
-function renderMyReservations() {
+function renderMyReservations(myRes) {
     const el = document.getElementById('myReservationsList');
     if (!el) return;
-    if (!reserved.length) { el.innerHTML = ''; return; }
-    const sorted = [...reserved].sort((a, b) => (a.date + a.from).localeCompare(b.date + b.from));
+    if (!myRes || !myRes.length) { el.innerHTML = ''; return; }
+    const sorted = [...myRes].sort((a, b) => (a.date + a.from).localeCompare(b.date + b.from));
     const rows = sorted.map(r => {
-        const oc = 'cancelSeatReservation(' + r.seat + ',\'' + r.date + '\',\'' + r.from + '\',\'' + r.to + '\');generateSeats()';
+        const oc = 'cancelSeatReservation(' + r.seatNumber + ',\'' + r.date + '\',\'' + r.from + '\',\'' + r.to + '\')';
         return '<div class="my-res-row">'
-            + '<div class="my-res-tbl">T' + r.seat + '</div>'
+            + '<div class="my-res-tbl">T' + r.seatNumber + '</div>'
             + '<span class="my-res-info">' + r.date + ' &nbsp; ' + r.from + '–' + r.to + '</span>'
             + '<button class="my-res-del" onclick="' + oc + '" title="Cancel">✕</button>'
             + '</div>';
