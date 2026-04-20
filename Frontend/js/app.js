@@ -473,17 +473,37 @@ async function requestBorrow(id) {
     const book = books.find(b => b.id === id);
     if (!book) return;
 
+    // Find the button and show click feedback
+    const buttons = document.querySelectorAll(`button[onclick*="requestBorrow(${id})"]`);
+    buttons.forEach(btn => {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✓ Sent!';
+        btn.style.background = 'var(--sage)';
+        setTimeout(() => {
+            if (btn && btn.parentNode) {
+                btn.innerHTML = originalText;
+                btn.style.background = '';
+            }
+        }, 1000);
+    });
+
     const res = await api('/borrowrequests', {
         method: 'POST',
         body: JSON.stringify({ userId: currentUser.id, bookId: id, durationDays: 14 })
     });
     if (!res) return;
-    if (!res.ok) { const e = await res.json().catch(() => ({})); notify(e.message || 'Could not submit request', true); return; }
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        notify(e.message || 'Could not submit request', true);
+        return;
+    }
 
     const req = await res.json();
     _seenBorrowStatuses[req.id] = 'Pending';
     notify('📋 Borrow request sent for "' + book.title + '". The librarian will review it shortly.');
-    await loadBooks(); renderLibrary('all'); renderTrending();
+    await loadBooks();
+    renderLibrary('all');
+    renderTrending();
 }
 
 // ─── CART ────────────────────────────────────────────────────
