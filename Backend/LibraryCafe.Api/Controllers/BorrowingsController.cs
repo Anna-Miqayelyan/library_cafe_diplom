@@ -130,6 +130,32 @@ namespace LibraryCafe.Api.Controllers
             borrowing.ReturnDate = returnDto.ReturnDate;
             await _context.SaveChangesAsync();
 
+            // ── Promote queued requests now that a copy is free ───────
+            // Find how many copies are still actively borrowed after this return
+            var stillBorrowed = await _context.Borrowings
+                .CountAsync(b => b.BookId == borrowing.BookId && b.ReturnDate == null);
+
+            var book = await _context.Books.FindAsync(borrowing.BookId);
+            var totalCopies = book != null && book.TotalCount > 0 ? book.TotalCount : 1;
+            var freeSlots = totalCopies - stillBorrowed;
+
+            if (freeSlots > 0)
+            {
+                // Promote the oldest Queued requests (FIFO) up to the number of free slots
+                var toPromote = await _context.BorrowRequests
+                    .Where(r => r.BookId == borrowing.BookId && r.Status == "Queued")
+                    .OrderBy(r => r.RequestDate)
+                    .Take(freeSlots)
+                    .ToListAsync();
+
+                foreach (var req in toPromote)
+                    req.Status = "Pending";   // student's existing poller detects this change
+
+                if (toPromote.Any())
+                    await _context.SaveChangesAsync();
+            }
+            // ─────────────────────────────────────────────────────────
+
             return Ok(MapBorrowing(borrowing));
         }
 

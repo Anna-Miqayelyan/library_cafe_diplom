@@ -5,26 +5,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryCafe.Api.Controllers
 {
-    // ── DTOs (inline for simplicity) ─────────────────────────────────────
     public class BorrowRequestCreateDto
     {
-        public int UserId    { get; set; }
-        public int BookId    { get; set; }
+        public int UserId { get; set; }
+        public int BookId { get; set; }
         public int DurationDays { get; set; } = 14;
     }
 
     public class BorrowRequestDto
     {
-        public int    Id           { get; set; }
-        public int    UserId       { get; set; }
+        public int Id { get; set; }
+        public int UserId { get; set; }
         public string UserFullname { get; set; } = "";
-        public int    BookId       { get; set; }
-        public string BookTitle    { get; set; } = "";
-        public string BookAuthor   { get; set; } = "";
+        public int BookId { get; set; }
+        public string BookTitle { get; set; } = "";
+        public string BookAuthor { get; set; } = "";
         public DateTime RequestDate { get; set; }
-        public string Status       { get; set; } = "Pending";
-        public int    DurationDays { get; set; }
-        public string? Notes       { get; set; }
+        public string Status { get; set; } = "Pending";
+        public int DurationDays { get; set; }
+        public string? Notes { get; set; }
     }
 
     [ApiController]
@@ -36,16 +35,16 @@ namespace LibraryCafe.Api.Controllers
 
         private BorrowRequestDto Map(BorrowRequest r) => new()
         {
-            Id           = r.Id,
-            UserId       = r.UserId,
+            Id = r.Id,
+            UserId = r.UserId,
             UserFullname = r.User?.Fullname ?? "",
-            BookId       = r.BookId,
-            BookTitle    = r.Book?.Title    ?? "",
-            BookAuthor   = r.Book?.Author   ?? "",
-            RequestDate  = r.RequestDate,
-            Status       = r.Status,
+            BookId = r.BookId,
+            BookTitle = r.Book?.Title ?? "",
+            BookAuthor = r.Book?.Author ?? "",
+            RequestDate = r.RequestDate,
+            Status = r.Status,
             DurationDays = r.DurationDays,
-            Notes        = r.Notes
+            Notes = r.Notes
         };
 
         // GET all (librarian) — optionally filter by status
@@ -60,7 +59,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(list.Select(Map));
         }
 
-        // GET requests for a specific user (student polls this)
         [HttpGet("user/{userId}")]
         public async Task<IActionResult> GetForUser(int userId)
         {
@@ -72,7 +70,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(list.Select(Map));
         }
 
-        // POST — student submits a borrow request
         [HttpPost]
         public async Task<IActionResult> Create(BorrowRequestCreateDto dto)
         {
@@ -83,25 +80,26 @@ namespace LibraryCafe.Api.Controllers
                 .FirstOrDefaultAsync(b => b.Id == dto.BookId);
             if (book == null) return BadRequest(new { message = "Book not found" });
 
-            // Check if user already has a pending/approved request for this book
+            // Check if user already has an active request for this book
             var existing = await _ctx.BorrowRequests.FirstOrDefaultAsync(r =>
                 r.UserId == dto.UserId && r.BookId == dto.BookId &&
-                (r.Status == "Pending" || r.Status == "Approved"));
+                (r.Status == "Pending" || r.Status == "Approved" || r.Status == "Queued"));
             if (existing != null)
                 return BadRequest(new { message = "You already have an active request for this book." });
 
-            // Check availability
+            // Determine status: if copies are available → Pending (librarian reviews it)
+            //                   if all copies are out   → Queued  (student joins the waitlist)
             var activeBorrowings = book.Borrowings.Count(b => b.ReturnDate == null);
-            if (activeBorrowings >= (book.TotalCount > 0 ? book.TotalCount : 1))
-                return BadRequest(new { message = "No copies available right now. Try joining the queue." });
+            var totalCopies = book.TotalCount > 0 ? book.TotalCount : 1;
+            var status = activeBorrowings < totalCopies ? "Pending" : "Queued";
 
             var req = new BorrowRequest
             {
-                UserId      = dto.UserId,
-                BookId      = dto.BookId,
+                UserId = dto.UserId,
+                BookId = dto.BookId,
                 DurationDays = dto.DurationDays > 0 ? dto.DurationDays : 14,
                 RequestDate = DateTime.UtcNow,
-                Status      = "Pending"
+                Status = status
             };
             _ctx.BorrowRequests.Add(req);
             await _ctx.SaveChangesAsync();
@@ -135,7 +133,7 @@ namespace LibraryCafe.Api.Controllers
             if (req.Status != "Pending") return BadRequest(new { message = "Request is not pending" });
 
             req.Status = "Rejected";
-            req.Notes  = reason;
+            req.Notes = reason;
             await _ctx.SaveChangesAsync();
             return Ok(Map(req));
         }
@@ -154,10 +152,10 @@ namespace LibraryCafe.Api.Controllers
             // Create the real borrowing record
             var borrowing = new Borrowing
             {
-                UserId     = req.UserId,
-                BookId     = req.BookId,
+                UserId = req.UserId,
+                BookId = req.BookId,
                 BorrowDate = DateTime.UtcNow,
-                DueDate    = DateTime.UtcNow.AddDays(req.DurationDays)
+                DueDate = DateTime.UtcNow.AddDays(req.DurationDays)
             };
             _ctx.Borrowings.Add(borrowing);
 
@@ -177,5 +175,22 @@ namespace LibraryCafe.Api.Controllers
             await _ctx.SaveChangesAsync();
             return NoContent();
         }
+
+        // DELETE /api/borrowrequests/cancel?userId=1&bookId=5
+        // Student cancels their own queue/request by userId+bookId (no need to know the ID)
+        [HttpDelete("cancel")]
+        public async Task<IActionResult> CancelByUser([FromQuery] int userId, [FromQuery] int bookId)
+        {
+            var req = await _ctx.BorrowRequests.FirstOrDefaultAsync(r =>
+                r.UserId == userId && r.BookId == bookId &&
+                (r.Status == "Pending" || r.Status == "Queued"));
+            if (req == null) return NotFound(new { message = "No active request found." });
+            _ctx.BorrowRequests.Remove(req);
+            await _ctx.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // GET /api/borrowrequests?status=Queued — librarian sees the waitlist
+        // (already supported by the existing GetAll filter above — no extra code needed)
     }
 }

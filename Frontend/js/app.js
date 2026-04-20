@@ -185,7 +185,7 @@ async function showApp() {
     await loadBooks();
     await loadMenu();
     const f = localStorage.getItem('lc_favs_' + currentUser.id);  // ← add this
-    favs = f ? JSON.parse(f) : [];            
+    favs = f ? JSON.parse(f) : [];
     if (!document.getElementById('cartFab')) {
         const fab = document.createElement('button');
         fab.id = 'cartFab';
@@ -351,7 +351,9 @@ function bookCard(b) {
       <div class="card-actions">
         ${avail > 0
             ? `<button class="btn btn-primary btn-sm" onclick="requestBorrow(${b.id})">📋 Request</button>`
-            : `<button class="btn btn-ghost btn-sm" onclick="joinQueue(${b.id})">${t("joinQueue")}</button>`}
+            : isInQueue(b.id)
+                ? `<button class="btn btn-ghost btn-sm" onclick="leaveQueue(${b.id})">✕ Leave Queue</button>`
+                : `<button class="btn btn-ghost btn-sm" onclick="joinQueue(${b.id})">${t("joinQueue")}</button>`}
         ${b.pdfUrl ? `<button class="btn btn-ghost btn-sm" onclick="openPdf(${b.id})">${t("readPdf")}</button>` : ''}
         <button class="btn btn-ghost btn-sm fav-action-btn ${fav ? 'fav-on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
       </div>
@@ -605,13 +607,44 @@ function startBorrowRequestPolling() {
             const res = await api('/borrowrequests/user/' + currentUser.id);
             if (!res || !res.ok) return;
             const reqs = await res.json();
+
+            // Sync localStorage queue with what the server actually has
+            const serverQueued = reqs.filter(r => r.status === 'Queued').map(r => r.bookId);
+            const lc = JSON.parse(localStorage.getItem('lc_queue') || '[]')
+                .filter(e => e.userId === currentUser.id);
+            // Add any server-queued entries missing from localStorage
+            let changed = false;
+            serverQueued.forEach(bookId => {
+                if (!lc.some(e => e.bookId === bookId)) { lc.push({ userId: currentUser.id, bookId }); changed = true; }
+            });
+            if (changed) localStorage.setItem('lc_queue', JSON.stringify(lc));
+
             reqs.forEach(r => {
                 const prev = _seenBorrowStatuses[r.id];
                 if (prev && prev !== r.status) {
-                    showBorrowRequestBanner(r);
+                    // Queued → Pending means book became available — remove from local queue
+                    if (prev === 'Queued' && r.status === 'Pending') {
+                        const q = JSON.parse(localStorage.getItem('lc_queue') || '[]');
+                        localStorage.setItem('lc_queue', JSON.stringify(
+                            q.filter(e => !(e.userId === currentUser.id && e.bookId === r.bookId))
+                        ));
+                        // Show a special "book is free" banner
+                        showBorrowRequestBanner({ ...r, status: 'BookAvailable' });
+                    } else {
+                        showBorrowRequestBanner(r);
+                    }
                     if (Notification.permission === 'granted') {
-                        const msgs = { Approved: 'Your request for "' + r.bookTitle + '" was APPROVED! Come pick it up 📚', Rejected: 'Your request for "' + r.bookTitle + '" was declined.', Taken: 'Enjoy reading "' + r.bookTitle + '"! ✅' };
-                        if (msgs[r.status]) new Notification('Library Café — Book Request', { body: msgs[r.status], tag: 'breq-' + r.id });
+                        const msgs = {
+                            BookAvailable: `📚 "${r.bookTitle}" is now available! The librarian will reach out to you.`,
+                            Approved: `Your request for "${r.bookTitle}" was APPROVED! Come pick it up 📚`,
+                            Rejected: `Your request for "${r.bookTitle}" was declined.`,
+                            Taken: `Enjoy reading "${r.bookTitle}"! ✅`
+                        };
+                        if (msgs[r.status === 'Pending' && prev === 'Queued' ? 'BookAvailable' : r.status])
+                            new Notification('Library Café — Book Request', {
+                                body: msgs[r.status === 'Pending' && prev === 'Queued' ? 'BookAvailable' : r.status],
+                                tag: 'breq-' + r.id
+                            });
                     }
                 }
                 _seenBorrowStatuses[r.id] = r.status;
@@ -622,9 +655,15 @@ function startBorrowRequestPolling() {
 
 function showBorrowRequestBanner(req) {
     const old = document.getElementById('breq-banner-' + req.id); if (old) old.remove();
-    var _bm = { Approved: '✅ Book "' + req.bookTitle + '" approved! Come pick it up.', Rejected: '❌ Book "' + req.bookTitle + '" request was declined.', Taken: '📚 Enjoy "' + req.bookTitle + '"! Return by the due date.' };
+    var _bm = {
+        BookAvailable: '📚 "' + req.bookTitle + '" is now available! ',
+        Approved: '✅ Book "' + req.bookTitle + '" approved! Come pick it up.',
+        Rejected: '❌ Book "' + req.bookTitle + '" request was declined.',
+        Taken: '📚 Enjoy "' + req.bookTitle + '"! Return by the due date.'
+    };
     if (_bm[req.status]) lcNotifAdd(_bm[req.status], 'book');
     const cfg = {
+        BookAvailable: { bg: '#e8f5e9', border: '#66bb6a', icon: '📚', msg: '"' + req.bookTitle + '" is now available! The librarian will contact you soon.' },
         Approved: { bg: '#e8f5e9', border: '#66bb6a', icon: '✅', msg: 'Your request was approved! Come pick up "' + req.bookTitle + '".' },
         Rejected: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Request for "' + req.bookTitle + '" was declined.' },
         Taken: { bg: '#e3f2fd', border: '#64b5f6', icon: '📚', msg: 'Enjoy "' + req.bookTitle + '"! Return by the due date.' }
@@ -635,7 +674,7 @@ function showBorrowRequestBanner(req) {
     b.style.cssText = 'position:fixed;bottom:2rem;right:2rem;z-index:9998;background:' + c.bg + ';border:1.5px solid ' + c.border + ';border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:320px;padding:.85rem 1.1rem;display:flex;align-items:center;gap:.75rem;animation:slideUp .3s ease';
     b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">Book Request — ' + req.status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999">✕</button>';
     document.body.appendChild(b);
-    if (req.status !== 'Approved') setTimeout(() => { if (b.parentNode) { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); } }, 9000);
+    if (req.status !== 'Approved' && req.status !== 'BookAvailable') setTimeout(() => { if (b.parentNode) { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); } }, 9000);
 }
 
 // ─── SEATS ───────────────────────────────────────────────────
@@ -928,37 +967,65 @@ async function changePassword() {
 }
 
 // ─── BOOK RESERVATION QUEUE ──────────────────────────────────
+// Queue is stored as BorrowRequest with Status="Queued" on the backend.
+// We mirror bookId in localStorage so bookCard can flip the button instantly.
+
+function isInQueue(bookId) {
+    if (!currentUser) return false;
+    const q = JSON.parse(localStorage.getItem('lc_queue') || '[]');
+    return q.some(e => e.userId === currentUser.id && e.bookId === bookId);
+}
+
 async function joinQueue(bookId) {
     if (!currentUser) { notify(t('notifySignIn'), true); return; }
     const book = books.find(b => b.id === bookId);
     const title = book ? book.title : 'this book';
 
-    // Store queue locally until backend endpoint is ready
-    const queued = JSON.parse(localStorage.getItem('lc_queue') || '[]');
-    const already = queued.find(q => q.userId === currentUser.id && q.bookId === bookId);
-    if (already) {
+    if (isInQueue(bookId)) {
         notify(`You are already in the queue for "${title}"`, true);
         return;
     }
-    queued.push({ userId: currentUser.id, bookId, title, joinedAt: new Date().toISOString() });
-    localStorage.setItem('lc_queue', JSON.stringify(queued));
-    notify(`Added to queue for "${title}". You will be notified when a copy is available.`);
-}
 
-async function leaveQueue(bookId) {
-    const queued = JSON.parse(localStorage.getItem('lc_queue') || '[]');
-    const updated = queued.filter(q => !(q.userId === currentUser.id && q.bookId === bookId));
-    localStorage.setItem('lc_queue', JSON.stringify(updated));
-    notify(t('notifyQueueLeft'));
-}
-
-async function leaveQueue(bookId) {
-    const res = await api(`/bookreservations/cancel`, {
+    // POST to /borrowrequests — backend will set Status="Queued" because book is unavailable
+    const res = await api('/borrowrequests', {
         method: 'POST',
-        body: JSON.stringify({ userId: currentUser.id, bookId })
+        body: JSON.stringify({ userId: currentUser.id, bookId, durationDays: 14 })
     });
     if (!res) return;
-    if (res.ok) { notify(t('notifyQueueLeft')); await loadBooks(); renderLibrary('all'); }
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        notify(e.message || 'Could not join the queue', true);
+        return;
+    }
+
+    // Mirror in localStorage so button flips immediately without waiting for re-render
+    const q = JSON.parse(localStorage.getItem('lc_queue') || '[]');
+    q.push({ userId: currentUser.id, bookId });
+    localStorage.setItem('lc_queue', JSON.stringify(q));
+
+    notify(`📋 You joined the queue for "${title}". We'll notify you when it's available!`);
+    renderLibrary('all'); renderTrending();
+}
+
+async function leaveQueue(bookId) {
+    if (!currentUser) return;
+    const book = books.find(b => b.id === bookId);
+    const title = book ? book.title : 'this book';
+
+    // DELETE by userId+bookId — no need to know the request ID
+    const res = await api(`/borrowrequests/cancel?userId=${currentUser.id}&bookId=${bookId}`, {
+        method: 'DELETE'
+    });
+
+    // Always remove from localStorage so button flips immediately
+    const q = JSON.parse(localStorage.getItem('lc_queue') || '[]');
+    localStorage.setItem('lc_queue', JSON.stringify(
+        q.filter(e => !(e.userId === currentUser.id && e.bookId === bookId))
+    ));
+
+    if (!res || !res.ok) { notify('Could not leave queue', true); return; }
+    notify(`Removed from queue for "${title}"`);
+    renderLibrary('all'); renderTrending();
 }
 
 // ─── PROFILE ─────────────────────────────────────────────────
@@ -1180,10 +1247,12 @@ async function loadBorrowRequests() {
     if (!res || !res.ok) return;
     const reqs = await res.json();
 
-    // Also load approved (waiting for pickup)
+    // Also load Approved (waiting for pickup) and Queued (waitlist)
     const resA = await api('/borrowrequests?status=Approved');
     const approved = (resA && resA.ok) ? await resA.json() : [];
-    const all = [...reqs, ...approved];
+    const resQ = await api('/borrowrequests?status=Queued');
+    const queued = (resQ && resQ.ok) ? await resQ.json() : [];
+    const all = [...reqs, ...approved, ...queued];
 
     const tb = document.getElementById('libRequestsTb');
     if (!tb) return;
@@ -1196,18 +1265,21 @@ async function loadBorrowRequests() {
     tb.innerHTML = all.map(r => {
         const isPending = r.status === 'Pending';
         const isApproved = r.status === 'Approved';
+        const isQueued = r.status === 'Queued';
         return `<tr>
             <td>${r.userFullname}</td>
             <td>${r.bookTitle}<br><span style="font-size:.75rem;color:var(--mist)">${r.bookAuthor}</span></td>
             <td>${fmtDate(r.requestDate)}</td>
             <td>${r.durationDays} days</td>
             <td>
-                <span class="chip ${isPending ? 'c-pe' : 'c-re'}" style="margin-right:.4rem">${r.status}</span>
+                <span class="chip ${isPending ? 'c-pe' : isApproved ? 'c-re' : 'c-bo'}" style="margin-right:.4rem">${r.status}</span>
                 ${isPending ? `
                     <button class="btn btn-primary btn-sm" onclick="approveRequest(${r.id})">✅ Approve</button>
                     <button class="btn-del" style="margin-left:.3rem" onclick="rejectRequest(${r.id})">✕ Reject</button>
                 ` : isApproved ? `
                     <button class="btn btn-primary btn-sm" onclick="markTaken(${r.id})">📚 Mark as Taken</button>
+                ` : isQueued ? `
+                    <span style="font-size:.75rem;color:var(--mist)">⏳ Waiting for a copy</span>
                 ` : ''}
             </td>
         </tr>`;
