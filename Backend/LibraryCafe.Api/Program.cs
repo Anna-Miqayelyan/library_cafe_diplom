@@ -1,8 +1,11 @@
 ﻿using LibraryCafe.Data;
 using Microsoft.EntityFrameworkCore;
-
+using LibraryCafe.Api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
+
+builder.Services.AddSingleton<PendingVerificationStore>();
+builder.Services.AddScoped<EmailService>();
 builder.Services.AddControllers();
 
 builder.Services.AddHttpClient();

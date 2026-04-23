@@ -3,6 +3,8 @@ using LibraryCafe.Core.Entities;
 using LibraryCafe.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using LibraryCafe.Api.Services;
+using System.Security.Cryptography;
 
 namespace LibraryCafe.Api.Controllers
 {
@@ -35,28 +37,65 @@ namespace LibraryCafe.Api.Controllers
             return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
         }
 
-        [HttpPost("register")]
-        public async Task<ActionResult<UserDto>> Register(UserRegisterDto dto)
-        {
-            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-                return BadRequest(new { message = "Email already registered" });
+        // Step 1: validate email, send code
+        [HttpPost("register/send-code")]
+        public async Task<IActionResult> SendCode(
+            [FromBody] RegisterDto dto,
+            [FromServices] EmailService emailSvc,
+            [FromServices] PendingVerificationStore store)
+        {// Check email domain actually exists
+            var domainExists = await emailSvc.DomainHasMailServerAsync(dto.Email);
+            if (!domainExists)
+                return BadRequest(new { message = "This email domain does not exist. Please use a real email address." });
+            if (string.IsNullOrWhiteSpace(dto.Email) || !dto.Email.Contains("@"))
+                return BadRequest(new { message = "Invalid email address." });
 
-            if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
-                return BadRequest(new { message = "Password must be at least 6 characters" });
+            // One account per Gmail — block if already registered
+            var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email.ToLower());
+            if (exists)
+                return BadRequest(new { message = "An account with this email already exists." });
+
+            // Cryptographically secure 6-digit code
+            var code = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+            store.Save(dto.Email, code, dto.Fullname, dto.Password, dto.Role ?? "Student");
+
+            try
+            {
+                await emailSvc.SendVerificationCodeAsync(dto.Email, code);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+
+            return Ok(new { message = "Verification code sent." });
+        }
+
+        // Step 2: verify code, create account
+        [HttpPost("register/verify")]
+        public async Task<IActionResult> VerifyAndRegister(
+            [FromBody] VerifyCodeDto dto,
+            [FromServices] PendingVerificationStore store)
+        {
+            if (!store.Verify(dto.Email, dto.Code, out var fullname, out var password, out var role))
+                return BadRequest(new { message = "Invalid or expired code. Max 5 attempts allowed." });
+
+            // Double-check email not registered in the time between send and verify
+            var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email.ToLower());
+            if (exists)
+                return BadRequest(new { message = "An account with this email already exists." });
 
             var user = new User
             {
-                Fullname = dto.Fullname,
-                Email = dto.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = dto.Role
+                Fullname = fullname,
+                Email = dto.Email.ToLower(),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                Role = role
             };
-
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetUser), new { id = user.Id },
-                new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
+            return Ok(new { id = user.Id, fullname = user.Fullname, email = user.Email, role = user.Role });
         }
 
         [HttpPost("login")]

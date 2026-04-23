@@ -158,12 +158,28 @@
                             <option value="Admin" data-i18n="admin">Ադմին</option>
                         </select>
                     </div>
-                    <button class="btn btn-primary" style="width:100%;padding:1rem;margin-top:.5rem" onclick="handleRegister()">
+                    <button id="regBtn" class="btn btn-primary" style="width:100%;padding:1rem;margin-top:.5rem" onclick="handleRegister()">
                         Create Account
                     </button>
                 </div>
             </div>
         </div>
+    </div>
+    <div id="verifyForm" style="display:none">
+        <p style="font-size:.85rem;color:var(--smoke);margin-bottom:1rem">
+            We sent a 6-digit code to <strong id="verifyEmailHint"></strong>
+        </p>
+        <div class="form-group">
+            <input id="verifyCode" type="text" maxlength="6" placeholder="Enter 6-digit code"
+                   style="letter-spacing:.4rem;font-size:1.4rem;text-align:center"
+                   oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="handleVerifyCode()">
+            ✅ Verify & Create Account
+        </button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:.5rem" onclick="backToRegister()">
+            ← Back
+        </button>
     </div>
 
     <!-- MAIN APP -->
@@ -538,7 +554,9 @@
                             <div class="sec-head">
                                 <h2 data-i18n="todayInHistory">Այսօր <em>Պատ. Մեջ</em></h2>
                                 <button class="btn btn-ghost btn-sm" data-i18n="
-                                        " onclick="loadTodayHistory()">Բեռնել</button>
+                                        " onclick="loadTodayHistory()">
+                                    Բեռնել
+                                </button>
                             </div>
                             <div id="historyWidget" class="ai-history-list">
                                 <div class="ai-hist-item">

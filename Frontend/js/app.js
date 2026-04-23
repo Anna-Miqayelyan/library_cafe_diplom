@@ -106,40 +106,121 @@ async function api(path, opts = {}) {
 }
 
 // ─── LOGIN ───────────────────────────────────────────────────
-async function handleLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPass').value;
-    if (!email || !password) { notify('Please fill all fields', true); return; }
-
-    const res = await api('/users/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    if (!res) return;
-    if (!res.ok) { const e = await res.json(); notify(e.message || 'Invalid credentials', true); return; }
-
-    const u = await res.json();
-    currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, wallet: 20000 };
-    saveStorage(); showApp();
-    notify('Welcome back, ' + currentUser.name.split(' ')[0]);
-    if (typeof requestOrderNotifications !== 'undefined') requestOrderNotifications();
-}
-
-// ─── REGISTER ────────────────────────────────────────────────
 async function handleRegister() {
     const fullname = document.getElementById('regName').value.trim();
     const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPass').value;
     const role = document.getElementById('regRole').value;
-    if (!fullname || !email || !password) { notify('Please fill all fields', true); return; }
 
-    const res = await api('/users/register', { method: 'POST', body: JSON.stringify({ fullname, email, password, role }) });
+    function showRegError(msg) {
+        let el = document.getElementById('regError');
+        if (!el) {
+            el = document.createElement('p');
+            el.id = 'regError';
+            el.style.cssText = 'color:#c0392b;font-size:.82rem;margin:.5rem 0 0;text-align:center';
+            document.getElementById('regBtn').before(el);
+        }
+        el.textContent = msg;
+    }
+
+    function clearRegError() {
+        const el = document.getElementById('regError');
+        if (el) el.textContent = '';
+    }
+
+    if (!fullname) { showRegError('Please enter your full name.'); return; }
+    if (!email) { showRegError('Please enter your email address.'); return; }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) { showRegError('Please enter a valid email (e.g. name@gmail.com)'); return; }
+
+    if (!password) { showRegError('Please enter a password.'); return; }
+    if (password.length < 6) { showRegError('Password must be at least 6 characters.'); return; }
+    if (!role) { showRegError('Please select a role.'); return; }
+
+    clearRegError();
+
+    const btn = document.getElementById('regBtn');
+    btn.disabled = true; btn.textContent = 'Sending code…';
+
+    const res = await api('/users/register/send-code', {
+        method: 'POST',
+        body: JSON.stringify({ fullname, email, password, role })
+    });
+
+    btn.disabled = false; btn.textContent = 'Create Account';
     if (!res) return;
-    if (!res.ok) { const e = await res.json(); notify(e.message || 'Registration failed', true); return; }
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        showRegError(e.message || 'Something went wrong. Please try again.');
+        return;
+    }
+
+    document.getElementById('verifyEmailHint').textContent = email;
+    document.getElementById('regForm').style.display = 'none';
+    document.getElementById('verifyForm').style.display = 'block';
+    window._pendingEmail = email;
+}
+//    function clearRegError() {
+//        const el = document.getElementById('regError');
+//        if (el) el.textContent = '';
+//    }
+
+//    if (!fullname) { showRegError('Please enter your full name.'); return; }
+//    if (!email) { showRegError('Please enter your email address.'); return; }
+
+//    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//    if (!emailRegex.test(email)) { showRegError('Please enter a valid email (e.g. name@gmail.com)'); return; }
+
+//    if (!password) { showRegError('Please enter a password.'); return; }
+//    if (password.length < 6) { showRegError('Password must be at least 6 characters.'); return; }
+//    if (!role) { showRegError('Please select a role.'); return; }
+
+//    clearRegError();
+
+//    const btn = document.getElementById('regBtn');
+//    btn.disabled = true; btn.textContent = 'Sending code…';
+
+//    const res = await api('/users/register/send-code', {
+//        method: 'POST',
+//        body: JSON.stringify({ fullname, email, password, role })
+//    });
+
+//    btn.disabled = false; btn.textContent = 'Create Account';
+//    if (!res) return;
+//    if (!res.ok) {
+//        const e = await res.json().catch(() => ({}));
+//        showRegError(e.message || 'Something went wrong. Please try again.');
+//        return;
+//    }
+
+//    document.getElementById('verifyEmailHint').textContent = email;
+//    document.getElementById('regForm').style.display = 'none';
+//    document.getElementById('verifyForm').style.display = 'block';
+//    window._pendingEmail = email;
+//}
+// Step 2 — verify code
+async function handleVerifyCode() {
+    const code = document.getElementById('verifyCode').value.trim();
+    if (!code) { notify('Enter the code from your email', true); return; }
+
+    const res = await api('/users/register/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email: window._pendingEmail, code })
+    });
+    if (!res) return;
+    if (!res.ok) { const e = await res.json(); notify(e.message || 'Invalid code', true); return; }
 
     const u = await res.json();
     currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, wallet: 20000 };
     saveStorage(); showApp();
-    notify('Account created — welcome, ' + currentUser.name.split(' ')[0]);
+    notify('✅ Account verified — welcome, ' + currentUser.name.split(' ')[0] + '!');
 }
 
+function backToRegister() {
+    document.getElementById('verifyForm').style.display = 'none';
+    document.getElementById('regForm').style.display = 'block';
+}
 // ─── LOGOUT ──────────────────────────────────────────────────
 function logout() {
     if (currentUser) localStorage.setItem('lc_favs_' + currentUser.id, JSON.stringify(favs));
