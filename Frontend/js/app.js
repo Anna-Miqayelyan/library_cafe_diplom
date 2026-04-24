@@ -161,6 +161,20 @@ async function handleRegister() {
     document.getElementById('verifyForm').style.display = 'block';
     window._pendingEmail = email;
 }
+async function handleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPass').value;
+    if (!email || !password) { notify('Please fill all fields', true); return; }
+
+    const res = await api('/users/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    if (!res) return;
+    if (!res.ok) { const e = await res.json(); notify(e.message || 'Invalid credentials', true); return; }
+
+    const u = await res.json();
+    currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, wallet: 20000 };
+    saveStorage(); showApp();
+    notify('Welcome back, ' + currentUser.name.split(' ')[0]);
+}
 //    function clearRegError() {
 //        const el = document.getElementById('regError');
 //        if (el) el.textContent = '';
