@@ -62,7 +62,7 @@
         </div>
     </nav>
 
-    <!-- NOTIF OVERLAY (closes panel on outside click) -->
+    <!-- NOTIF OVERLAY -->
     <div id="notifOverlay" onclick="closeNotifPanel()" style="display:none;position:fixed;inset:0;z-index:8000;"></div>
 
     <!-- NOTIF PANEL -->
@@ -162,24 +162,54 @@
                         Create Account
                     </button>
                 </div>
+                <!-- VERIFY FORM — inside auth-box, right after regForm -->
+                <div id="verifyForm" class="auth-form" style="display:none">
+                    <p style="font-size:.85rem;color:var(--smoke);margin-bottom:1.2rem;text-align:center;line-height:1.5">
+                        We sent a 6-digit code to<br><strong id="verifyEmailHint"></strong>
+                    </p>
+                    <div class="form-group">
+                        <label style="text-align:center;display:block">Verification Code</label>
+                        <input id="verifyCode" type="text" maxlength="6" placeholder="000000"
+                               style="letter-spacing:.4rem;font-size:1.6rem;text-align:center;padding:.8rem"
+                               oninput="this.value=this.value.replace(/\D/g,'')">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%;padding:1rem;margin-top:.5rem" onclick="handleVerifyCode()">
+                        ✅ Verify & Create Account
+                    </button>
+                    <button class="btn btn-ghost" style="width:100%;margin-top:.5rem" onclick="backToRegister()">
+                        ← Back
+                    </button>
+                    <p style="font-size:.75rem;color:var(--mist);text-align:center;margin-top:.8rem">
+                        ⚠️ Didn't receive a code within 2 minutes? The email may not exist.
+                        <button onclick="backToRegister()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem;text-decoration:underline">Try a different email</button>
+                    </p>
+                </div>
+
+                <!-- VERIFY FORM — inside auth-box, right after regForm -->
+                <div id="verifyForm" class="auth-form" style="display:none">
+                    <p style="font-size:.85rem;color:var(--smoke);margin-bottom:1.2rem;text-align:center;line-height:1.5">
+                        We sent a 6-digit code to<br><strong id="verifyEmailHint"></strong>
+                    </p>
+                    <div class="form-group">
+                        <label style="text-align:center;display:block">Verification Code</label>
+                        <input id="verifyCode" type="text" maxlength="6" placeholder="000000"
+                               style="letter-spacing:.4rem;font-size:1.6rem;text-align:center;padding:.8rem"
+                               oninput="this.value=this.value.replace(/\D/g,'')">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%;padding:1rem;margin-top:.5rem" onclick="handleVerifyCode()">
+                        ✅ Verify & Create Account
+                    </button>
+                    <button class="btn btn-ghost" style="width:100%;margin-top:.5rem" onclick="backToRegister()">
+                        ← Back
+                    </button>
+                    <p style="font-size:.75rem;color:var(--mist);text-align:center;margin-top:.8rem">
+                        Didn't receive the code? Check your spam folder or
+                        <button onclick="backToRegister()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem;text-decoration:underline">try a different email</button>
+                    </p>
+                </div>
+
             </div>
         </div>
-    </div>
-    <div id="verifyForm" style="display:none">
-        <p style="font-size:.85rem;color:var(--smoke);margin-bottom:1rem">
-            We sent a 6-digit code to <strong id="verifyEmailHint"></strong>
-        </p>
-        <div class="form-group">
-            <input id="verifyCode" type="text" maxlength="6" placeholder="Enter 6-digit code"
-                   style="letter-spacing:.4rem;font-size:1.4rem;text-align:center"
-                   oninput="this.value=this.value.replace(/\D/g,'')">
-        </div>
-        <button class="btn btn-primary" style="width:100%" onclick="handleVerifyCode()">
-            ✅ Verify & Create Account
-        </button>
-        <button class="btn btn-ghost" style="width:100%;margin-top:.5rem" onclick="backToRegister()">
-            ← Back
-        </button>
     </div>
 
     <!-- MAIN APP -->
@@ -288,7 +318,6 @@
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="seatReservations">Seat <em>Reservations</em></h2></div>
                     <p style="color:var(--mist);font-size:.85rem;margin-bottom:1rem">Pick a date &amp; time slot, then click any green hour cell to reserve, or use the Reserve button.</p>
-
                     <div class="res-picker">
                         <div class="res-field"><label>Date</label><input type="date" id="resDate"></div>
                         <div class="res-field"><label>From</label><select id="resFrom"></select></div>
@@ -296,13 +325,11 @@
                         <button class="btn btn-primary res-check-btn" onclick="generateSeats()">Check</button>
                         <button class="btn btn-ghost res-notif-btn" id="notifBtn" onclick="requestNotifPermission()">🔔 Remind</button>
                     </div>
-
                     <div class="res-legend">
                         <span class="rl-item"><i class="rl-dot free"></i>Free (click to reserve)</span>
                         <span class="rl-item"><i class="rl-dot busy"></i>Reserved by others</span>
                         <span class="rl-item"><i class="rl-dot mine"></i>Your booking</span>
                     </div>
-
                     <div class="floor-plan" id="seatMap">
                         <div class="floor-hint">Select a date and time, then click <strong>Check</strong></div>
                     </div>
@@ -407,7 +434,6 @@
                             </table>
                         </div>
                     </div>
-
                 </div>
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="activeBorrowings">Ակտիվ Վերցնումներ</h2></div>
@@ -528,7 +554,6 @@
                     </div>
                 </div>
                 <div class="ai-layout">
-                    <!-- Chat column -->
                     <div class="section ai-chat-section">
                         <div class="sec-head"><h2 data-i18n="askAi">Հարցրու <em>AI-ին</em></h2></div>
                         <div class="ai-quick-btns">
@@ -548,15 +573,11 @@
                             <button class="btn btn-primary" data-i18n="send" onclick="sendAiMessage()">Ուղարկել</button>
                         </div>
                     </div>
-                    <!-- Sidebar column -->
                     <div style="display:flex;flex-direction:column;gap:1.5rem;">
                         <div class="section">
                             <div class="sec-head">
                                 <h2 data-i18n="todayInHistory">Այսօր <em>Պատ. Մեջ</em></h2>
-                                <button class="btn btn-ghost btn-sm" data-i18n="
-                                        " onclick="loadTodayHistory()">
-                                    Բեռնել
-                                </button>
+                                <button class="btn btn-ghost btn-sm" onclick="loadTodayHistory()">Բեռնել</button>
                             </div>
                             <div id="historyWidget" class="ai-history-list">
                                 <div class="ai-hist-item">
@@ -565,12 +586,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!--<div class="section">
-                            <div class="sec-head"><h2 data-i18n="readingSuggestions">Ընթ. <em>Առաջ.</em></h2></div>
-                            <div id="aiSuggest" class="ai-suggest-list">
-                                <p style="color:var(--mist);font-size:.85rem;font-style:italic">Click "Recommend books" to get personalised picks.</p>
-                            </div>
-                        </div>-->
                         <div class="section">
                             <div class="sec-head"><h2>&#128293; <em>Trending</em></h2></div>
                             <div id="aiTrendingBooks"><p style="color:var(--mist);font-size:.82rem;font-style:italic;">Loading...</p></div>
@@ -579,7 +594,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     </div><!-- /mainApp -->
     <!-- MODALS -->
@@ -621,7 +635,6 @@
         </div>
     </div>
 
-    <!-- REPLACE your old addMenuModal div with this entire block -->
     <div class="modal" id="menuModal">
         <div class="modal-box" style="max-width:500px">
             <div class="modal-head">
@@ -632,10 +645,7 @@
                     </svg>
                 </button>
             </div>
-            <div class="form-group">
-                <label>Item Name</label>
-                <input type="text" id="miName" placeholder="e.g. Cappuccino">
-            </div>
+            <div class="form-group"><label>Item Name</label><input type="text" id="miName" placeholder="e.g. Cappuccino"></div>
             <div class="form-group">
                 <label>Category</label>
                 <select id="miCat">
@@ -647,14 +657,10 @@
                     <option>Desserts</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>Price (AMD)</label>
-                <input type="number" id="miPrice" placeholder="1200">
-            </div>
+            <div class="form-group"><label>Price (AMD)</label><input type="number" id="miPrice" placeholder="1200"></div>
             <div class="form-group">
                 <label>Photo <span style="color:var(--mist);font-size:.75rem">(optional — JPG/PNG, max 5 MB)</span></label>
-                <img id="miImagePreview" src="" alt="preview"
-                     style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:.6rem">
+                <img id="miImagePreview" src="" alt="preview" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:.6rem">
                 <label class="mi-img-label" for="miImage">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
@@ -663,11 +669,10 @@
                 </label>
                 <input type="file" id="miImage" accept="image/*" style="display:none" onchange="previewMenuImage(this)">
             </div>
-            <button class="btn btn-primary" id="menuModalSubmitBtn" style="width:100%;margin-top:.5rem" onclick="submitMenuModal()">
-                Add to Menu
-            </button>
+            <button class="btn btn-primary" id="menuModalSubmitBtn" style="width:100%;margin-top:.5rem" onclick="submitMenuModal()">Add to Menu</button>
         </div>
     </div>
+
     <!-- PDF VIEWER MODAL -->
     <div class="modal" id="pdfModal" style="z-index:2000">
         <div class="modal-box" style="max-width:900px;width:95vw;height:90vh;display:flex;flex-direction:column;padding:0">
@@ -681,8 +686,7 @@
         </div>
     </div>
 
-
-    <!-- BOOK BORROWINGS MODAL (Librarian) -->
+    <!-- BOOK BORROWINGS MODAL -->
     <div class="modal" id="bookBorrowingsModal">
         <div class="modal-box" style="max-width:680px">
             <div class="modal-head">

@@ -43,19 +43,27 @@ namespace LibraryCafe.Api.Controllers
             [FromBody] RegisterDto dto,
             [FromServices] EmailService emailSvc,
             [FromServices] PendingVerificationStore store)
-        {// Check email domain actually exists
-            var domainExists = await emailSvc.DomainHasMailServerAsync(dto.Email);
-            if (!domainExists)
-                return BadRequest(new { message = "This email domain does not exist. Please use a real email address." });
+        {
+            // 1. Basic format check first
             if (string.IsNullOrWhiteSpace(dto.Email) || !dto.Email.Contains("@"))
                 return BadRequest(new { message = "Invalid email address." });
 
-            // One account per Gmail — block if already registered
+            // 2. Check domain exists
+            var domainExists = await emailSvc.DomainHasMailServerAsync(dto.Email);
+            if (!domainExists)
+                return BadRequest(new { message = "This email domain does not exist. Please use a real email address." });
+
+            // 3. Check the specific mailbox is deliverable
+            var emailExists = await emailSvc.EmailExistsAsync(dto.Email);
+            if (!emailExists)
+                return BadRequest(new { message = "This email address doesn't exist or can't receive mail. Please use a real email." });
+
+            // 4. Check not already registered
             var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email.ToLower());
             if (exists)
                 return BadRequest(new { message = "An account with this email already exists." });
 
-            // Cryptographically secure 6-digit code
+            // 5. Generate secure code and send
             var code = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
             store.Save(dto.Email, code, dto.Fullname, dto.Password, dto.Role ?? "Student");
 
@@ -80,7 +88,6 @@ namespace LibraryCafe.Api.Controllers
             if (!store.Verify(dto.Email, dto.Code, out var fullname, out var password, out var role))
                 return BadRequest(new { message = "Invalid or expired code. Max 5 attempts allowed." });
 
-            // Double-check email not registered in the time between send and verify
             var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email.ToLower());
             if (exists)
                 return BadRequest(new { message = "An account with this email already exists." });
@@ -102,10 +109,8 @@ namespace LibraryCafe.Api.Controllers
         public async Task<ActionResult<UserDto>> Login(UserLoginDto dto)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized(new { message = "Invalid email or password" });
-
             return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
         }
 
@@ -138,7 +143,6 @@ namespace LibraryCafe.Api.Controllers
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound(new { message = "User not found" });
-
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return NoContent();

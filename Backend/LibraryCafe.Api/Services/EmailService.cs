@@ -25,6 +25,25 @@ namespace LibraryCafe.Api.Services
             }
         }
 
+        public async Task<bool> EmailExistsAsync(string email)
+        {
+            try
+            {
+                var apiKey = _config["AbstractApi:Key"];
+                var url = $"https://emailvalidation.abstractapi.com/v1/?api_key={apiKey}&email={Uri.EscapeDataString(email)}";
+                using var http = new HttpClient();
+                http.Timeout = TimeSpan.FromSeconds(10);
+                var response = await http.GetStringAsync(url);
+                var json = System.Text.Json.JsonDocument.Parse(response);
+                var deliverability = json.RootElement.GetProperty("deliverability").GetString();
+                return deliverability == "DELIVERABLE";
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
         public async Task SendVerificationCodeAsync(string toEmail, string code)
         {
             var cfg = _config.GetSection("Email");

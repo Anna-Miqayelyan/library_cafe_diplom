@@ -117,10 +117,11 @@ async function handleRegister() {
         if (!el) {
             el = document.createElement('p');
             el.id = 'regError';
-            el.style.cssText = 'color:#c0392b;font-size:.82rem;margin:.5rem 0 0;text-align:center';
-            document.getElementById('regBtn').before(el);
+            el.style.cssText = 'color:#c0392b;font-size:.82rem;margin:.5rem 0 0;text-align:center;padding:.5rem;background:#fdecea;border-radius:6px';
+            document.getElementById('regForm').appendChild(el);
         }
         el.textContent = msg;
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function clearRegError() {
@@ -216,21 +217,36 @@ async function handleLogin() {
 // Step 2 — verify code
 async function handleVerifyCode() {
     const code = document.getElementById('verifyCode').value.trim();
-    if (!code) { notify('Enter the code from your email', true); return; }
+
+    function showVerifyError(msg) {
+        let el = document.getElementById('verifyError');
+        if (!el) {
+            el = document.createElement('p');
+            el.id = 'verifyError';
+            el.style.cssText = 'color:#c0392b;font-size:.82rem;margin:.5rem 0 0;text-align:center;padding:.5rem;background:#fdecea;border-radius:6px';
+            document.getElementById('verifyForm').appendChild(el);
+        }
+        el.textContent = msg;
+    }
+
+    if (!code || code.length < 6) { showVerifyError('Please enter the 6-digit code.'); return; }
 
     const res = await api('/users/register/verify', {
         method: 'POST',
         body: JSON.stringify({ email: window._pendingEmail, code })
     });
     if (!res) return;
-    if (!res.ok) { const e = await res.json(); notify(e.message || 'Invalid code', true); return; }
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        showVerifyError(e.message || 'Invalid code. Please try again.');
+        return;
+    }
 
     const u = await res.json();
     currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, wallet: 20000 };
     saveStorage(); showApp();
     notify('✅ Account verified — welcome, ' + currentUser.name.split(' ')[0] + '!');
 }
-
 function backToRegister() {
     document.getElementById('verifyForm').style.display = 'none';
     document.getElementById('regForm').style.display = 'block';
