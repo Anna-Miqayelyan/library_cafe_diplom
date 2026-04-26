@@ -138,6 +138,10 @@
                         <input type="email" id="regEmail" placeholder="your@email.com">
                     </div>
                     <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="regPhone" placeholder="+374 XX XXX XXX">
+                    </div>
+                    <div class="form-group">
                         <label>Password</label>
                         <div class="input-wrap">
                             <input type="password" id="regPass" class="pw-field" placeholder="••••••••">
@@ -352,6 +356,17 @@
                         <div>
                             <div class="info-row"><span class="info-k" data-i18n="email">Էլ. հասցե</span><span class="info-v" id="profEmail">—</span></div>
                             <div class="info-row"><span class="info-k" data-i18n="booksBorrowed">Վերցված Գրքեր</span><span class="info-v" id="profBorrowed">0</span></div>
+
+                            <!-- PHONE NUMBER ROW -->
+                            <div class="info-row">
+                                <span class="info-k">📞 Phone</span>
+                                <div style="display:flex;gap:.5rem;flex:1">
+                                    <input type="tel" id="profPhone" placeholder="+374 XX XXX XXX"
+                                           style="flex:1;padding:.5rem .8rem;border:1px solid var(--silk);border-radius:var(--r-sm);font-family:inherit">
+                                    <button class="btn btn-primary btn-sm" onclick="updatePhone()">Save</button>
+                                </div>
+                            </div>
+
                             <div class="info-row" style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--silk)">
                                 <span class="info-k" data-i18n="changePassword" style="align-self:flex-start;padding-top:.3rem">Փոխել Գաղտնաբառը</span>
                                 <div style="display:flex;flex-direction:column;gap:.6rem;flex:1">
@@ -385,7 +400,6 @@
                 </div>
             </div>
         </div>
-
         <!-- LIBRARIAN DASHBOARD -->
         <div class="page" id="libDash">
             <div class="container">

@@ -14,6 +14,9 @@ namespace LibraryCafe.Core.Entities
         [Column("email")]
         public string Email { get; set; } = null!;
 
+        [Column("phonenumber")]
+        public string? PhoneNumber { get; set; }
+
         [Column("passwordhash")]
         public string PasswordHash { get; set; } = null!;
 

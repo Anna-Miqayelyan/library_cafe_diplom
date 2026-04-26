@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<PendingVerificationStore>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddControllers();
-
+builder.Services.AddHostedService<DueDateReminderService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddDbContext<LibraryCafeDbContext>(options =>

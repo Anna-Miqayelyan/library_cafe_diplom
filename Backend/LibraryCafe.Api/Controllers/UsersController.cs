@@ -24,7 +24,7 @@ namespace LibraryCafe.Api.Controllers
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
             var users = await _context.Users
-                .Select(u => new UserDto { Id = u.Id, Fullname = u.Fullname, Email = u.Email, Role = u.Role })
+                .Select(u => new UserDto { Id = u.Id, Fullname = u.Fullname, Email = u.Email, Role = u.Role, Phone = u.PhoneNumber })
                 .ToListAsync();
             return Ok(users);
         }
@@ -34,7 +34,7 @@ namespace LibraryCafe.Api.Controllers
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound(new { message = "User not found" });
-            return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role });
+            return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role, Phone = user.PhoneNumber });
         }
 
         // Step 1: validate email, send code
@@ -65,7 +65,7 @@ namespace LibraryCafe.Api.Controllers
 
             // 5. Generate secure code and send
             var code = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
-            store.Save(dto.Email, code, dto.Fullname, dto.Password, dto.Role ?? "Student");
+            store.Save(dto.Email, code, dto.Fullname, dto.Password, dto.Role ?? "Student", dto.Phone ?? "");
 
             try
             {
@@ -85,7 +85,7 @@ namespace LibraryCafe.Api.Controllers
             [FromBody] VerifyCodeDto dto,
             [FromServices] PendingVerificationStore store)
         {
-            if (!store.Verify(dto.Email, dto.Code, out var fullname, out var password, out var role))
+            if (!store.Verify(dto.Email, dto.Code, out var fullname, out var password, out var role, out var phone))
                 return BadRequest(new { message = "Invalid or expired code. Max 5 attempts allowed." });
 
             var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email.ToLower());
@@ -97,14 +97,14 @@ namespace LibraryCafe.Api.Controllers
                 Fullname = fullname,
                 Email = dto.Email.ToLower(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-                Role = role
+                Role = role,
+                PhoneNumber = phone
             };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
             return Ok(new { id = user.Id, fullname = user.Fullname, email = user.Email, role = user.Role });
         }
-
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(UserLoginDto dto)
         {
@@ -119,7 +119,7 @@ namespace LibraryCafe.Api.Controllers
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound(new { message = "User not found" });
-
+            if (dto.Phone != null) user.PhoneNumber = dto.Phone;
             if (dto.Fullname != null) user.Fullname = dto.Fullname;
             if (dto.Email != null)
             {

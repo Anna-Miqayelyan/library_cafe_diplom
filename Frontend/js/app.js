@@ -111,7 +111,10 @@ async function handleRegister() {
     const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPass').value;
     const role = document.getElementById('regRole').value;
+    const phone = document.getElementById('regPhone').value.trim();
 
+    if (!phone) { showRegError('Please enter your phone number.'); return; }
+    if (phone.length < 8) { showRegError('Please enter a valid phone number.'); return; }
     function showRegError(msg) {
         let el = document.getElementById('regError');
         if (!el) {
@@ -146,7 +149,7 @@ async function handleRegister() {
 
     const res = await api('/users/register/send-code', {
         method: 'POST',
-        body: JSON.stringify({ fullname, email, password, role })
+        body: JSON.stringify({ fullname, email, password, role, phone })
     });
 
     btn.disabled = false; btn.textContent = 'Create Account';
@@ -172,7 +175,7 @@ async function handleLogin() {
     if (!res.ok) { const e = await res.json(); notify(e.message || 'Invalid credentials', true); return; }
 
     const u = await res.json();
-    currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, wallet: 20000 };
+    currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, phone: u.phone || '', wallet: 20000 };
     saveStorage(); showApp();
     notify('Welcome back, ' + currentUser.name.split(' ')[0]);
 }
@@ -243,7 +246,7 @@ async function handleVerifyCode() {
     }
 
     const u = await res.json();
-    currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, wallet: 20000 };
+    currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, phone: u.phone, wallet: 20000 };
     saveStorage(); showApp();
     notify('✅ Account verified — welcome, ' + currentUser.name.split(' ')[0] + '!');
 }
@@ -1165,6 +1168,8 @@ async function updateProfile() {
     document.getElementById('profName').textContent = currentUser.name;
     document.getElementById('profRole').textContent = currentUser.role;
     document.getElementById('profEmail').textContent = currentUser.email;
+    const phoneInput = document.getElementById('profPhone');
+    if (phoneInput) phoneInput.value = currentUser.phone || '';
     const br = await api(`/users/${currentUser.id}/borrowings`);
     if (br && br.ok) {
         const data = await br.json();
@@ -1753,7 +1758,18 @@ async function loadAdminDash() {
         if (otb) otb.innerHTML = data.map(o => `<tr><td>#${o.id}</td><td>${o.userFullname}</td><td>${fmt(o.totalAmount)} AMD</td><td>${fmtDate(o.orderDate)}</td><td>${statusChip(o.status)}</td></tr>`).join('');
     }
 }
-
+async function updatePhone() {
+    const phone = document.getElementById('profPhone').value.trim();
+    if (!phone) { notify('Please enter a phone number', true); return; }
+    currentUser.phone = phone;
+    saveStorage();
+    const res = await api(`/users/${currentUser.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ phone })
+    });
+    if (!res || !res.ok) { notify('Could not update phone', true); return; }
+    notify(' Phone number updated!');
+}
 function rolePillHtml(role) {
     const m = { 'Student': 'rp-s', 'Librarian': 'rp-l', 'Café Staff': 'rp-c', 'Admin': 'rp-a' };
     return `<span class="role-pill ${m[role] || 'rp-s'}">${role}</span>`;
