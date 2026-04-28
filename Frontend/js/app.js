@@ -823,6 +823,9 @@ function initReservationPickers() {
     const fromEl = document.getElementById('resFrom');
     const toEl = document.getElementById('resTo');
     if (!dateEl || !fromEl || !toEl) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    dateEl.min = today;
     if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
     if (fromEl.options.length === 0) {
         for (let h = 9; h <= 20; h++) {
@@ -1209,16 +1212,20 @@ async function toggleBookBorrowed(bookId) {
     if (!active.length) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--mist)">No active borrowings for this book</td></tr>`;
     } else {
+        // Add colspan to header — find where the table header is defined and add a Phone column
+        // Then in tbody.innerHTML, add the phone cell:
+
         tbody.innerHTML = active.map(b => `<tr>
-            <td>${b.userFullname}</td>
-            <td>${fmtDate(b.borrowDate)}</td>
-            <td>${fmtDate(b.dueDate)}</td>
-            <td>${b.isOverdue
-                ? `<span style="color:var(--danger);font-weight:500">⚠ Overdue ${Math.floor((Date.now() - new Date(b.dueDate)) / (86400000))}d</span>`
+    <td>${b.userFullname}</td>
+    <td>${b.userPhone || '—'}</td>
+    <td>${fmtDate(b.borrowDate)}</td>
+    <td>${fmtDate(b.dueDate)}</td>
+    <td>${b.isOverdue
+                ? `<span style="color:var(--danger);font-weight:500">⚠ Overdue ${Math.floor((Date.now() - new Date(b.dueDate)) / 86400000)}d</span>`
                 : statusChip('available')}
-                <button class="btn btn-primary btn-sm" style="margin-left:.5rem" onclick="returnBook(${b.id});closeModal('bookBorrowingsModal');loadLibDash()">Return</button>
-            </td>
-        </tr>`).join('');
+        <button class="btn btn-primary btn-sm" style="margin-left:.5rem" onclick="returnBook(${b.id});closeModal('bookBorrowingsModal');loadLibDash()">Return</button>
+    </td>
+</tr>`).join('');
     }
     openModal('bookBorrowingsModal');
 }
@@ -1370,8 +1377,7 @@ async function loadLibDash() {
         const data = await br.json();
         const tb = document.getElementById('libBorrTable');
         if (tb) tb.innerHTML = data.length
-            ? data.map(b => `<tr><td>${b.userFullname}</td><td>${b.bookTitle}</td><td>${fmtDate(b.borrowDate)}</td><td>${fmtDate(b.dueDate)}</td><td>${statusChip(b.isOverdue ? 'Overdue' : 'available')}</td><td><button class="btn btn-primary btn-sm" onclick="returnBook(${b.id})">${t("returnBook")}</button></td></tr>`).join('')
-            : `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t("activeBorrowings")}…</td></tr>`;
+            ? data.map(b => `<tr><td>${b.userFullname}</td><td>${b.userPhone || '—'}</td><td>${b.bookTitle}</td><td>${fmtDate(b.borrowDate)}</td><td>${fmtDate(b.dueDate)}</td><td>${statusChip(b.isOverdue ? 'Overdue' : 'available')}</td><td><button class="btn btn-primary btn-sm" onclick="returnBook(${b.id})">${t("returnBook")}</button></td></tr>`).join('')            : `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t("activeBorrowings")}…</td></tr>`;
     }
 
     // Pending borrow requests
@@ -1733,8 +1739,7 @@ async function loadAdminDash() {
         const users = await ur.json();
         set('asUsers', users.length);
         const tb = document.getElementById('adminUsersTb');
-        if (tb) tb.innerHTML = users.map(u => `<tr><td>${u.fullname}</td><td>${u.email}</td><td>${rolePillHtml(u.role)}</td><td><button class="btn-del" onclick="deleteUser(${u.id})" ${u.id === currentUser.id ? 'disabled' : ''}>Delete</button></td></tr>`).join('');
-    }
+        if (tb) tb.innerHTML = users.map(u => `<tr><td>${u.fullname}</td><td>${u.email}</td><td>${u.phone || '—'}</td><td>${rolePillHtml(u.role)}</td><td><button class="btn-del" onclick="deleteUser(${u.id})" ${u.id === currentUser.id ? 'disabled' : ''}>Delete</button></td></tr>`).join('');    }
 
     set('asBooks', books.length);
     const bk = document.getElementById('adminBooksTb');

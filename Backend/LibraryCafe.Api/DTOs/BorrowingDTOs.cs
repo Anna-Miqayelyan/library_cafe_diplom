@@ -15,6 +15,7 @@ namespace LibraryCafe.Api.DTOs
         public int Id { get; set; }
         public int UserId { get; set; }
         public string UserFullname { get; set; } = null!;
+        public string? UserPhone { get; set; }
         public int BookId { get; set; }
         public string BookTitle { get; set; } = null!;
         public DateTime BorrowDate { get; set; }

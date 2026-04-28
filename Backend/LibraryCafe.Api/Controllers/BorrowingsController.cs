@@ -35,6 +35,7 @@ namespace LibraryCafe.Api.Controllers
                 Id = b.Id,
                 UserId = b.UserId,
                 UserFullname = b.User?.Fullname ?? "",
+                   UserPhone = b.User?.PhoneNumber, 
                 BookId = b.BookId,
                 BookTitle = b.Book?.Title ?? "",
                 BorrowDate = b.BorrowDate,
