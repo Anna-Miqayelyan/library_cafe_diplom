@@ -17,7 +17,7 @@ const TRANSLATIONS = {
         createAccount: 'Ստեղծել հաշիվ',
         authQuote: '«Գրադարանը շքեղություն չէ, այլ կյանքի անհրաժեշտություն»',
         authEyebrow: 'Խելացի Համալսարանական Կենտրոն',
-        student: 'Ուսանող',
+        student: 'Օգտատեր',
         librarian: 'Գրադարանավար',
         cafeStaff: 'Սրճարանի Աշխատակից',
         admin: 'Ադմին',
@@ -129,7 +129,7 @@ const TRANSLATIONS = {
         edit: 'Խմբագրել',
         delete: 'Ջնջել',
         activeBorrowings: 'Ակտիվ Վերցնումներ',
-        student: 'Ուսանող',
+        student: 'Օգտատեր',
         returnBook: 'Վերադարձնել',
 
         // Café Staff Dashboard
