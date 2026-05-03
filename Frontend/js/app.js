@@ -177,7 +177,7 @@ async function handleLogin() {
     const u = await res.json();
     currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, phone: u.phone || '', wallet: 20000 };
     saveStorage(); showApp();
-    notify('Welcome back, ' + currentUser.name.split(' ')[0]);
+    notify(t('welcomeBack') + ', ' + currentUser.name.split(' ')[0] + '!');
 }
 //    function clearRegError() {
 //        const el = document.getElementById('regError');
@@ -248,8 +248,7 @@ async function handleVerifyCode() {
     const u = await res.json();
     currentUser = { id: u.id, name: u.fullname, email: u.email, role: u.role, phone: u.phone, wallet: 20000 };
     saveStorage(); showApp();
-    notify('✅ Account verified — welcome, ' + currentUser.name.split(' ')[0] + '!');
-}
+    notify('✅ ' + t('verifyAccount') + ' — ' + t('welcomeBack') + ', ' + currentUser.name.split(' ')[0] + '!'); }
 function backToRegister() {
     document.getElementById('verifyForm').style.display = 'none';
     document.getElementById('regForm').style.display = 'block';
@@ -265,6 +264,40 @@ function logout() {
     document.getElementById('loginEmail').value = '';
     document.getElementById('loginPass').value = '';
     showLoginTab();
+}
+// ─── TYPEWRITER GREETING ─────────────────────────────────────
+function typewriterGreeting(el, welcomeText, firstName) {
+    if (!el) return;
+    el.innerHTML = '';
+    el.style.borderRight = '2px solid var(--gold)';
+    el.style.paddingRight = '4px';
+    const full = welcomeText + ', ';
+    let i = 0;
+    function typeChar() {
+        if (i < full.length) {
+            el.textContent = full.slice(0, i + 1);
+            i++;
+            setTimeout(typeChar, 38);
+        } else {
+            el.innerHTML = full + '<em id="_twName" style="color:rgba(255,255,255,.5)"></em>!';
+            const nameEl = document.getElementById('_twName');
+            if (nameEl) {
+                let j = 0;
+                function typeName() {
+                    if (j < firstName.length) {
+                        nameEl.textContent = firstName.slice(0, j + 1);
+                        j++;
+                        setTimeout(typeName, 55);
+                    } else {
+                        el.style.borderRight = 'none';
+                        el.style.paddingRight = '0';
+                    }
+                }
+                typeName();
+            }
+        }
+    }
+    typeChar();
 }
 // ─── SHOW APP ────────────────────────────────────────────────
 async function showApp() {
@@ -313,18 +346,18 @@ async function showApp() {
         modal.id = 'cartModal';
         modal.className = 'modal';
         modal.innerHTML = `<div class="modal-box" style="max-width:520px">
-            <div class="modal-head">
-                <h2>🛒 Your <em>Order</em></h2>
-                <button class="m-close" onclick="closeModal('cartModal')"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="width:20px;height:20px"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button>
-            </div>
-            <div id="cartItems" style="max-height:55vh;overflow-y:auto"></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:.9rem 0;border-top:1px solid var(--silk);margin-top:.5rem">
-                <span style="font-weight:600;color:var(--smoke)">Total</span>
-                <span style="font-size:1.15rem;font-weight:800;color:var(--ink)"><span id="cartTotal">0</span> AMD</span>
-            </div>
-            <button id="checkoutBtn" class="btn btn-primary" style="width:100%;padding:1rem;font-size:1rem" onclick="checkout()">Place Order (Cash)</button>
-            <p style="text-align:center;font-size:.72rem;color:var(--mist);margin:.5rem 0 0">Payment is made in cash at the counter</p>
-        </div>`;
+    <div class="modal-head">
+        <h2>${t('yourCart')}</h2>
+        <button class="m-close" onclick="closeModal('cartModal')">...</button>
+    </div>
+    <div id="cartItems" style="max-height:55vh;overflow-y:auto"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.9rem 0;border-top:1px solid var(--silk);margin-top:.5rem">
+        <span style="font-weight:600;color:var(--smoke)">${t('total')}</span>
+        <span style="font-size:1.15rem;font-weight:800;color:var(--ink)"><span id="cartTotal">0</span> ${t('amd')}</span>
+    </div>
+    <button id="checkoutBtn" class="btn btn-primary" style="width:100%;padding:1rem;font-size:1rem" onclick="checkout()">${t('placeOrderCash')}</button>
+    <p style="text-align:center;font-size:.72rem;color:var(--mist);margin:.5rem 0 0">${t('paymentCashAtCounter')}</p>
+</div>`;
         document.body.appendChild(modal);
     }
     requestOrderNotifications();
@@ -386,7 +419,7 @@ async function loadMenu() {
     const res = await api('/menuitems');
     if (res && res.ok) {
         menu = (await res.json()).map(m => ({
-            id: m.id, name: m.itemName, category: m.category, price: m.price, imageUrl: m.imageUrl || null
+            id: m.id, name: m.itemName, type: m.category, price: m.price, imageUrl: m.imageUrl || null
         }));
     }
 }
@@ -435,6 +468,16 @@ function statusChip(s) {
 // ─── BOOK CARD ───────────────────────────────────────────────
 function bookCard(b) {
     const fav = favs.some(f => f.id === b.id && f.type === 'book');
+
+    // Կատեգորիաների թարգմանություն
+    const categoryMap = {
+        'Fiction': t('fiction'),
+        'Non-Fiction': t('nonFiction'),
+        'Technology': t('technology'),
+        'Science': t('science')
+    };
+    const categoryHy = categoryMap[b.category] || b.category;
+
     const cats = { Fiction: 'F', Technology: 'T', Science: 'S', 'Non-Fiction': 'N' };
     const imgHtml = b.imagePath
         ? `<img src="${b.imagePath}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-sm) var(--r-sm) 0 0">`
@@ -442,15 +485,9 @@ function bookCard(b) {
     const avail = b.availableCount ?? (b.available ? 1 : 0);
     const total = b.totalCount || 1;
     const copyBadge = total > 1 ? `<span style="font-size:.75rem;color:var(--smoke);margin-left:.4rem">${avail}/${total} ${t("copies")}</span>` : '';
-    // Corner ribbon
-    let ribbon = '';
-    if (b.availableCount === 1 || (b.totalCount === 1 && b.available)) {
-        ribbon = '<div class="card-ribbon card-ribbon--warn">Last copy</div>';
-    } else if (b.id <= 3) {
-        ribbon = '<div class="card-ribbon">Popular</div>';
-    } else if (b.totalCount && b.availableCount === b.totalCount) {
-        ribbon = '<div class="card-ribbon">New</div>';
-    }
+
+    // Shelf-ի թարգմանություն
+    const shelfText = b.shelf ? `${t('shelf')} ${b.shelf}` : t('noShelf');
 
     return `
   <div class="card">
@@ -458,15 +495,15 @@ function bookCard(b) {
     <button class="fav-btn ${fav ? 'on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
     <div class="card-img">${imgHtml}</div>
     <div class="card-body">
-      <div class="card-ey">${b.category} · Shelf ${b.shelf || '—'}</div>
+      <div class="card-ey">${categoryHy} · ${shelfText}</div>
       <div class="card-title">${b.title}</div>
       <div class="card-author">${b.author}</div>
       <div style="display:flex;align-items:center;gap:.3rem;margin:.3rem 0">${statusChip(b.status)}${copyBadge}</div>
       <div class="card-actions">
         ${avail > 0
-            ? `<button class="btn btn-primary btn-sm" onclick="requestBorrow(${b.id})">📋 Request</button>`
+            ? `<button class="btn btn-primary btn-sm" onclick="requestBorrow(${b.id})">📋 ${t('request')}</button>`
             : isInQueue(b.id)
-                ? `<button class="btn btn-ghost btn-sm" onclick="leaveQueue(${b.id})">✕ Leave Queue</button>`
+                ? `<button class="btn btn-ghost btn-sm" onclick="leaveQueue(${b.id})">✕ ${t('leaveQueue')}</button>`
                 : `<button class="btn btn-ghost btn-sm" onclick="joinQueue(${b.id})">${t("joinQueue")}</button>`}
         ${b.pdfUrl ? `<button class="btn btn-ghost btn-sm" onclick="openPdf(${b.id})">${t("readPdf")}</button>` : ''}
         <button class="btn btn-ghost btn-sm fav-action-btn ${fav ? 'fav-on' : ''}" onclick="event.stopPropagation();toggleFav(${b.id},'book')">${fav ? '♥' : '♡'}</button>
@@ -488,19 +525,34 @@ function openPdf(id) {
 // ─── MENU CARD ───────────────────────────────────────────────
 function menuCard(m) {
     const fav = favs.some(f => f.id === m.id && f.type === 'menu');
+
+    // Կատեգորիաների թարգմանություն
+    const categoryMap = {
+        'Hot Drinks': t('hotDrinks'),
+        'Cold Drinks': t('coldDrinks'),
+        'Breakfast': t('breakfast'),
+        'Sandwiches': t('sandwiches'),
+        'Salads': t('salads'),
+        'Desserts': t('desserts')
+    };
+    const categoryHy = categoryMap[m.category] || m.category;
+
+    // Icon-ները մնում են նույնը (դրանք պատկերակներ են)
     const cats = { 'Hot Drinks': '◉', 'Cold Drinks': '◎', 'Breakfast': '○', 'Sandwiches': '▣', 'Salads': '◈', 'Desserts': '◆' };
     const icon = cats[m.category] || '◈';
+
     const imgHtml = m.imageUrl
         ? `<img src="${m.imageUrl}" alt="${m.name}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-sm) var(--r-sm) 0 0">`
         : `<div class="card-img-icon">${icon}</div>`;
+
     return `
   <div class="card">
     <button class="fav-btn ${fav ? 'on' : ''}" onclick="event.stopPropagation();toggleFav(${m.id},'menu')">${fav ? '♥' : '♡'}</button>
     <div class="card-img">${imgHtml}</div>
     <div class="card-body">
-      <div class="card-ey">${m.category}</div>
+      <div class="card-ey">${categoryHy}</div>
       <div class="card-title">${m.name}</div>
-      <div class="card-price">${fmt(m.price)} AMD</div>
+      <div class="card-price">${fmt(m.price)} ${t('amd')}</div>
       <div class="card-actions">
         <button class="btn btn-primary btn-sm" onclick="addToCart(${m.id})">${t("addToCart")}</button>
         <button class="btn btn-ghost btn-sm fav-action-btn ${fav ? 'fav-on' : ''}" onclick="event.stopPropagation();toggleFav(${m.id},'menu')">${fav ? '♥' : '♡'}</button>
@@ -560,8 +612,8 @@ function filterMenu(cat, btn) {
 // ─── FAVORITES ───────────────────────────────────────────────
 function toggleFav(id, type) {
     const i = favs.findIndex(f => f.id === id && f.type === type);
-    if (i > -1) { favs.splice(i, 1); notify('Removed from favorites'); }
-    else { favs.push({ id, type }); notify('Added to favorites'); }
+    if (i > -1) { favs.splice(i, 1); notify(t('notifyFavRemoved')); }
+    else { favs.push({ id, type }); notify(t('notifyFavAdded')); }
     saveStorage();
     renderTrending(); renderPopularMenu(); renderLibrary('all'); renderCafe('all');
     const fp = document.getElementById('favorites');
@@ -614,7 +666,7 @@ async function requestBorrow(id) {
 
     const req = await res.json();
     _seenBorrowStatuses[req.id] = 'Pending';
-    notify('📋 Borrow request sent for "' + book.title + '". The librarian will review it shortly.');
+    notify('📋 ' + t('borrowRequestSent').replace('{title}', book.title));
     await loadBooks();
     renderLibrary('all');
     renderTrending();
@@ -626,7 +678,8 @@ function addToCart(id) {
     const ex = cart.find(c => c.id === id);
     if (ex) ex.qty++; else cart.push({ ...item, qty: 1 });
     updateCartBadge();
-    notify('🛒 ' + item.name + ' added! Tap the cart to order.');
+    notify(t('notifyCartAdded').replace('{name}', item.name));
+
     saveStorage();
 }
 
@@ -652,23 +705,22 @@ function updateCartBadge() {
 
 function renderCartModal() {
     const el = document.getElementById('cartItems'); if (!el) return;
-    if (!cart.length) { el.innerHTML = empty('Your cart is empty'); document.getElementById('cartTotal').textContent = '0'; return; }
+    if (!cart.length) { el.innerHTML = empty(t('cartEmpty')); document.getElementById('cartTotal').textContent = '0'; return; }
     el.innerHTML = cart.map(item => `
     <div class="cart-row">
       <div>
         <div class="ci-n">${item.name}</div>
-        <div class="ci-p">${fmt(item.price)} AMD each</div>
+        <div class="ci-p">${fmt(item.price)} ${t('amdPerItem')}</div>
       </div>
       <div class="ci-ctrl">
         <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
         <span class="qty-n">${item.qty}</span>
         <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
-        <button class="btn-del" style="margin-left:.5rem" onclick="removeFromCart(${item.id})">Remove</button>
+        <button class="btn-del" style="margin-left:.5rem" onclick="removeFromCart(${item.id})">${t('remove')}</button>
       </div>
     </div>`).join('');
     document.getElementById('cartTotal').textContent = fmt(cart.reduce((s, i) => s + i.price * i.qty, 0));
 }
-
 async function checkout() {
     if (!currentUser) { notify('Please sign in', true); return; }
     if (!cart.length) { notify('Your cart is empty', true); return; }
@@ -686,7 +738,7 @@ async function checkout() {
     if (!res.ok) { const e = await res.json().catch(() => ({})); notify(e.message || 'Order failed', true); return; }
 
     const order = await res.json().catch(() => null);
-    notify('✅ Order placed! Total: ' + fmt(total) + ' AMD — we will notify you when it is ready!');
+    notify(t('notifyOrderPlaced').replace('{total}', fmt(total)));
     cart = []; updateCartBadge(); closeModal('cartModal'); saveStorage();
     if (order?.id) startOrderStatusPolling(order.id);
 }
@@ -705,8 +757,7 @@ function startOrderStatusPolling(orderId) {
                 lastStatus = o.status;
                 showOrderStatusBanner(orderId, o.status);
                 if (Notification.permission === 'granted') {
-                    const msgs = { Preparing: 'Your order is being prepared ☕', Ready: 'Your order is READY for pickup! 🔔', Completed: 'Order completed. Enjoy! ✅', Cancelled: 'Your order was cancelled ❌' };
-                    if (msgs[o.status]) new Notification('Library Café — Order #' + orderId, { body: msgs[o.status], tag: 'order-' + orderId });
+                    const msgs = { Preparing: t('orderPreparing'), Ready: t('orderReady'), Completed: t('orderCompleted'), Cancelled: t('orderCancelled') };                    if (msgs[o.status]) new Notification('Library Café — Order #' + orderId, { body: msgs[o.status], tag: 'order-' + orderId });
                 }
                 if (o.status === 'Completed' || o.status === 'Cancelled') { clearInterval(_orderPollers[orderId]); delete _orderPollers[orderId]; }
             }
@@ -715,14 +766,19 @@ function startOrderStatusPolling(orderId) {
 }
 function showOrderStatusBanner(orderId, status) {
     const old = document.getElementById('order-banner-' + orderId); if (old) old.remove();
-    var _om = { Preparing: '👨‍🍳 Order #' + orderId + ' is being prepared...', Ready: '🔔 Order #' + orderId + ' is READY for pickup!', Completed: '✅ Order #' + orderId + ' completed. Enjoy!', Cancelled: '❌ Order #' + orderId + ' was cancelled.' };
-    if (_om[status]) lcNotifAdd(_om[status], 'order');
-    const cfg = { Preparing: { bg: '#fff8e1', border: '#ffd54f', icon: '👨‍🍳', msg: 'Your order is being prepared…' }, Ready: { bg: '#e8f5e9', border: '#66bb6a', icon: '🔔', msg: 'Your order is READY for pickup!' }, Completed: { bg: '#e3f2fd', border: '#64b5f6', icon: '✅', msg: 'Enjoy!' }, Cancelled: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Your order was cancelled.' } };
-    const c = cfg[status]; if (!c) return;
+    const cfg = {
+        Preparing: { bg: '#fff8e1', border: '#ffd54f', icon: '👨‍🍳', msg: t('orderPreparing') },
+        Ready: { bg: '#e8f5e9', border: '#66bb6a', icon: '🔔', msg: t('orderReady') },
+        Completed: { bg: '#e3f2fd', border: '#64b5f6', icon: '✅', msg: t('orderCompleted') },
+        Cancelled: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: t('orderCancelled') }
+    };
+    const c = cfg[status];
+    if (!c) return;
+    lcNotifAdd(c.msg, 'order');
     const b = document.createElement('div');
     b.id = 'order-banner-' + orderId;
     b.style.cssText = 'position:fixed;bottom:2rem;left:2rem;z-index:9998;background:' + c.bg + ';border:1.5px solid ' + c.border + ';border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:320px;padding:.85rem 1.1rem;display:flex;align-items:center;gap:.75rem;animation:slideUp .3s ease';
-    b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">Order #' + orderId + ' — ' + status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999">✕</button>';
+    b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">' + t('orderNotification') + ' #' + orderId + ' — ' + status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999">✕</button>';
     document.body.appendChild(b);
     if (status !== 'Ready') setTimeout(() => { if (b.parentNode) { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); } }, 8000);
 }
@@ -769,10 +825,10 @@ function startBorrowRequestPolling() {
                     }
                     if (Notification.permission === 'granted') {
                         const msgs = {
-                            BookAvailable: `📚 "${r.bookTitle}" is now available! The librarian will reach out to you.`,
-                            Approved: `Your request for "${r.bookTitle}" was APPROVED! Come pick it up 📚`,
-                            Rejected: `Your request for "${r.bookTitle}" was declined.`,
-                            Taken: `Enjoy reading "${r.bookTitle}"! ✅`
+                            BookAvailable: t('bookAvailable').replace('{title}', r.bookTitle),
+                            Approved: t('requestApproved').replace('{title}', r.bookTitle),
+                            Rejected: t('requestRejected').replace('{title}', r.bookTitle),
+                            Taken: t('bookTaken').replace('{title}', r.bookTitle)
                         };
                         if (msgs[r.status === 'Pending' && prev === 'Queued' ? 'BookAvailable' : r.status])
                             new Notification('Library Café — Book Request', {
@@ -797,17 +853,16 @@ function showBorrowRequestBanner(req) {
     };
     if (_bm[req.status]) lcNotifAdd(_bm[req.status], 'book');
     const cfg = {
-        BookAvailable: { bg: '#e8f5e9', border: '#66bb6a', icon: '📚', msg: '"' + req.bookTitle + '" is now available! The librarian will contact you soon.' },
-        Approved: { bg: '#e8f5e9', border: '#66bb6a', icon: '✅', msg: 'Your request was approved! Come pick up "' + req.bookTitle + '".' },
-        Rejected: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: 'Request for "' + req.bookTitle + '" was declined.' },
-        Taken: { bg: '#e3f2fd', border: '#64b5f6', icon: '📚', msg: 'Enjoy "' + req.bookTitle + '"! Return by the due date.' }
+        BookAvailable: { bg: '#e8f5e9', border: '#66bb6a', icon: '📚', msg: t('bookAvailable').replace('{title}', req.bookTitle) },
+        Approved: { bg: '#e8f5e9', border: '#66bb6a', icon: '✅', msg: t('requestApproved').replace('{title}', req.bookTitle) },
+        Rejected: { bg: '#fdecea', border: '#ef9a9a', icon: '❌', msg: t('requestRejected').replace('{title}', req.bookTitle) },
+        Taken: { bg: '#e3f2fd', border: '#64b5f6', icon: '📚', msg: t('bookTaken').replace('{title}', req.bookTitle) }
     };
     const c = cfg[req.status]; if (!c) return;
     const b = document.createElement('div');
     b.id = 'breq-banner-' + req.id;
     b.style.cssText = 'position:fixed;bottom:2rem;right:2rem;z-index:9998;background:' + c.bg + ';border:1.5px solid ' + c.border + ';border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:320px;padding:.85rem 1.1rem;display:flex;align-items:center;gap:.75rem;animation:slideUp .3s ease';
-    b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">Book Request — ' + req.status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999">✕</button>';
-    document.body.appendChild(b);
+    b.innerHTML = '<span style="font-size:1.4rem">' + c.icon + '</span><div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:#1a1a1a">' + t('bookRequest') + ' — ' + req.status + '</div><div style="font-size:.75rem;color:#555;margin-top:.1rem">' + c.msg + '</div></div><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#999">✕</button>';    document.body.appendChild(b);
     if (req.status !== 'Approved' && req.status !== 'BookAvailable') setTimeout(() => { if (b.parentNode) { b.style.animation = 'slideDown .3s forwards'; setTimeout(() => b.remove(), 300); } }, 9000);
 }
 
@@ -855,8 +910,14 @@ function getTakenSeats(date, from, to) {
 function slotsOverlap(f1, t1, f2, t2) {
     return f1 < t2 && t1 > f2;
 }
-
 async function generateSeats() {
+    // Ստուգել currentUser-ը
+    if (!currentUser) {
+        const el = document.getElementById('seatMap');
+        if (el) el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--mist)">Please log in to reserve seats</div>';
+        return;
+    }
+
     initReservationPickers();
     const el = document.getElementById('seatMap');
     if (!el) return;
@@ -865,17 +926,28 @@ async function generateSeats() {
     const from = document.getElementById('resFrom')?.value || '09:00';
     const to = document.getElementById('resTo')?.value || '10:00';
 
-    if (!date) { notify('Please select a date', true); return; }
-    if (from >= to) { notify('End time must be after start time', true); return; }
+    if (!date) {
+        const tFn = typeof t !== 'undefined' ? t : (key) => key;
+        notify(tFn('notifySelectDate'), true);
+        return;
+    }
+    if (from >= to) {
+        const tFn = typeof t !== 'undefined' ? t : (key) => key;
+        notify(tFn('notifyInvalidTime'), true);
+        return;
+    }
 
-    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--mist)">Loading seats…</div>';
+    const tFn = typeof t !== 'undefined' ? t : (key) => key;
+    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--mist)">' + tFn('loadingSeats') + '</div>';
 
     // Fetch ALL reservations for this date from backend
     let allReservations = [];
     try {
         const res = await api('/seatreservations?date=' + date);
         if (res && res.ok) allReservations = await res.json();
-    } catch { }
+    } catch (err) {
+        console.error('Error fetching reservations:', err);
+    }
 
     const HOURS = ['09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'];
 
@@ -912,8 +984,8 @@ async function generateSeats() {
     });
 
     el.innerHTML = '';
-    const names = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Table 7'];
-    const emojis = ['\u{1F4DA}', '\u{1F4DA}', '\u2615', '\u2615', '\u2615', '\u{1F4BB}', '\u{1F4BB}'];
+    const names = ['Սեղան 1', 'Սեղան 2', 'Սեղան 3', 'Սեղան 4', 'Սեղան 5', 'Սեղան 6', 'Սեղան 7'];
+   // const emojis = ['📚', '📚', '☕', '☕', '☕', '💻', '💻'];
 
     for (let t = 1; t <= 7; t++) {
         const isMine = myTables.includes(t);
@@ -921,46 +993,48 @@ async function generateSeats() {
 
         const card = document.createElement('div');
         card.className = 'tc ' + (isMine ? 'tc-mine' : isTaken ? 'tc-taken' : 'tc-free');
+        card.style.cssText = 'background:var(--white);border:1px solid var(--silver);border-radius:12px;padding:1rem;margin-bottom:1rem';
 
-        card.innerHTML = `<div class="tc-hdr">
-            <span class="tc-em">${emojis[t - 1]}</span>
-            <span class="tc-nm">${names[t - 1]}</span>
-            ${isMine ? '<span class="tc-tag tag-mine">\u2713 Yours</span>' : isTaken ? '<span class="tc-tag tag-taken">Unavailable</span>' : '<span class="tc-tag tag-free">Available</span>'}
-        </div>`;
+        let statusText = '';
+        if (isMine) statusText = '✓ ' + tFn('yourBooking');
+        else if (isTaken) statusText = tFn('unavailable');
+        else statusText = tFn('available');
 
-        const grid = document.createElement('div');
-        grid.className = 'tc-grid';
-        HOURS.forEach((h, hi) => {
-            if (hi >= HOURS.length - 1) return;
-            const hf = h + ':00', ht = HOURS[hi + 1] + ':00';
+        card.innerHTML = `
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+               
+                <span style="font-weight:bold">${names[t - 1]}</span>
+                <span style="background:${isMine ? '#d4af37' : isTaken ? '#fdecea' : '#e8f5e9'};padding:2px 8px;border-radius:20px;font-size:0.7rem">${statusText}</span>
+            </div>
+            <div style="display:flex;gap:4px;margin-top:0.5rem">
+                ${HOURS.slice(0, -1).map((h, idx) => {
             const state = occ[t][h];
-            const cell = document.createElement('div');
-            cell.className = 'tc-cell tc-' + state;
-            cell.title = hf + '\u2013' + ht + ' \u2014 ' + (state === 'mine' ? 'Your booking' : state === 'other' ? 'Reserved' : 'Free \u2014 click to reserve');
-            const lbl = document.createElement('span');
-            lbl.className = 'tc-hlbl';
-            lbl.textContent = h;
-            cell.appendChild(lbl);
-            if (state === 'free') {
-                cell.onclick = () => { reserveSeat(t, date, hf, ht); };
-                cell.style.cursor = 'pointer';
-            }
-            grid.appendChild(cell);
-        });
-        card.appendChild(grid);
+            const isFree = state === 'free';
+            const nextHour = HOURS[idx + 1];
+            return `<div 
+                        style="flex:1;height:40px;border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;cursor:${isFree ? 'pointer' : 'default'};background:${state === 'mine' ? '#d4af37' : state === 'other' ? '#fdecea' : '#e8f5e9'};border:1px solid ${state === 'mine' ? '#b8922a' : state === 'other' ? '#ef9a9a' : '#a5d6a7'}"
+                        ${isFree ? `onclick="reserveSeat(${t},'${date}','${h}:00','${nextHour}:00')"` : ''}
+                        title="${h}:00 - ${nextHour}:00">
+                        <span style="font-size:0.6rem;font-weight:600;opacity:0.75">${h}</span>
+                    </div>`;
+        }).join('')}
+            </div>
+        `;
 
         if (isMine) {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-ghost tc-btn';
-            btn.textContent = '\u2715 Cancel ' + from + '\u2013' + to;
-            btn.onclick = () => { cancelSeatReservation(t, date, from, to); };
-            card.appendChild(btn);
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-ghost';
+            cancelBtn.style.cssText = 'width:100%;margin-top:0.5rem;padding:0.3rem;font-size:0.8rem';
+            cancelBtn.textContent = '✕ ' + tFn('cancel') + ' ' + from + '–' + to;
+            cancelBtn.onclick = () => cancelSeatReservation(t, date, from, to);
+            card.appendChild(cancelBtn);
         } else if (!isTaken) {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-primary tc-btn';
-            btn.textContent = 'Reserve ' + from + '\u2013' + to;
-            btn.onclick = () => { reserveSeat(t, date, from, to); };
-            card.appendChild(btn);
+            const reserveBtn = document.createElement('button');
+            reserveBtn.className = 'btn btn-primary';
+            reserveBtn.style.cssText = 'width:100%;margin-top:0.5rem;padding:0.3rem;font-size:0.8rem';
+            reserveBtn.textContent = tFn('reserve') + ' ' + from + '–' + to;
+            reserveBtn.onclick = () => reserveSeat(t, date, from, to);
+            card.appendChild(reserveBtn);
         }
 
         el.appendChild(card);
@@ -979,7 +1053,7 @@ async function reserveSeat(seat, date, from, to) {
         notify(e.message || 'Could not reserve seat', true);
         return;
     }
-    notify('Table ' + seat + ' reserved ' + from + '–' + to);
+    notify(t('notifyReservationMade').replace('{seat}', seat).replace('{from}', from).replace('{to}', to));
     if (typeof scheduleReservationNotification === 'function')
         scheduleReservationNotification(seat, date, from);
     generateSeats();
@@ -990,7 +1064,7 @@ async function cancelSeatReservation(seat, date, from, to) {
     const res = await api('/seatreservations?' + params.toString(), { method: 'DELETE' });
     if (!res) return;
     if (!res.ok) { notify('Could not cancel reservation', true); return; }
-    notify('Table ' + seat + ' reservation cancelled');
+notify(t('notifyReservationCancelled').replace('{seat}', seat));
     generateSeats();
 }
 
@@ -1013,54 +1087,75 @@ function renderMyReservations(myRes) {
 
 // ─── BOOKSHELF MAP ────────────────────────────────────────────
 async function renderShelfMap() {
-    const el = document.getElementById('shelfMapContent'); if (!el) return;
-    el.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--mist)">Loading…</div>';
+    const el = document.getElementById('shelfMapContent');
+    if (!el) return;
 
-    // Reload books to make sure we have fresh data
+    el.innerHTML = '<div class="spin"></div>';
     await loadBooks();
 
-    // Group books by shelf prefix (A, B, C etc)
     const shelves = {};
     books.forEach(b => {
-        const shelf = b.shelf || 'Unknown';
-        const section = shelf.match(/^[A-Za-z]+/)?.[0]?.toUpperCase() || '?';
+        const shelf = b.shelf || 'Անհայտ';
+        const section = shelf.match(/^[A-Za-z]+/)?.[0]?.toUpperCase() || 'Այլ';
         if (!shelves[section]) shelves[section] = [];
         shelves[section].push(b);
     });
 
-    if (!Object.keys(shelves).length) {
-        el.innerHTML = '<p style="text-align:center;padding:3rem;color:var(--mist)">No books in the system yet.</p>';
+    if (Object.keys(shelves).length === 0) {
+        el.innerHTML = `<div class="empty-shelf-message">
+            <span>📚</span>
+            <p>Դեռևս գրքեր չկան գրադարանում</p>
+        </div>`;
         return;
     }
 
-    el.innerHTML = Object.entries(shelves).sort(([a], [b]) => a.localeCompare(b)).map(([section, sBooks]) => {
+    const sectionIcons = {
+        'A': '📖', 'B': '📘', 'C': '📙', 'D': '📕',
+        'F': '📗', 'H': '📚', 'L': '📖', 'N': '📘',
+        'Այլ': '📚'
+    };
+
+    el.innerHTML = `<div class="shelf-container">
+        ${Object.entries(shelves).sort(([a], [b]) => a.localeCompare(b)).map(([section, sectionBooks]) => {
         const slots = {};
-        sBooks.forEach(b => { slots[b.shelf] = slots[b.shelf] || []; slots[b.shelf].push(b); });
-        return `
-        <div style="margin-bottom:2rem">
-            <div class="sec-head"><h2>Section <em>${section}</em></h2></div>
-            <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-top:1rem">
-                ${Object.entries(slots).sort(([a], [b]) => a.localeCompare(b)).map(([shelf, shelfBooks]) => `
-                <div style="background:var(--paper);border:1px solid var(--silk);border-radius:var(--r-md);padding:1rem;min-width:160px;max-width:220px;flex:1">
-                    <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;color:var(--ink);margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:2px solid var(--gold)">
-                        📚 Shelf ${shelf}
-                    </div>
-                    ${shelfBooks.map(b => {
-            const avail = b.availableCount ?? (b.available ? 1 : 0);
-            const total = b.totalCount || 1;
-            const color = avail > 0 ? 'var(--sage)' : 'var(--danger)';
-            return `<div style="padding:.3rem 0;border-bottom:1px solid var(--silk);font-size:.82rem" title="${b.title} by ${b.author}">
-                            <div style="font-weight:500;color:var(--graphite);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.title}</div>
-                            <div style="color:var(--smoke);font-size:.75rem">${b.author} · <span style="color:${color}">${avail}/${total}</span></div>
+        sectionBooks.forEach(b => {
+            slots[b.shelf] = slots[b.shelf] || [];
+            slots[b.shelf].push(b);
+        });
+
+        return `<div class="shelf-section">
+                <div class="section-title">
+                    ${sectionIcons[section] || '📚'} ${t('section')} ${section}
+                </div>
+                <div class="shelf-grid">
+                    ${Object.entries(slots).sort(([a], [b]) => a.localeCompare(b)).map(([shelfName, shelfBooks]) => {
+            return `<div class="shelf-card">
+                            <div class="shelf-header">
+                                <span>📚</span>
+                                <span>${shelfName}</span>
+                            </div>
+                            <div class="shelf-books">
+                                ${shelfBooks.map(book => {
+                const avail = book.availableCount ?? (book.available ? 1 : 0);
+                const statusClass = avail > 0 ? 'status-available' : 'status-borrowed';
+                const statusText = avail > 0 ? t('statusAvailable') : t('statusBorrowed');
+                const copiesText = book.totalCount > 1 ? ` (${avail}/${book.totalCount})` : '';
+                return `<div class="shelf-book-item">
+                                        <div class="book-info">
+                                            <div class="book-title" title="${book.title}">${book.title}</div>
+                                            <div class="book-author">${book.author}</div>
+                                        </div>
+                                        <div class="book-status ${statusClass}">${statusText}${copiesText}</div>
+                                    </div>`;
+            }).join('')}
+                            </div>
                         </div>`;
         }).join('')}
-                </div>`).join('')}
-            </div>
-        </div>`;
-    }).join('');
-}
-
-
+                </div>
+            </div>`;
+    }).join('')}
+    </div>`;
+} 
 // ─── PASSWORD CHANGE ─────────────────────────────────────────
 document.addEventListener('input', function (e) {
     if (e.target.id !== 'pwNew') return;
@@ -1119,8 +1214,7 @@ async function joinQueue(bookId) {
     const title = book ? book.title : 'this book';
 
     if (isInQueue(bookId)) {
-        notify(`You are already in the queue for "${title}"`, true);
-        return;
+        notify(t('alreadyInQueue').replace('{title}', title), true);        return;
     }
 
     // POST to /borrowrequests — backend will set Status="Queued" because book is unavailable
@@ -1140,7 +1234,7 @@ async function joinQueue(bookId) {
     q.push({ userId: currentUser.id, bookId });
     localStorage.setItem('lc_queue', JSON.stringify(q));
 
-    notify(`📋 You joined the queue for "${title}". We'll notify you when it's available!`);
+notify(t('notifyQueueJoined').replace('{title}', title));
     renderLibrary('all'); renderTrending();
 }
 
@@ -1161,7 +1255,8 @@ async function leaveQueue(bookId) {
     ));
 
     if (!res || !res.ok) { notify('Could not leave queue', true); return; }
-    notify(`Removed from queue for "${title}"`);
+    notify(t('notifyQueueLeft').replace('{title}', title));
+
     renderLibrary('all'); renderTrending();
 }
 
@@ -1272,12 +1367,11 @@ function requestNotifPermission() {
     Notification.requestPermission().then(perm => {
         const btn = document.getElementById('notifBtn');
         if (perm === 'granted') {
-            if (btn) { btn.textContent = '🔔 Reminders On'; btn.classList.add('notif-on'); }
-            notify('Reminders enabled! You will be notified 15 min before each reservation.');
-            reserved.forEach(r => scheduleReservationNotification(r.seat, r.date, r.from));
+            if (btn) { btn.textContent = '🔔 ' + t('remindersOn'); btn.classList.add('notif-on'); }
+            notify(t('remindersEnabled'));
         } else {
-            if (btn) btn.textContent = '🔕 Reminders Off';
-            notify('Permission denied', true);
+            if (btn) btn.textContent = '🔕 ' + t('remindersOff');
+            notify(t('permissionDenied'), true);
         }
     });
 }
@@ -1310,12 +1404,12 @@ function showNotifBanner(tableNum, date, from) {
         '<div class="rnb-inner">' +
         '<span class="rnb-icon">🔔</span>' +
         '<div class="rnb-text">' +
-        '<strong>Reservation in 15 minutes</strong>' +
-        '<span>Table ' + tableNum + ' at ' + from + ' — ' + date + '</span>' +
+        '<strong>' + t('reservationReminder') + '</strong>' +
+        '<span>' + t('table') + ' ' + tableNum + ' ' + t('at') + ' ' + from + ' — ' + date + '</span>' +
         '</div>' +
         '<div class="rnb-actions">' +
-        '<button class="btn btn-primary btn-sm" onclick="dismissNotifBanner()">Got it!</button>' +
-        '<button class="btn btn-ghost btn-sm" onclick="cancelFromBanner(' + tableNum + ',\'' + date + '\',\'' + from + '\')">Cancel reservation</button>' +
+        '<button class="btn btn-primary btn-sm" onclick="dismissNotifBanner()">' + t('gotIt') + '</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="cancelFromBanner(' + tableNum + ',\'' + date + '\',\'' + from + '\')">' + t('cancelReservation') + '</button>' +
         '</div>' +
         '</div>';
     document.body.appendChild(b);
@@ -1358,26 +1452,30 @@ async function loadLibDash() {
             const avail = b.availableCount ?? (b.available ? 1 : 0);
             const total = b.totalCount || 1;
             return `<tr>
-                <td>${b.title}</td><td>${b.author}</td><td>${b.category}</td>
-                <td>${b.isbn || '—'}</td><td>${b.shelf || '—'}</td>
-                <td>${avail}/${total} ${statusChip(b.status)}</td>
-                <td style="display:flex;gap:.4rem">
-                    <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">${t("edit")}</button>
-                    <button class="btn btn-ghost btn-sm" onclick="toggleBookBorrowed(${b.id})">📋 ${t("activeBorrowings")}</button>
-                    ${avail > 0
+            <td style="padding:0.8rem">${b.title}</td>
+            <td style="padding:0.8rem">${b.author}</td>
+            <td style="padding:0.8rem">${b.category}</td>
+            <td style="padding:0.8rem">${b.isbn || '—'}</td>
+            <td style="padding:0.8rem">${b.shelf || '—'}</td>
+            <td style="padding:0.8rem">${avail}/${total} ${statusChip(b.status)}</td>
+            <td style="display:flex;gap:.4rem;padding:0.8rem">
+                <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">${t("edit")}</button>
+                <button class="btn btn-ghost btn-sm" onclick="toggleBookBorrowed(${b.id})">📋 ${t("activeBorrowings")}</button>
+                ${avail > 0
                     ? `<button class="btn btn-primary btn-sm" onclick="openLibBorrowModal(${b.id})">📤 ${t('borrow')}</button>`
                     : `<button class="btn btn-ghost btn-sm" style="opacity:.45" disabled>📤 ${t('allBorrowed')}</button>`}
-                    <button class="btn-del" onclick="deleteBook(${b.id})">${t("delete")}</button>
-                </td></tr>`;
+                <button class="btn-del" onclick="deleteBook(${b.id})">${t("delete")}</button>
+            </td>
+        </tr>`;
         }).join('')
         : `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t("libraryCatalog")}…</td></tr>`;
-
     const br = await api('/borrowings?active=true');
     if (br && br.ok) {
         const data = await br.json();
         const tb = document.getElementById('libBorrTable');
         if (tb) tb.innerHTML = data.length
-            ? data.map(b => `<tr><td>${b.userFullname}</td><td>${b.userPhone || '—'}</td><td>${b.bookTitle}</td><td>${fmtDate(b.borrowDate)}</td><td>${fmtDate(b.dueDate)}</td><td>${statusChip(b.isOverdue ? 'Overdue' : 'available')}</td><td><button class="btn btn-primary btn-sm" onclick="returnBook(${b.id})">${t("returnBook")}</button></td></tr>`).join('')            : `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t("activeBorrowings")}…</td></tr>`;
+            ? data.map(b => `<tr><td>${b.userFullname}</td><td>${b.userPhone || '—'}</td><td>${b.bookTitle}</td><td>${fmtDate(b.borrowDate)}</td><td>${fmtDate(b.dueDate)}</td><td>${statusChip(b.isOverdue ? 'Overdue' : 'available')}</td><td><button class="btn btn-primary btn-sm" onclick="returnBook(${b.id})">${t("returnBook")}</button></td></tr>`).join('')
+            : `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t("activeBorrowings")}…</td></tr>`;
     }
 
     // Pending borrow requests
@@ -1408,45 +1506,53 @@ async function loadBorrowRequests() {
         const isPending = r.status === 'Pending';
         const isApproved = r.status === 'Approved';
         const isQueued = r.status === 'Queued';
+
+        // Status-ի թարգմանություն
+        let statusText = '';
+        if (r.status === 'Pending') statusText = t('statusPending');
+        else if (r.status === 'Approved') statusText = t('statusApproved');
+        else if (r.status === 'Queued') statusText = t('statusQueued');
+        else statusText = r.status;
+
         return `<tr>
-            <td>${r.userFullname}</td>
-            <td>${r.bookTitle}<br><span style="font-size:.75rem;color:var(--mist)">${r.bookAuthor}</span></td>
-            <td>${fmtDate(r.requestDate)}</td>
-            <td>${r.durationDays} days</td>
-            <td>
-                <span class="chip ${isPending ? 'c-pe' : isApproved ? 'c-re' : 'c-bo'}" style="margin-right:.4rem">${r.status}</span>
-                ${isPending ? `
-                    <button class="btn btn-primary btn-sm" onclick="approveRequest(${r.id})">✅ Approve</button>
-                    <button class="btn-del" style="margin-left:.3rem" onclick="rejectRequest(${r.id})">✕ Reject</button>
-                ` : isApproved ? `
-                    <button class="btn btn-primary btn-sm" onclick="markTaken(${r.id})">📚 Mark as Taken</button>
-                ` : isQueued ? `
-                    <span style="font-size:.75rem;color:var(--mist)">⏳ Waiting for a copy</span>
-                ` : ''}
-            </td>
-        </tr>`;
+        <td>${r.userFullname}</td>
+        <td>${r.bookTitle}<br><span style="font-size:.75rem;color:var(--mist)">${r.bookAuthor}</span></td>
+        <td>${fmtDate(r.requestDate)}</td>
+        <td>${r.durationDays} ${t('days')}</td>
+        <td>
+            <span class="chip ${isPending ? 'c-pe' : isApproved ? 'c-re' : 'c-bo'}" style="margin-right:.4rem">${statusText}</span>
+            ${isPending ? `
+                <button class="btn btn-primary btn-sm" onclick="approveRequest(${r.id})">✅ ${t('approve')}</button>
+                <button class="btn-del" style="margin-left:.3rem" onclick="rejectRequest(${r.id})">✕ ${t('reject')}</button>
+            ` : isApproved ? `
+                <button class="btn btn-primary btn-sm" onclick="markTaken(${r.id})">📚 ${t('markAsTaken')}</button>
+            ` : isQueued ? `
+                <span style="font-size:.75rem;color:var(--mist)">⏳ ${t('waitingForCopy')}</span>
+            ` : ''}
+        </td>
+    </tr>`;
     }).join('');
 }
 
 async function approveRequest(id) {
     const res = await api('/borrowrequests/' + id + '/approve', { method: 'PUT', body: '{}' });
-    if (!res || !res.ok) { notify('Failed to approve', true); return; }
-    notify('✅ Request approved — student can now pick up the book.');
+    if (!res || !res.ok) { notify(t('notifyApproveFailed'), true); return; }
+    notify(t('notifyRequestApproved'));
     loadBorrowRequests();
 }
 
 async function rejectRequest(id) {
-    if (!confirm('Reject this borrow request?')) return;
+    if (!confirm(t('confirmRejectRequest'))) return;
     const res = await api('/borrowrequests/' + id + '/reject', { method: 'PUT', body: JSON.stringify('') });
-    if (!res || !res.ok) { notify('Failed to reject', true); return; }
-    notify('Request rejected.');
+    if (!res || !res.ok) { notify(t('notifyRejectFailed'), true); return; }
+    notify(t('notifyRequestRejected'));
     loadBorrowRequests();
 }
 
 async function markTaken(id) {
     const res = await api('/borrowrequests/' + id + '/taken', { method: 'PUT', body: '{}' });
-    if (!res || !res.ok) { notify('Failed to mark as taken', true); return; }
-    notify('📚 Book marked as borrowed!');
+    if (!res || !res.ok) { notify(t('notifyMarkTakenFailed'), true); return; }
+    notify(t('notifyMarkedAsBorrowed'));
     loadBorrowRequests();
     await loadBooks(); loadLibDash();
 }
@@ -1537,7 +1643,7 @@ function openEditBook(id) {
         document.getElementById('bkImagePreview').style.display = 'block';
     }
     if (b.pdfUrl) {
-        document.getElementById('bkPdfName').textContent = '📄 PDF already uploaded';
+        document.getElementById('bkPdfName').textContent = '📄 ' + t('pdfUploaded');
         document.getElementById('bkPdfPreview').style.display = 'block';
     }
     openModal('addBookModal');
@@ -1556,10 +1662,9 @@ async function submitBook() {
     const pdfFile = document.getElementById('bkPdfFile')?.files[0];
     const btn = document.getElementById('bkSubmitBtn');
     const origText = btn.textContent;
-    btn.textContent = 'Saving…'; btn.disabled = true;
+    btn.textContent = t('saving'); btn.disabled = true;
 
     try {
-        // Use FormData so files are sent as real streams — no base64 conversion, no slowdown
         const fd = new FormData();
         fd.append('title', title);
         fd.append('author', author);
@@ -1576,28 +1681,28 @@ async function submitBook() {
         const res = await fetch(url, { method, body: fd });
         if (!res.ok) {
             const e = await res.json().catch(() => ({}));
-            notify(e.message || 'Failed to save book', true);
+            notify(e.message || t('notifySaveFailed'), true);
             btn.textContent = origText; btn.disabled = false;
             return;
         }
-        notify(editId ? `"${title}" updated` : `"${title}" added to collection`);
+        notify(editId ? t('notifyBookUpdated').replace('{title}', title) : t('notifyBookAdded').replace('{title}', title));
         btn.textContent = origText; btn.disabled = false;
         closeModal('addBookModal');
         await loadBooks(); loadLibDash();
         if (currentUser.role === 'Admin') loadAdminDash();
     } catch (err) {
-        notify('Error saving book: ' + err.message, true);
+        notify(t('notifySaveError') + ': ' + err.message, true);
         btn.textContent = origText; btn.disabled = false;
     }
 }
 function addBook() { submitBook(); }
 
 async function deleteBook(id) {
-    if (!confirm('Delete this book from the collection?')) return;
+    if (!confirm(t('confirmDeleteBook'))) return;
     const res = await api(`/books/${id}`, { method: 'DELETE' });
     if (!res) return;
-    if (!res.ok) { notify('Cannot delete this book', true); return; }
-    notify('Book removed'); loadLibDash();
+    if (!res.ok) { notify(t('notifyDeleteFailed'), true); return; }
+    notify(t('notifyBookRemoved')); loadLibDash();
     if (currentUser.role === 'Admin') loadAdminDash();
 }
 
@@ -1609,6 +1714,8 @@ async function returnBook(borrowingId) {
 }
 
 // ─── CAFÉ STAFF ──────────────────────────────────────────────
+// ========== CAFÉ STAFF FUNCTIONS ==========
+
 async function loadCafeDash() {
     await loadMenu();
     const res = await api('/cafeorders');
@@ -1623,32 +1730,60 @@ async function loadCafeDash() {
     }
     const mt = document.getElementById('cafeMenuTb');
     if (mt) mt.innerHTML = menu.length
-        ? menu.map(m => `<tr>
-            <td style="display:flex;align-items:center;gap:.6rem">
-                ${m.imageUrl ? `<img src="${m.imageUrl}" style="width:34px;height:34px;object-fit:cover;border-radius:5px;flex-shrink:0">` : `<div style="width:34px;height:34px;background:var(--snow);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0">☕</div>`}
-                ${m.name}
-            </td>
-            <td>${m.category}</td><td>${fmt(m.price)} AMD</td>
-            <td style="display:flex;gap:.4rem">
-                <button class="btn btn-ghost btn-sm" onclick="openEditMenuItem(${m.id})">✏️ Edit</button>
-                <button class="btn-del" onclick="deleteMenuItem(${m.id})">Delete</button>
-            </td></tr>`).join('')
-        : `<tr><td colspan="4" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No menu items yet</td></tr>`;
+        ? menu.map(m => {
+            // Կատեգորիայի (type) թարգմանություն
+            const typeMap = {
+                'Hot Drinks': t('hotDrinks'),
+                'Cold Drinks': t('coldDrinks'),
+                'Breakfast': t('breakfast'),
+                'Sandwiches': t('sandwiches'),
+                'Salads': t('salads'),
+                'Desserts': t('desserts')
+            };
+            const typeHy = typeMap[m.type] || m.type;
+
+            return `<tr>
+                <td style="display:flex;align-items:center;gap:.6rem;padding:0.8rem">
+                    ${m.imageUrl ? `<img src="${m.imageUrl}" style="width:34px;height:34px;object-fit:cover;border-radius:5px;flex-shrink:0">` : `<div style="width:34px;height:34px;background:var(--snow);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0">☕</div>`}
+                    ${m.name}
+                </td>
+                <td style="padding:0.8rem">${typeHy}</td>
+                <td style="padding:0.8rem">${fmt(m.price)} AMD</td>
+                <td style="display:flex;gap:.4rem;padding:0.8rem">
+                    <button class="btn btn-ghost btn-sm" onclick="openEditMenuItem(${m.id})">✏️ ${t('edit')}</button>
+                    <button class="btn-del" onclick="deleteMenuItem(${m.id})">${t('delete')}</button>
+                </td>
+            </tr>`;
+        }).join('')
+        : `<td><td colspan="4" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t('noMenuItemsYet')}</td></tr>`;
 }
 
 function renderOrdersTable(data) {
-    const tb = document.getElementById('cafeOrdersTb'); if (!tb) return;
-    tb.innerHTML = data.length
-        ? data.map(o => `<tr>
-        <td>#${o.id}</td><td>${o.userFullname}</td>
-        <td style="font-size:.8rem">${(o.items || []).map(i => `${i.itemName} ×${i.quantity}`).join(', ')}</td>
-        <td>${fmt(o.totalAmount)} AMD</td><td>${o.orderType}</td>
-        <td>${statusChip(o.status)}</td>
-        <td><select class="status-select" onchange="updateStatus(${o.id},this.value)">
-          ${['Pending', 'Preparing', 'Ready', 'Completed', 'Cancelled'].map(s => `<option ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select></td>
-      </tr>`).join('')
-        : `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">No orders yet</td></tr>`;
+    const tb = document.getElementById('cafeOrdersTb');
+    if (!tb) return;
+
+    if (!data || data.length === 0) {
+        tb.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t('noOrdersYet')}</td><tr>`;
+        return;
+    }
+
+    tb.innerHTML = data.map(o => `<tr>
+        <td style="padding:0.8rem">#${o.id}</td>
+        <td style="padding:0.8rem">${o.userFullname || o.userName || '—'}</td>
+        <td style="padding:0.8rem;font-size:0.8rem">${(o.items || []).map(i => `${i.itemName} ×${i.quantity}`).join(', ')}</td>
+        <td style="padding:0.8rem">${fmt(o.totalAmount)} AMD</td>
+        <td style="padding:0.8rem">${o.orderType || 'Dine-in'}</td>
+        <td style="padding:0.8rem">${statusChip(o.status)}</td>
+        <td style="padding:0.8rem">
+            <select class="status-select" onchange="updateStatus(${o.id},this.value)" style="padding:0.3rem 0.5rem;border-radius:4px;border:1px solid var(--silver);background:var(--white);cursor:pointer">
+                <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>${t('statusPending')}</option>
+                <option value="Preparing" ${o.status === 'Preparing' ? 'selected' : ''}>${t('statusPreparing')}</option>
+                <option value="Ready" ${o.status === 'Ready' ? 'selected' : ''}>${t('statusReady')}</option>
+                <option value="Completed" ${o.status === 'Completed' ? 'selected' : ''}>${t('statusCompleted')}</option>
+                <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>${t('statusCancelled')}</option>
+            </select>
+        </td>
+    </table>`).join('');
 }
 
 function filterOrders(status, btn) {
@@ -1660,31 +1795,47 @@ function filterOrders(status, btn) {
 async function updateStatus(id, status) {
     const res = await api(`/cafeorders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
     if (!res) return;
-    if (!res.ok) { notify('Failed to update status', true); return; }
-    notify(`Order #${id} → ${status}`); loadCafeDash();
+    if (!res.ok) { notify(t('notifyUpdateStatusFailed'), true); return; }
+
+    let statusText = '';
+    if (status === 'Pending') statusText = t('statusPending');
+    else if (status === 'Preparing') statusText = t('statusPreparing');
+    else if (status === 'Ready') statusText = t('statusReady');
+    else if (status === 'Completed') statusText = t('statusCompleted');
+    else if (status === 'Cancelled') statusText = t('statusCancelled');
+    else statusText = status;
+
+    notify(t('notifyOrderStatusUpdated').replace('{id}', id).replace('{status}', statusText));
+    loadCafeDash();
 }
 
 function openAddMenuItem() {
-    const t = document.getElementById('menuModalTitle'); const b = document.getElementById('menuModalSubmitBtn');
-    if (t) t.textContent = 'Add Menu Item'; if (b) b.textContent = 'Add to Menu';
+    const titleEl = document.getElementById('menuModalTitle');
+    const btnEl = document.getElementById('menuModalSubmitBtn');
+    if (titleEl) titleEl.innerHTML = t('addMenuItem');
+    if (btnEl) btnEl.textContent = t('addToCollection');
     ['miName', 'miPrice'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     const cat = document.getElementById('miCat'); if (cat) cat.value = 'Hot Drinks';
     const prev = document.getElementById('miImagePreview'); if (prev) { prev.style.display = 'none'; prev.src = ''; }
     const fi = document.getElementById('miImage'); if (fi) fi.value = '';
     window._editingMenuId = null; openModal('menuModal');
 }
+
 function openEditMenuItem(id) {
     const m = menu.find(x => x.id === id); if (!m) return;
-    const t = document.getElementById('menuModalTitle'); const b = document.getElementById('menuModalSubmitBtn');
-    if (t) t.textContent = 'Edit Menu Item'; if (b) b.textContent = 'Save Changes';
+    const titleEl = document.getElementById('menuModalTitle');
+    const btnEl = document.getElementById('menuModalSubmitBtn');
+    if (titleEl) titleEl.innerHTML = t('editMenuItem');
+    if (btnEl) btnEl.textContent = t('saveChanges');
     const nm = document.getElementById('miName'); if (nm) nm.value = m.name;
-    const ct = document.getElementById('miCat'); if (ct) ct.value = m.category;
+    const ct = document.getElementById('miCat'); if (ct) ct.value = m.type;
     const pr = document.getElementById('miPrice'); if (pr) pr.value = m.price;
     const prev = document.getElementById('miImagePreview');
     if (prev) { if (m.imageUrl) { prev.src = m.imageUrl; prev.style.display = 'block'; } else { prev.style.display = 'none'; prev.src = ''; } }
     const fi = document.getElementById('miImage'); if (fi) fi.value = '';
     window._editingMenuId = id; openModal('menuModal');
 }
+
 function previewMenuImage(input) {
     const file = input.files[0]; if (!file) return;
     const prev = document.getElementById('miImagePreview'); if (!prev) return;
@@ -1692,569 +1843,558 @@ function previewMenuImage(input) {
     reader.onload = e => { prev.src = e.target.result; prev.style.display = 'block'; };
     reader.readAsDataURL(file);
 }
+
 async function submitMenuModal() {
     const itemName = (document.getElementById('miName')?.value || '').trim();
-    const category = document.getElementById('miCat')?.value || 'Hot Drinks';
+    const type = document.getElementById('miCat')?.value || 'Hot Drinks';
     const price = parseFloat(document.getElementById('miPrice')?.value || '0');
     const imageFile = document.getElementById('miImage')?.files[0];
-    if (!itemName || !price) { notify('Please fill name and price', true); return; }
+    if (!itemName || !price) { notify(t('notifyFillFields'), true); return; }
     const btn = document.getElementById('menuModalSubmitBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    if (btn) { btn.disabled = true; btn.textContent = t('saving'); }
     let imageUrl = null;
     if (imageFile) { try { imageUrl = await compressImage(imageFile); } catch { imageUrl = await readFileAsBase64(imageFile); } }
     const isEdit = !!window._editingMenuId;
-    const payload = { itemName, category, price };
+    const payload = { itemName, type, price };
     if (imageUrl) payload.imageUrl = imageUrl;
     else if (isEdit) { const ex = menu.find(x => x.id === window._editingMenuId); if (ex?.imageUrl) payload.imageUrl = ex.imageUrl; }
     const url = isEdit ? '/menuitems/' + window._editingMenuId : '/menuitems';
     const method = isEdit ? 'PUT' : 'POST';
     const result = await api(url, { method, body: JSON.stringify(payload) });
-    if (btn) { btn.disabled = false; btn.textContent = isEdit ? 'Save Changes' : 'Add to Menu'; }
+    if (btn) { btn.disabled = false; btn.textContent = isEdit ? t('saveChanges') : t('addToCollection'); }
     if (!result) return;
-    if (!result.ok) { const e = await result.json().catch(() => ({})); notify(e.message || 'Error', true); return; }
-    notify(isEdit ? '"' + itemName + '" updated!' : '"' + itemName + '" added!');
+    if (!result.ok) { const e = await result.json().catch(() => ({})); notify(e.message || t('notifySaveFailed'), true); return; }
+    notify(isEdit ? t('notifyMenuItemUpdated').replace('{name}', itemName) : t('notifyMenuItemAdded').replace('{name}', itemName));
     closeModal('menuModal'); loadCafeDash();
 }
+
 async function addMenuItem() { openAddMenuItem(); }
 
 async function deleteMenuItem(id) {
-    if (!confirm('Remove this item from the menu?')) return;
+    if (!confirm(t('confirmDeleteMenuItem'))) return;
     const res = await api(`/menuitems/${id}`, { method: 'DELETE' });
     if (!res) return;
     if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        notify(e.message || 'Cannot delete item', true);
+        notify(e.message || t('notifyDeleteFailed'), true);
         return;
     }
-    notify('Menu item removed'); loadCafeDash();
+    notify(t('notifyMenuItemRemoved'));
+    loadCafeDash();
 }
+    // ─── ADMIN ───────────────────────────────────────────────────
+    async function loadAdminDash() {
+        await loadBooks(); await loadMenu();
+        const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
 
-// ─── ADMIN ───────────────────────────────────────────────────
-async function loadAdminDash() {
-    await loadBooks(); await loadMenu();
-    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+        const ur = await api('/users');
+        if (ur && ur.ok) {
+            const users = await ur.json();
+            set('asUsers', users.length);
+            const tb = document.getElementById('adminUsersTb');
+            if (tb) tb.innerHTML = users.map(u => `<tr><td>${u.fullname}</td><td>${u.email}</td><td>${u.phone || '—'}</td><td>${rolePillHtml(u.role)}</td><td><button class="btn-del" onclick="deleteUser(${u.id})" ${u.id === currentUser.id ? 'disabled' : ''}>Delete</button></td></tr>`).join('');
+        }
 
-    const ur = await api('/users');
-    if (ur && ur.ok) {
-        const users = await ur.json();
-        set('asUsers', users.length);
-        const tb = document.getElementById('adminUsersTb');
-        if (tb) tb.innerHTML = users.map(u => `<tr><td>${u.fullname}</td><td>${u.email}</td><td>${u.phone || '—'}</td><td>${rolePillHtml(u.role)}</td><td><button class="btn-del" onclick="deleteUser(${u.id})" ${u.id === currentUser.id ? 'disabled' : ''}>Delete</button></td></tr>`).join('');    }
-
-    set('asBooks', books.length);
-    const bk = document.getElementById('adminBooksTb');
-    if (bk) bk.innerHTML = books.map(b => {
-        const avail = b.availableCount ?? (b.available ? 1 : 0);
-        const total = b.totalCount || 1;
-        return `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.category}</td>
-            <td>${avail}/${total} ${statusChip(b.status)}</td>
-            <td style="display:flex;gap:.4rem">
-                <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">${t("edit")}</button>
-                <button class="btn-del" onclick="deleteBook(${b.id})">${t("delete")}</button>
-            </td></tr>`;
-    }).join('');
-
-    const or = await api('/cafeorders');
-    if (or && or.ok) {
-        const data = await or.json();
-        const rev = data.reduce((s, o) => s + o.totalAmount, 0);
-        set('asOrders', data.length); set('asRevenue', fmt(rev));
-        const otb = document.getElementById('adminOrdersTb');
-        if (otb) otb.innerHTML = data.map(o => `<tr><td>#${o.id}</td><td>${o.userFullname}</td><td>${fmt(o.totalAmount)} AMD</td><td>${fmtDate(o.orderDate)}</td><td>${statusChip(o.status)}</td></tr>`).join('');
-    }
-}
-async function updatePhone() {
-    const phone = document.getElementById('profPhone').value.trim();
-    if (!phone) { notify('Please enter a phone number', true); return; }
-    currentUser.phone = phone;
-    saveStorage();
-    const res = await api(`/users/${currentUser.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ phone })
-    });
-    if (!res || !res.ok) { notify('Could not update phone', true); return; }
-    notify(' Phone number updated!');
-}
-function rolePillHtml(role) {
-    const m = { 'Student': 'rp-s', 'Librarian': 'rp-l', 'Café Staff': 'rp-c', 'Admin': 'rp-a' };
-    return `<span class="role-pill ${m[role] || 'rp-s'}">${role}</span>`;
-}
-
-async function deleteUser(id) {
-    if (!confirm('Delete this user account?')) return;
-    const res = await api(`/users/${id}`, { method: 'DELETE' });
-    if (!res) return;
-    if (!res.ok) { notify('Cannot delete user', true); return; }
-    notify('User deleted'); loadAdminDash();
-}
-
-// ─── SEARCH ──────────────────────────────────────────────────
-async function performSearch() {
-    const q = document.getElementById('searchInput').value.trim().toLowerCase();
-    const cat = document.getElementById('searchCat').value;
-    if (!q) { notify('Enter a search term', true); return; }
-
-    if (cat === 'books' || cat === 'all') {
-        const res = await api(`/books?search=${encodeURIComponent(q)}`);
-        if (res && res.ok) {
-            const data = await res.json();
-            if (data.length) {
-                books = data.map(b => ({ id: b.id, title: b.title, author: b.author, category: b.category, isbn: b.isbn, shelf: b.bookshelf, available: b.isAvailable, status: b.isAvailable ? 'available' : 'borrowed', totalCount: b.totalCount || 1, borrowedCount: b.borrowedCount || 0, availableCount: b.availableCount || (b.isAvailable ? 1 : 0), imagePath: b.imagePath || null, pdfUrl: b.pdfUrl || null }));
-                showPage('library'); renderLibrary('all');
-                notify(`Found ${data.length} book${data.length === 1 ? '' : 's'}`);
-                return;
+        set('asBooks', books.length);
+        const bk = document.getElementById('adminBooksTb');
+        if (bk) {
+            if (books.length === 0) {
+                bk.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t('noBooksYet')}</td></tr>`;
+            } else {
+                bk.innerHTML = books.map(b => {
+                    const avail = b.availableCount ?? (b.available ? 1 : 0);
+                    const total = b.totalCount || 1;
+                    return `<td>
+        <td style="padding:0.8rem">${b.title}</td>
+        <td style="padding:0.8rem">${b.author}</td>
+        <td style="padding:0.8rem">${b.category}${b.shelf ? ' · ' + b.shelf : ''}</td>
+        <td style="padding:0.8rem">${avail}/${total} ${statusChip(b.status)}</td>
+        <td style="display:flex;gap:.4rem;padding:0.8rem">
+            <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">✏️ ${t('edit')}</button>
+            <button class="btn-del" onclick="deleteBook(${b.id})">🗑️ ${t('delete')}</button>
+        </td>
+    </table>`;
+                }).join('');
             }
         }
-    }
-    if (cat === 'menu' || cat === 'all') {
-        const f = menu.filter(m => m.name.toLowerCase().includes(q));
-        if (f.length) { showPage('cafe'); notify(`Found ${f.length} item${f.length === 1 ? '' : 's'}`); }
-        else notify('No results found for "' + q + '"', true);
-    }
-}
 
-// ─── MODALS ──────────────────────────────────────────────────
-function openModal(id) {
-    document.getElementById(id).classList.add('active');
-    if (id === 'cartModal') renderCartModal();
-}
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-window.onclick = e => { if (e.target.classList.contains('modal')) e.target.classList.remove('active'); };
-
-// ─── NOTIFY ──────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════
-//  AI ASSISTANT — replace the entire AI section in app.js
-// ═══════════════════════════════════════════════════════════
-
-let aiInitialized = false;
-let aiLastCall = 0; // timestamp of last API call
-
-// Minimum ms between AI calls — prevents 429 rate limit errors
-const AI_COOLDOWN = 3000;
-
-function initAiPage() {
-    if (aiInitialized) return;
-    aiInitialized = true;
-    renderAiTrending();
-    // Don't auto-call on load — let user click instead
-    const el = document.getElementById('historyWidget');
-    if (el) el.innerHTML = `<div class="ai-hist-item">
-        <span class="ai-hist-year">Tip</span>
-        <span>Click "📅 Today in history" to load today's events.</span>
-    </div>`;
-}
-
-// ─── RATE LIMIT GUARD ────────────────────────────────────────
-function canCallAi() {
-    const now = Date.now();
-    if (now - aiLastCall < AI_COOLDOWN) {
-        notify(`Please wait a moment before sending another message.`, true);
-        return false;
-    }
-    aiLastCall = now;
-    return true;
-}
-
-// ─── QUICK PROMPT BUTTONS ────────────────────────────────────
-function aiQuick(type) {
-    const borrowed = books.filter(b => !b.available).slice(0, 3).map(b => b.title).join(', ') || 'various books';
-    const prompts = {
-        recommend: `I'm a student at a library café. Books I've recently borrowed: ${borrowed}. Suggest 4 books I might enjoy, with a short reason for each.`,
-        history: `What are 3 fascinating historical events that happened on ${new Date().toLocaleDateString('en', { month: 'long', day: 'numeric' })}? Keep each to 2 sentences.`,
-        cafe: `I'm reading "${books.find(b => !b.available)?.title || 'a mystery novel'}" at a library café. Suggest 3 café drinks or snacks that pair well with this type of book.`,
-        summary: `Give me a 3-sentence summary of a classic novel every student should know, and explain why it still matters today.`
-    };
-    document.getElementById('aiInput').value = prompts[type];
-    sendAiMessage();
-}
-
-// ─── SEND MESSAGE ────────────────────────────────────────────
-async function sendAiMessage() {
-    if (!canCallAi()) return;
-
-    const input = document.getElementById('aiInput');
-    const msg = input.value.trim();
-    if (!msg) return;
-    input.value = '';
-
-    appendAiMsg(msg, 'user');
-    const typingEl = appendAiTyping();
-
-    try {
-        const systemPrompt = `You are a friendly, knowledgeable assistant for a Library Café — a cosy space where students read books and enjoy coffee. Help with book recommendations, historical trivia, café pairings, and reading culture. Keep responses warm, concise and engaging. The library currently has books like: ${books.slice(0, 8).map(b => b.title).join(', ')}.`;
-
-        const response = await api('/ai/chat', {
-            method: 'POST',
-            body: JSON.stringify({ message: msg, systemPrompt })
-        });
-
-        typingEl.remove();
-
-        if (response && response.ok) {
-            const data = await response.json();
-            appendAiMsg(data.reply, 'bot');
-            if (/recommend|suggest|should read/i.test(msg)) updateAiSuggest(data.reply);
-        } else if (response && response.status === 429) {
-            appendAiMsg('⚠️ Too many requests — the AI is rate limited. Please wait 30 seconds and try again.', 'bot');
-        } else if (response && response.status === 503) {
-            appendAiMsg('⚠️ AI is not configured. Ask your admin to add the Gemini:ApiKey to appsettings.json.', 'bot');
-        } else {
-            const err = response ? await response.json().catch(() => ({})) : {};
-            appendAiMsg(`Sorry, something went wrong: ${err.message || 'Unknown error'}`, 'bot');
+        const or = await api('/cafeorders');
+        if (or && or.ok) {
+            const data = await or.json();
+            const rev = data.reduce((s, o) => s + o.totalAmount, 0);
+            set('asOrders', data.length); set('asRevenue', fmt(rev));
+            const otb = document.getElementById('adminOrdersTb');
+            if (otb) otb.innerHTML = data.map(o => `<tr><td>#${o.id}</td><td>${o.userFullname}</td><td>${fmt(o.totalAmount)} AMD</td><td>${fmtDate(o.orderDate)}</td><td>${statusChip(o.status)}</td></tr>`).join('');
         }
-    } catch (err) {
-        typingEl.remove();
-        appendAiMsg('Connection error. Please make sure the backend is running.', 'bot');
     }
-}
+    async function updatePhone() {
+        const phone = document.getElementById('profPhone').value.trim();
+        if (!phone) { notify('Please enter a phone number', true); return; }
+        currentUser.phone = phone;
+        saveStorage();
+        const res = await api(`/users/${currentUser.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ phone })
+        });
+        if (!res || !res.ok) { notify('Could not update phone', true); return; }
+        notify(' Phone number updated!');
+    }
+    function rolePillHtml(role) {
+        const m = { 'Student': 'rp-s', 'Librarian': 'rp-l', 'Café Staff': 'rp-c', 'Admin': 'rp-a' };
+        return `<span class="role-pill ${m[role] || 'rp-s'}">${role}</span>`;
+    }
 
-// ─── MESSAGE BUILDERS ────────────────────────────────────────
-function appendAiMsg(text, role) {
-    const el = document.getElementById('aiMessages');
-    const div = document.createElement('div');
-    div.className = 'ai-msg' + (role === 'user' ? ' ai-msg-user' : '');
-    div.innerHTML = `
+    async function deleteUser(id) {
+        if (!confirm('Delete this user account?')) return;
+        const res = await api(`/users/${id}`, { method: 'DELETE' });
+        if (!res) return;
+        if (!res.ok) { notify('Cannot delete user', true); return; }
+        notify('User deleted'); loadAdminDash();
+    }
+
+    // ─── SEARCH ──────────────────────────────────────────────────
+    async function performSearch() {
+        const q = document.getElementById('searchInput').value.trim().toLowerCase();
+        const cat = document.getElementById('searchCat').value;
+        if (!q) { notify(t('notifyEnterSearchTerm'), true); return; }
+
+        if (cat === 'books' || cat === 'all') {
+            const res = await api(`/books?search=${encodeURIComponent(q)}`);
+            if (res && res.ok) {
+                const data = await res.json();
+                if (data.length) {
+                    books = data.map(b => ({
+                        id: b.id, title: b.title, author: b.author, category: b.category,
+                        isbn: b.isbn, shelf: b.bookshelf, available: b.isAvailable,
+                        status: b.isAvailable ? 'available' : 'borrowed',
+                        totalCount: b.totalCount || 1, borrowedCount: b.borrowedCount || 0,
+                        availableCount: b.availableCount || (b.isAvailable ? 1 : 0),
+                        imagePath: b.imagePath || null, pdfUrl: b.pdfUrl || null
+                    }));
+                    showPage('library'); renderLibrary('all');
+                    notify(t('searchResultsBooks').replace('{count}', data.length));
+                    return;
+                }
+            }
+        }
+        if (cat === 'menu' || cat === 'all') {
+            const f = menu.filter(m => m.name.toLowerCase().includes(q));
+            if (f.length) { showPage('cafe'); notify(t('searchResultsMenu').replace('{count}', f.length)); }
+            else notify(t('searchNoResults').replace('{query}', q), true);
+        }
+    }
+
+    // ─── MODALS ──────────────────────────────────────────────────
+    function openModal(id) {
+        document.getElementById(id).classList.add('active');
+        if (id === 'cartModal') renderCartModal();
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    window.onclick = e => { if (e.target.classList.contains('modal')) e.target.classList.remove('active'); };
+
+    // ─── NOTIFY ──────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
+    //  AI ASSISTANT — replace the entire AI section in app.js
+    // ═══════════════════════════════════════════════════════════
+
+    let aiInitialized = false;
+    let aiLastCall = 0; // timestamp of last API call
+
+    // Minimum ms between AI calls — prevents 429 rate limit errors
+    const AI_COOLDOWN = 3000;
+
+    function initAiPage() {
+        if (aiInitialized) return;
+        aiInitialized = true;
+        renderAiTrending();
+        // Don't auto-call on load — let user click instead
+        const el = document.getElementById('historyWidget');
+        if (el) el.innerHTML = `<div class="ai-hist-item">
+    <span class="ai-hist-year">📜</span>
+    <span>${t('aiHistoryFallback')}</span>
+</div>`;
+    }
+
+    // ─── RATE LIMIT GUARD ────────────────────────────────────────
+    function canCallAi() {
+        const now = Date.now();
+        if (now - aiLastCall < AI_COOLDOWN) {
+            notify(t('aiRateLimit'), true);
+            return false;
+        }
+        aiLastCall = now;
+        return true;
+    }
+
+    // ─── QUICK PROMPT BUTTONS ────────────────────────────────────
+    function aiQuick(type) {
+        const borrowed = books.filter(b => !b.available).slice(0, 3).map(b => b.title).join(', ') || 'various books';
+        const prompts = {
+            recommend: `I'm a student at a library café. Books I've recently borrowed: ${borrowed}. Suggest 4 books I might enjoy, with a short reason for each.`,
+            history: `What are 3 fascinating historical events that happened on ${new Date().toLocaleDateString('en', { month: 'long', day: 'numeric' })}? Keep each to 2 sentences.`,
+            cafe: `I'm reading "${books.find(b => !b.available)?.title || 'a mystery novel'}" at a library café. Suggest 3 café drinks or snacks that pair well with this type of book.`,
+            summary: `Give me a 3-sentence summary of a classic novel every student should know, and explain why it still matters today.`
+        };
+        document.getElementById('aiInput').value = prompts[type];
+        sendAiMessage();
+    }
+
+    // ─── SEND MESSAGE ────────────────────────────────────────────
+    async function sendAiMessage() {
+        if (!canCallAi()) return;
+
+        const input = document.getElementById('aiInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+
+        appendAiMsg(msg, 'user');
+        const typingEl = appendAiTyping();
+
+        try {
+            const systemPrompt = `You are a friendly, knowledgeable assistant for a Library Café — a cosy space where students read books and enjoy coffee. Help with book recommendations, historical trivia, café pairings, and reading culture. Keep responses warm, concise and engaging. The library currently has books like: ${books.slice(0, 8).map(b => b.title).join(', ')}.`;
+
+            const response = await api('/ai/chat', {
+                method: 'POST',
+                body: JSON.stringify({ message: msg, systemPrompt })
+            });
+
+            typingEl.remove();
+
+            if (response && response.ok) {
+                const data = await response.json();
+                appendAiMsg(data.reply, 'bot');
+                if (/recommend|suggest|should read/i.test(msg)) updateAiSuggest(data.reply);
+            } else if (response && response.status === 429) {
+                appendAiMsg('⚠️ ' + t('aiRateLimit'), 'bot');
+            } else if (response && response.status === 503) {
+                appendAiMsg('⚠️ ' + t('aiNotConfigured'), 'bot');
+            } else {
+                const err = response ? await response.json().catch(() => ({})) : {};
+                appendAiMsg(t('aiConnectionError'), 'bot');
+            }
+        } catch (err) {
+            typingEl.remove();
+            appendAiMsg(t('aiConnectionError'), 'bot');
+        }
+    }
+
+    // ─── MESSAGE BUILDERS ────────────────────────────────────────
+    function appendAiMsg(text, role) {
+        const el = document.getElementById('aiMessages');
+        const div = document.createElement('div');
+        div.className = 'ai-msg' + (role === 'user' ? ' ai-msg-user' : '');
+        div.innerHTML = `
         <div class="ai-avatar ${role === 'user' ? 'ai-avatar-user' : ''}">${role === 'user' ? 'ME' : 'AI'}</div>
         <div class="ai-bubble">${text.replace(/\n/g, '<br>')}</div>`;
-    el.appendChild(div);
-    el.scrollTop = el.scrollHeight;
-    return div;
-}
+        el.appendChild(div);
+        el.scrollTop = el.scrollHeight;
+        return div;
+    }
 
-function appendAiTyping() {
-    const el = document.getElementById('aiMessages');
-    const div = document.createElement('div');
-    div.className = 'ai-msg';
-    div.innerHTML = `<div class="ai-avatar">AI</div>
+    function appendAiTyping() {
+        const el = document.getElementById('aiMessages');
+        const div = document.createElement('div');
+        div.className = 'ai-msg';
+        div.innerHTML = `<div class="ai-avatar">AI</div>
         <div class="ai-bubble"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>`;
-    el.appendChild(div);
-    el.scrollTop = el.scrollHeight;
-    return div;
-}
+        el.appendChild(div);
+        el.scrollTop = el.scrollHeight;
+        return div;
+    }
 
-// ─── READING SUGGESTIONS SIDEBAR ─────────────────────────────
-//function updateAiSuggest(text) {
-//    const titles = text.match(/"([^"]+)"/g) || [];
-//    if (!titles.length) return;
-//    const el = document.getElementById('aiSuggest');
-//    if (!el) return;
-//    el.innerHTML = titles.slice(0, 5).map(t => `
-//        <div class="ai-suggest-item">
-//            <span>📖</span>
-//            <span>${t.replace(/"/g, '')}</span>
-//        </div>`).join('');
-//}
+    // ─── READING SUGGESTIONS SIDEBAR ─────────────────────────────
+    //function updateAiSuggest(text) {
+    //    const titles = text.match(/"([^"]+)"/g) || [];
+    //    if (!titles.length) return;
+    //    const el = document.getElementById('aiSuggest');
+    //    if (!el) return;
+    //    el.innerHTML = titles.slice(0, 5).map(t => `
+    //        <div class="ai-suggest-item">
+    //            <span>📖</span>
+    //            <span>${t.replace(/"/g, '')}</span>
+    //        </div>`).join('');
+    //}
 
-// ─── TODAY IN HISTORY (only called when user clicks the button) ──
-async function loadTodayHistory() {
-    if (!canCallAi()) return;
-    const el = document.getElementById('historyWidget');
-    if (!el) return;
-    el.innerHTML = '<div class="spin"></div>';
-    try {
-        const dateStr = new Date().toLocaleDateString('en', { month: 'long', day: 'numeric' });
-        const response = await api('/ai/chat', {
-            method: 'POST',
-            body: JSON.stringify({
-                message: `Give me exactly 3 notable historical events that happened on ${dateStr} in different centuries. Return ONLY a JSON array like: [{"year":"1969","event":"Description here"}]. No extra text, no markdown.`
-            })
-        });
-        if (response && response.ok) {
-            const data = await response.json();
-            const raw = (data.reply || '').replace(/```json|```/g, '').trim();
-            const events = JSON.parse(raw);
-            el.innerHTML = events.map(e => `
+    // ─── TODAY IN HISTORY (only called when user clicks the button) ──
+    async function loadTodayHistory() {
+        if (!canCallAi()) return;
+        const el = document.getElementById('historyWidget');
+        if (!el) return;
+        el.innerHTML = '<div class="spin"></div>';
+        try {
+            const dateStr = new Date().toLocaleDateString('en', { month: 'long', day: 'numeric' });
+            const response = await api('/ai/chat', {
+                method: 'POST',
+                body: JSON.stringify({
+                    message: `Give me exactly 3 notable historical events that happened on ${dateStr} in different centuries. Return ONLY a JSON array like: [{"year":"1969","event":"Description here"}]. No extra text, no markdown.`
+                })
+            });
+            if (response && response.ok) {
+                const data = await response.json();
+                const raw = (data.reply || '').replace(/```json|```/g, '').trim();
+                const events = JSON.parse(raw);
+                el.innerHTML = events.map(e => `
                 <div class="ai-hist-item">
                     <span class="ai-hist-year">${e.year}</span>
                     <span>${e.event}</span>
                 </div>`).join('');
-        } else if (response && response.status === 429) {
-            el.innerHTML = `<div class="ai-hist-item"><span class="ai-hist-year">⚠️</span><span>Rate limited — wait 30 seconds and try again.</span></div>`;
-        } else {
-            throw new Error('bad response');
-        }
-    } catch {
-        el.innerHTML = `<div class="ai-hist-item">
+            } else if (response && response.status === 429) {
+                el.innerHTML = `<div class="ai-hist-item">
+    <span class="ai-hist-year">📜</span>
+    <span>${t('aiHistoryFallback')}</span>
+</div>`;
+            } else {
+                throw new Error('bad response');
+            }
+        } catch {
+            el.innerHTML = `<div class="ai-hist-item">
             <span class="ai-hist-year">Did you know?</span>
             <span>Books have existed for over 5,000 years — the first written records date to ancient Mesopotamia.</span>
         </div>`;
-    }
-}
-
-
-// ═══════════════════════════════════════════════════════════
-//  VISUAL FEATURES
-// ═══════════════════════════════════════════════════════════
-
-// ── Typewriter greeting ──────────────────────────────────────
-function typewriterGreeting(el, welcomeText, firstName) {
-    el.innerHTML = '';
-    el.style.borderRight = '2px solid var(--gold)';
-    el.style.paddingRight = '4px';
-    const full = welcomeText + ', ';
-    let i = 0;
-    function typeChar() {
-        if (i < full.length) {
-            el.textContent = full.slice(0, i + 1);
-            i++;
-            setTimeout(typeChar, 38);
-        } else {
-            el.innerHTML = full + '<em id="_twName" style="color:rgba(255,255,255,.5)"></em>!';
-            const nameEl = document.getElementById('_twName');
-            let j = 0;
-            function typeName() {
-                if (j < firstName.length) {
-                    nameEl.textContent = firstName.slice(0, j + 1);
-                    j++;
-                    setTimeout(typeName, 55);
-                } else {
-                    el.style.borderRight = 'none';
-                    el.style.paddingRight = '0';
-                }
-            }
-            typeName();
         }
     }
-    typeChar();
-}
 
-// ── Animated counter ─────────────────────────────────────────
-function animateCounter(el, target, duration) {
-    if (!el) return;
-    const start = performance.now();
-    function update(now) {
-        const progress = Math.min((now - start) / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(target * ease).toLocaleString();
-        if (progress < 1) requestAnimationFrame(update);
-        else el.textContent = target.toLocaleString();
+
+    // ═══════════════════════════════════════════════════════════
+    //  VISUAL FEATURES
+    // ═══════════════════════════════════════════════════════════
+
+    // ── Typewriter greeting ──────────────────────────────────────
+   
+    // ── Animated counter ─────────────────────────────────────────
+    function animateCounter(el, target, duration) {
+        if (!el) return;
+        const start = performance.now();
+        function update(now) {
+            const progress = Math.min((now - start) / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+            el.textContent = Math.round(target * ease).toLocaleString();
+            if (progress < 1) requestAnimationFrame(update);
+            else el.textContent = target.toLocaleString();
+        }
+        requestAnimationFrame(update);
     }
-    requestAnimationFrame(update);
-}
 
-// ── Toast notification ───────────────────────────────────────
-function notify(msg, isError) {
-    isError = isError || false;
-    var type = isError ? 'error' : 'info';
-    var m = msg.toLowerCase();
-    if (!isError) {
-        if (m.indexOf('cart') > -1) type = 'cart';
-        else if (m.indexOf('order') > -1) type = 'order';
-        else if (m.indexOf('book') > -1 || m.indexOf('borrow') > -1) type = 'book';
-        else if (m.indexOf('reserv') > -1 || m.indexOf('seat') > -1) type = 'seat';
-        else if (m.indexOf('favor') > -1) type = 'fav';
+    // ── Toast notification ───────────────────────────────────────
+    function notify(msg, isError) {
+        isError = isError || false;
+        var type = isError ? 'error' : 'info';
+        var m = msg.toLowerCase();
+        if (!isError) {
+            if (m.indexOf('cart') > -1) type = 'cart';
+            else if (m.indexOf('order') > -1) type = 'order';
+            else if (m.indexOf('book') > -1 || m.indexOf('borrow') > -1) type = 'book';
+            else if (m.indexOf('reserv') > -1 || m.indexOf('seat') > -1) type = 'seat';
+            else if (m.indexOf('favor') > -1) type = 'fav';
+        }
+        lcNotifAdd(msg, type);
     }
-    lcNotifAdd(msg, type);
-}
 
-// ── Corner ribbons (called inside bookCard) ──────────────────
-function getBookRibbon(b) {
-    var avail = b.availableCount !== undefined ? b.availableCount : (b.available ? 1 : 0);
-    var total = b.totalCount || 1;
-    if (avail === 1 && total > 1) return '<div class="card-ribbon card-ribbon--warn">Last</div>';
-    if (avail === 1 && total === 1 && !b.available) return '';
-    if (b.id <= 3) return '<div class="card-ribbon">Popular</div>';
-    return '';
-}
-
-// ── 3D Card Tilt ─────────────────────────────────────────────
-function initCardTilt() {
-    document.querySelectorAll('.card').forEach(function (card) {
-        if (card._tiltInit) return;
-        card._tiltInit = true;
-        card.style.transition = 'transform .15s ease, box-shadow .15s ease';
-        card.style.willChange = 'transform';
-
-        card.addEventListener('mousemove', function (e) {
-            var r = card.getBoundingClientRect();
-            var x = (e.clientX - r.left) / r.width - 0.5;
-            var y = (e.clientY - r.top) / r.height - 0.5;
-            card.style.transform = 'perspective(600px) rotateY(' + (x * 12) + 'deg) rotateX(' + (-y * 10) + 'deg) scale(1.03)';
-            card.style.boxShadow = (-x * 12) + 'px ' + (y * 12) + 'px 32px rgba(0,0,0,.22)';
-        });
-        card.addEventListener('mouseleave', function () {
-            card.style.transform = 'perspective(600px) rotateY(0) rotateX(0) scale(1)';
-            card.style.boxShadow = '';
-        });
-    });
-}
-
-// Re-init tilt after each render
-var _origRenderLibrary = renderLibrary;
-renderLibrary = function (cat) { _origRenderLibrary(cat); setTimeout(initCardTilt, 200); };
-var _origRenderTrending = renderTrending;
-renderTrending = function () { _origRenderTrending(); setTimeout(initCardTilt, 200); };
-var _origRenderCafe = renderCafe;
-renderCafe = function (cat) { _origRenderCafe(cat); setTimeout(initCardTilt, 200); };
-
-// ── Hero cursor glow ─────────────────────────────────────────
-function initHeroCursorGlow() {
-    var hero = document.querySelector('.hero');
-    if (!hero || hero._glowInit) return;
-    hero._glowInit = true;
-
-    var glow = document.createElement('div');
-    glow.style.cssText = 'position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.13) 0%,transparent 70%);pointer-events:none;transform:translate(-50%,-50%);z-index:0;opacity:0;transition:opacity .3s ease';
-    hero.appendChild(glow);
-
-    hero.addEventListener('mouseenter', function () { glow.style.opacity = '1'; });
-    hero.addEventListener('mouseleave', function () { glow.style.opacity = '0'; });
-    hero.addEventListener('mousemove', function (e) {
-        var r = hero.getBoundingClientRect();
-        glow.style.left = (e.clientX - r.left) + 'px';
-        glow.style.top = (e.clientY - r.top) + 'px';
-    });
-}
-
-// ── Theme toggle ─────────────────────────────────────────────
-function toggleTheme() {
-    var html = document.documentElement;
-    var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('lc_theme', next);
-    var btn = document.getElementById('themeToggle');
-    if (btn) btn.textContent = next === 'dark' ? '☀' : '☾';
-}
-// ═══════════════════════════════════════════════════════════
-//  NOTIFICATION PANEL
-// ═══════════════════════════════════════════════════════════
-var _lcNotifs = [];
-
-var _lcNotifIcons = {
-    info: '✓', error: '✕', cart: '🛒',
-    order: '☕', book: '📚', seat: '🪑', fav: '♥'
-};
-
-function lcNotifAdd(msg, type) {
-    type = type || 'info';
-    _lcNotifs.unshift({
-        id: Date.now() + '' + Math.floor(Math.random() * 9999),
-        msg: msg,
-        type: type,
-        time: new Date(),
-        read: false
-    });
-    if (_lcNotifs.length > 60) _lcNotifs.pop();
-
-    // Red badge on bell
-    var badge = document.getElementById('notifBadge');
-    if (badge) badge.style.display = 'block';
-
-    // Re-render list if panel already open
-    var panel = document.getElementById('notifPanel');
-    if (panel && panel.style.display === 'flex') _lcRenderList();
-}
-
-function _lcTimeAgo(date) {
-    var s = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (s < 10) return 'Just now';
-    if (s < 60) return s + 's ago';
-    if (s < 3600) return Math.floor(s / 60) + 'm ago';
-    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-    return date.toLocaleDateString();
-}
-
-function _lcRenderList() {
-    var list = document.getElementById('notifList');
-    if (!list) return;
-    if (_lcNotifs.length === 0) {
-        list.innerHTML = '<div style="padding:3rem 1rem;text-align:center;color:var(--mist);font-size:.82rem;font-style:italic;">No notifications yet</div>';
-        return;
-    }
-    list.innerHTML = _lcNotifs.map(function (n) {
-        var ic = _lcNotifIcons[n.type] || '•';
-        var bord = n.type === 'error' ? '#e07060' : 'var(--gold)';
-        var bg = n.read ? 'transparent' : 'rgba(201,168,76,.06)';
-        var ago = _lcTimeAgo(n.time);
-        var safe = n.msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return '<div style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid var(--silver);background:' + bg + ';transition:background .15s"'
-            + ' onmouseenter="this.style.background=\'var(--snow)\'"'
-            + ' onmouseleave="this.style.background=\'' + (n.read ? 'transparent' : 'rgba(201,168,76,.06)') + '\'">'
-            + '<span style="font-size:.95rem;flex-shrink:0;padding-top:1px;padding-left:8px;border-left:2.5px solid ' + bord + ';line-height:1.5">' + ic + '</span>'
-            + '<div style="flex:1;min-width:0">'
-            + '<div style="font-size:.8rem;color:var(--ink);line-height:1.45">' + safe + '</div>'
-            + '<div style="font-size:.68rem;color:var(--mist);margin-top:2px">' + ago + '</div>'
-            + '</div>'
-            + '<button onclick="lcNotifDel(\'' + n.id + '\')" style="background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--mist);flex-shrink:0;padding:0 3px"'
-            + ' onmouseenter="this.style.color=\'var(--ink)\'"'
-            + ' onmouseleave="this.style.color=\'var(--mist)\'">✕</button>'
-            + '</div>';
-    }).join('');
-}
-
-function lcNotifDel(id) {
-    _lcNotifs = _lcNotifs.filter(function (n) { return n.id !== id; });
-    _lcRenderList();
-    if (_lcNotifs.filter(function (n) { return !n.read; }).length === 0) {
-        var badge = document.getElementById('notifBadge');
-        if (badge) badge.style.display = 'none';
-    }
-}
-
-function clearAllNotifs() {
-    _lcNotifs = [];
-    _lcRenderList();
-    var badge = document.getElementById('notifBadge');
-    if (badge) badge.style.display = 'none';
-}
-
-function toggleNotifPanel() {
-    var panel = document.getElementById('notifPanel');
-    var overlay = document.getElementById('notifOverlay');
-    if (!panel) return;
-    if (panel.style.display === 'flex') {
-        closeNotifPanel();
-    } else {
-        panel.style.display = 'flex';
-        if (overlay) overlay.style.display = 'block';
-        _lcRenderList();
-        // mark all read, hide badge
-        _lcNotifs.forEach(function (n) { n.read = true; });
-        var badge = document.getElementById('notifBadge');
-        if (badge) badge.style.display = 'none';
-    }
-}
-
-function closeNotifPanel() {
-    var panel = document.getElementById('notifPanel');
-    var overlay = document.getElementById('notifOverlay');
-    if (panel) panel.style.display = 'none';
-    if (overlay) overlay.style.display = 'none';
-}
-// ─── AI TRENDING BOOKS ────────────────────────────────────────
-function renderAiTrending() {
-    var el = document.getElementById('aiTrendingBooks');
-    if (!el) return;
-    if (!books || books.length === 0) {
-        el.innerHTML = '<p style="color:var(--mist);font-size:.82rem;font-style:italic;">No books loaded yet.</p>';
-        return;
-    }
-    var sorted = books.slice().sort(function (a, b) {
-        return ((b.borrowedCount || 0) - (a.borrowedCount || 0)) || (a.id - b.id);
-    }).slice(0, 8);
-    var medals = ['🥇', '🥈', '🥉'];
-    el.innerHTML = sorted.map(function (b, i) {
+    // ── Corner ribbons (called inside bookCard) ──────────────────
+    function getBookRibbon(b) {
         var avail = b.availableCount !== undefined ? b.availableCount : (b.available ? 1 : 0);
-        var sCol = avail > 0 ? '#2d7a3a' : '#9b3a2a';
-        var sBg = avail > 0 ? '#e8f5e9' : '#fdf2f0';
-        var sTxt = avail > 0 ? 'Available' : 'Borrowed';
-        var img = b.imagePath
-            ? '<img src="' + b.imagePath + '" style="width:44px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.12);">'
-            : '<div style="width:44px;height:60px;background:var(--snow);border-radius:4px;border:1px solid var(--silver);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📚</div>';
-        var rank = medals[i] || ('<span style="font-size:.72rem;font-weight:700;color:var(--mist);">#' + (i + 1) + '</span>');
-        var borrows = b.borrowedCount ? ' <span style="font-size:.65rem;color:var(--mist);">📖 ' + b.borrowedCount + '</span>' : '';
-        var isLast = i === sorted.length - 1;
-        return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;' + (isLast ? '' : 'border-bottom:1px solid var(--silver);') + '">'
-            + '<span style="width:24px;text-align:center;flex-shrink:0;font-size:1.05rem;">' + rank + '</span>'
-            + img
-            + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:1rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + b.title + '</div>'
-            + '<div style="font-size:.73rem;color:var(--smoke);margin-top:2px;">' + b.author + '</div>'
-            + '<div style="margin-top:5px;">'
-            + '<span style="font-size:.64rem;font-weight:600;color:' + sCol + ';background:' + sBg + ';padding:2px 8px;border-radius:99px;">' + sTxt + '</span>'
-            + borrows
-            + '</div>'
-            + '</div>'
-            + '</div>';
-    }).join('');
-}
+        var total = b.totalCount || 1;
+        if (avail === 1 && total > 1) return '<div class="card-ribbon card-ribbon--warn">Last</div>';
+        if (avail === 1 && total === 1 && !b.available) return '';
+        if (b.id <= 3) return '<div class="card-ribbon">Popular</div>';
+        return '';
+    }
+
+    // ── 3D Card Tilt ─────────────────────────────────────────────
+    function initCardTilt() {
+        document.querySelectorAll('.card').forEach(function (card) {
+            if (card._tiltInit) return;
+            card._tiltInit = true;
+            card.style.transition = 'transform .15s ease, box-shadow .15s ease';
+            card.style.willChange = 'transform';
+
+            card.addEventListener('mousemove', function (e) {
+                var r = card.getBoundingClientRect();
+                var x = (e.clientX - r.left) / r.width - 0.5;
+                var y = (e.clientY - r.top) / r.height - 0.5;
+                card.style.transform = 'perspective(600px) rotateY(' + (x * 12) + 'deg) rotateX(' + (-y * 10) + 'deg) scale(1.03)';
+                card.style.boxShadow = (-x * 12) + 'px ' + (y * 12) + 'px 32px rgba(0,0,0,.22)';
+            });
+            card.addEventListener('mouseleave', function () {
+                card.style.transform = 'perspective(600px) rotateY(0) rotateX(0) scale(1)';
+                card.style.boxShadow = '';
+            });
+        });
+    }
+
+    // Re-init tilt after each render
+    var _origRenderLibrary = renderLibrary;
+    renderLibrary = function (cat) { _origRenderLibrary(cat); setTimeout(initCardTilt, 200); };
+    var _origRenderTrending = renderTrending;
+    renderTrending = function () { _origRenderTrending(); setTimeout(initCardTilt, 200); };
+    var _origRenderCafe = renderCafe;
+    renderCafe = function (cat) { _origRenderCafe(cat); setTimeout(initCardTilt, 200); };
+
+    // ── Hero cursor glow ─────────────────────────────────────────
+    function initHeroCursorGlow() {
+        var hero = document.querySelector('.hero');
+        if (!hero || hero._glowInit) return;
+        hero._glowInit = true;
+
+        var glow = document.createElement('div');
+        glow.style.cssText = 'position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.13) 0%,transparent 70%);pointer-events:none;transform:translate(-50%,-50%);z-index:0;opacity:0;transition:opacity .3s ease';
+        hero.appendChild(glow);
+
+        hero.addEventListener('mouseenter', function () { glow.style.opacity = '1'; });
+        hero.addEventListener('mouseleave', function () { glow.style.opacity = '0'; });
+        hero.addEventListener('mousemove', function (e) {
+            var r = hero.getBoundingClientRect();
+            glow.style.left = (e.clientX - r.left) + 'px';
+            glow.style.top = (e.clientY - r.top) + 'px';
+        });
+    }
+
+    // ── Theme toggle ─────────────────────────────────────────────
+    function toggleTheme() {
+        var html = document.documentElement;
+        var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('lc_theme', next);
+        var btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = next === 'dark' ? '☀' : '☾';
+    }
+    // ═══════════════════════════════════════════════════════════
+    //  NOTIFICATION PANEL
+    // ═══════════════════════════════════════════════════════════
+    var _lcNotifs = [];
+
+    var _lcNotifIcons = {
+        info: '✓', error: '✕', cart: '🛒',
+        order: '☕', book: '📚', seat: '🪑', fav: '♥'
+    };
+
+    function lcNotifAdd(msg, type) {
+        type = type || 'info';
+        _lcNotifs.unshift({
+            id: Date.now() + '' + Math.floor(Math.random() * 9999),
+            msg: msg,
+            type: type,
+            time: new Date(),
+            read: false
+        });
+        if (_lcNotifs.length > 60) _lcNotifs.pop();
+
+        // Red badge on bell
+        var badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'block';
+
+        // Re-render list if panel already open
+        var panel = document.getElementById('notifPanel');
+        if (panel && panel.style.display === 'flex') _lcRenderList();
+    }
+    function _lcRenderList() {
+        var list = document.getElementById('notifList');
+        if (!list) return;
+        if (_lcNotifs.length === 0) {
+            list.innerHTML = '<div style="padding:3rem 1rem;text-align:center;color:var(--mist);font-size:.82rem;font-style:italic;">' + t('noNotifications') + '</div>';
+            return;
+        }
+        list.innerHTML = _lcNotifs.map(function (n) {
+            var ic = _lcNotifIcons[n.type] || '•';
+            var bord = n.type === 'error' ? '#e07060' : 'var(--gold)';
+            var bg = n.read ? 'transparent' : 'rgba(201,168,76,.06)';
+            var ago = _lcTimeAgo(n.time);
+            var safe = n.msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return '<div style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid var(--silver);background:' + bg + ';transition:background .15s"'
+                + ' onmouseenter="this.style.background=\'var(--snow)\'"'
+                + ' onmouseleave="this.style.background=\'' + (n.read ? 'transparent' : 'rgba(201,168,76,.06)') + '\'">'
+                + '<span style="font-size:.95rem;flex-shrink:0;padding-top:1px;padding-left:8px;border-left:2.5px solid ' + bord + ';line-height:1.5">' + ic + '</span>'
+                + '<div style="flex:1;min-width:0">'
+                + '<div style="font-size:.8rem;color:var(--ink);line-height:1.45">' + safe + '</div>'
+                + '<div style="font-size:.68rem;color:var(--mist);margin-top:2px">' + ago + '</div>'
+                + '</div>'
+                + '<button onclick="lcNotifDel(\'' + n.id + '\')" style="background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--mist);flex-shrink:0;padding:0 3px"'
+                + ' onmouseenter="this.style.color=\'var(--ink)\'"'
+                + ' onmouseleave="this.style.color=\'var(--mist)\'">✕</button>'
+                + '</div>';
+        }).join('');
+    } function _lcTimeAgo(date) {
+        var s = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (s < 10) return t('justNow');
+        if (s < 60) return s + ' ' + t('secondsAgo');
+        if (s < 3600) return Math.floor(s / 60) + ' ' + t('minutesAgo');
+        if (s < 86400) return Math.floor(s / 3600) + ' ' + t('hoursAgo');
+        return date.toLocaleDateString();
+    }
+
+
+    function lcNotifDel(id) {
+        _lcNotifs = _lcNotifs.filter(function (n) { return n.id !== id; });
+        _lcRenderList();
+        if (_lcNotifs.filter(function (n) { return !n.read; }).length === 0) {
+            var badge = document.getElementById('notifBadge');
+            if (badge) badge.style.display = 'none';
+        }
+    }
+
+    function clearAllNotifs() {
+        _lcNotifs = [];
+        _lcRenderList();
+        var badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+    }
+
+    function toggleNotifPanel() {
+        var panel = document.getElementById('notifPanel');
+        var overlay = document.getElementById('notifOverlay');
+        if (!panel) return;
+        if (panel.style.display === 'flex') {
+            closeNotifPanel();
+        } else {
+            panel.style.display = 'flex';
+            if (overlay) overlay.style.display = 'block';
+            _lcRenderList();
+            // mark all read, hide badge
+            _lcNotifs.forEach(function (n) { n.read = true; });
+            var badge = document.getElementById('notifBadge');
+            if (badge) badge.style.display = 'none';
+        }
+    }
+
+    function closeNotifPanel() {
+        var panel = document.getElementById('notifPanel');
+        var overlay = document.getElementById('notifOverlay');
+        if (panel) panel.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
+    }
+    // ─── AI TRENDING BOOKS ────────────────────────────────────────
+    function renderAiTrending() {
+        var el = document.getElementById('aiTrendingBooks');
+        if (!el) return;
+        if (!books || books.length === 0) {
+            el.innerHTML = '<p style="color:var(--mist);font-size:.82rem;font-style:italic;">' + t('noBooksYet') + '</p>'; return;
+        }
+        var sorted = books.slice().sort(function (a, b) {
+            return ((b.borrowedCount || 0) - (a.borrowedCount || 0)) || (a.id - b.id);
+        }).slice(0, 8);
+        var medals = ['🥇', '🥈', '🥉'];
+        el.innerHTML = sorted.map(function (b, i) {
+            var avail = b.availableCount !== undefined ? b.availableCount : (b.available ? 1 : 0);
+            var sCol = avail > 0 ? '#2d7a3a' : '#9b3a2a';
+            var sBg = avail > 0 ? '#e8f5e9' : '#fdf2f0';
+            var sTxt = avail > 0 ? t('statusAvailable') : t('statusBorrowed'); var img = b.imagePath
+                ? '<img src="' + b.imagePath + '" style="width:44px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.12);">'
+                : '<div style="width:44px;height:60px;background:var(--snow);border-radius:4px;border:1px solid var(--silver);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📚</div>';
+            var rank = medals[i] || ('<span style="font-size:.72rem;font-weight:700;color:var(--mist);">#' + (i + 1) + '</span>');
+            var borrows = b.borrowedCount ? ' <span style="font-size:.65rem;color:var(--mist);">📖 ' + b.borrowedCount + '</span>' : '';
+            var isLast = i === sorted.length - 1;
+            return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;' + (isLast ? '' : 'border-bottom:1px solid var(--silver);') + '">'
+                + '<span style="width:24px;text-align:center;flex-shrink:0;font-size:1.05rem;">' + rank + '</span>'
+                + img
+                + '<div style="flex:1;min-width:0;">'
+                + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:1rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + b.title + '</div>'
+                + '<div style="font-size:.73rem;color:var(--smoke);margin-top:2px;">' + b.author + '</div>'
+                + '<div style="margin-top:5px;">'
+                + '<span style="font-size:.64rem;font-weight:600;color:' + sCol + ';background:' + sBg + ';padding:2px 8px;border-radius:99px;">' + sTxt + '</span>'
+                + borrows
+                + '</div>'
+                + '</div>'
+                + '</div>';
+        }).join('');
+    }

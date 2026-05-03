@@ -57,8 +57,7 @@
                 </div>
                 <button id="notifBell" onclick="toggleNotifPanel()" title="Notifications" style="position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1.5px solid #888;border-radius:2px;cursor:pointer;background:transparent;font-size:1rem;color:inherit;flex-shrink:0;">&#128276;<span id="notifBadge" style="display:none;position:absolute;top:5px;right:5px;width:7px;height:7px;background:#e07060;border-radius:50%;border:1.5px solid var(--white);pointer-events:none;"></span></button>
                 <button id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1.5px solid #888;border-radius:2px;cursor:pointer;background:transparent;font-size:1.1rem;line-height:1;flex-shrink:0;color:inherit;">☾</button>
-                <button class="btn btn-ghost btn-sm" data-i18n="signOut" onclick="logout()">Sign out</button>
-            </div>
+                <button class="btn btn-ghost btn-sm" data-i18n="signOut" onclick="logout()">Sign out</button>            </div>
         </div>
     </nav>
 
@@ -68,8 +67,8 @@
     <!-- NOTIF PANEL -->
     <div id="notifPanel" style="display:none;position:fixed;top:70px;right:1.5rem;z-index:8001;width:340px;max-height:460px;background:var(--white);border:1px solid var(--silver);border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.18);flex-direction:column;overflow:hidden;">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--silver);flex-shrink:0;">
-            <span style="font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);">&#128276; Notifications</span>
-            <button onclick="clearAllNotifs()" style="font-size:.7rem;color:var(--mist);background:none;border:1px solid var(--silver);border-radius:4px;cursor:pointer;padding:3px 8px;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--mist)'">Clear all</button>
+            <span style="font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);" data-i18n="notifications">&#128276; Notifications</span>
+            <button onclick="clearAllNotifs()" style="font-size:.7rem;color:var(--mist);background:none;border:1px solid var(--silver);border-radius:4px;cursor:pointer;padding:3px 8px;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--mist)'" data-i18n="clearAll">Clear all</button>
         </div>
         <div id="notifList" style="overflow-y:auto;flex:1;"></div>
     </div>
@@ -96,7 +95,7 @@
         <!-- Right form panel -->
         <div class="auth-right">
             <div class="auth-box">
-                <p class="auth-eyebrow" data-i18n="authEyebrow">Խելացի Կենտրոն</p>
+                <p class="auth-eyebrow" data-i18n="authEyebrow">Գիրք, սուրճ, հանգիստ ․․․</p>
                 <h1 class="auth-title">Library <em>Café</em></h1>
 
                 <div class="auth-tabs">
@@ -108,10 +107,10 @@
                 <div id="loginForm" class="auth-form">
                     <div class="form-group">
                         <label data-i18n="emailAddress">Էլ. հասցե</label>
-                        <input type="email" id="loginEmail" placeholder="your@email.com">
+                        <input type="email" id="loginEmail" placeholder="էլ․ հասցե">
                     </div>
                     <div class="form-group">
-                        <label>Password</label>
+                        <label data-i18n="password">Password</label>
                         <div class="input-wrap">
                             <input type="password" id="loginPass" class="pw-field" placeholder="••••••••">
                             <button type="button" class="eye-btn" onclick="togglePw('loginPass', this)" tabindex="-1">
@@ -130,19 +129,19 @@
                 <!-- REGISTER FORM -->
                 <div id="regForm" class="auth-form" style="display:none">
                     <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="regName" placeholder="Your full name">
+                        <label data-i18n="fullName">Full Name</label>
+                        <input type="text" id="regName" data-i18n-ph="fullName" placeholder="Your full name">
                     </div>
                     <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" id="regEmail" placeholder="your@email.com">
+                        <label data-i18n="emailAddress">Email Address</label>
+                        <input type="email" id="regEmail" data-i18n-ph="emailAddress" placeholder="your@email.com">
                     </div>
                     <div class="form-group">
-                        <label>Phone Number</label>
-                        <input type="tel" id="regPhone" placeholder="+374 XX XXX XXX">
+                        <label data-i18n="phone">Phone Number</label>
+                        <input type="tel" id="regPhone" data-i18n-ph="phone" placeholder="+374 XX XXX XXX">
                     </div>
                     <div class="form-group">
-                        <label>Password</label>
+                        <label data-i18n="password">Password</label>
                         <div class="input-wrap">
                             <input type="password" id="regPass" class="pw-field" placeholder="••••••••">
                             <button type="button" class="eye-btn" onclick="togglePw('regPass', this)" tabindex="-1">
@@ -154,38 +153,36 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Role</label>
+                        <label data-i18n="role">Role</label>
                         <select id="regRole">
-                            <option value="Student" data-i18n="student">Օգտատեր</option>
+                            <option value="Օգտատեր" data-i18n="Օգտատեր">Օգտատեր</option>
                             <option value="Librarian" data-i18n="librarian">Գրադարանավար</option>
                             <option value="Café Staff" data-i18n="cafeStaff">Սրճարանի Աշխատակից</option>
                             <option value="Admin" data-i18n="admin">Ադմին</option>
                         </select>
                     </div>
                     <button id="regBtn" class="btn btn-primary" style="width:100%;padding:1rem;margin-top:.5rem" onclick="handleRegister()">
-                        Create Account
+                        <span data-i18n="createAccount">Create Account</span>
                     </button>
                 </div>
                 <!-- VERIFY FORM — inside auth-box, right after regForm -->
                 <div id="verifyForm" class="auth-form" style="display:none">
                     <p style="font-size:.85rem;color:var(--smoke);margin-bottom:1.2rem;text-align:center;line-height:1.5">
-                        We sent a 6-digit code to<br><strong id="verifyEmailHint"></strong>
+                        <span data-i18n="codeSent">We sent a 6-digit code to</span><br><strong id="verifyEmailHint"></strong>
                     </p>
                     <div class="form-group">
-                        <label style="text-align:center;display:block">Verification Code</label>
-                        <input id="verifyCode" type="text" maxlength="6" placeholder="000000"
-                               style="letter-spacing:.4rem;font-size:1.6rem;text-align:center;padding:.8rem"
-                               oninput="this.value=this.value.replace(/\D/g,'')">
+                        <label style="text-align:center;display:block" data-i18n="verifyCode">Verification Code</label>
+                        <input id="verifyCode" type="text" maxlength="6" placeholder="000000" ...>
                     </div>
                     <button class="btn btn-primary" style="width:100%;padding:1rem;margin-top:.5rem" onclick="handleVerifyCode()">
-                        ✅ Verify & Create Account
+                        ✅ <span data-i18n="verifyAccount">Verify & Create Account</span>
                     </button>
                     <button class="btn btn-ghost" style="width:100%;margin-top:.5rem" onclick="backToRegister()">
-                        ← Back
+                        <span data-i18n="back">← Back</span>
                     </button>
                     <p style="font-size:.75rem;color:var(--mist);text-align:center;margin-top:.8rem">
-                        ⚠️ Didn't receive a code within 2 minutes? The email may not exist.
-                        <button onclick="backToRegister()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem;text-decoration:underline">Try a different email</button>
+                        <span data-i18n="didNotReceiveCode">⚠️ Didn't receive a code within 2 minutes? The email may not exist.</span>
+                        <button onclick="backToRegister()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem;text-decoration:underline"><span data-i18n="tryDifferentEmail">Try a different email</span></button>
                     </p>
                 </div>
 
@@ -306,7 +303,7 @@
                 <div class="dash-banner">
                     <div class="dash-inner">
                         <p class="dash-eyebrow" data-i18n="libraryLayout">Գրադարանի Դասավորություն</p>
-                        <h2 data-i18n="bookshelfMap">Դարակի <em>Քարտեզ</em></h2>
+                        <h2 data-i18n="bookshelfMap">Գրադարակի <em>քարտեզ</em></h2>
                         <p data-i18n="shelfMapSub">Բոլոր դարակների և դրանց գրքերի տեսողական ակնարկ</p>
                     </div>
                 </div>
@@ -321,21 +318,21 @@
             <div class="container">
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="seatReservations">Seat <em>Reservations</em></h2></div>
-                    <p style="color:var(--mist);font-size:.85rem;margin-bottom:1rem">Pick a date &amp; time slot, then click any green hour cell to reserve, or use the Reserve button.</p>
+                    <p style="color:var(--mist);font-size:.85rem;margin-bottom:1rem" data-i18n="reservationHint">Pick a date &amp; time slot, then click any green hour cell to reserve, or use the Reserve button.</p>
                     <div class="res-picker">
-                        <div class="res-field"><label>Date</label><input type="date" id="resDate"></div>
-                        <div class="res-field"><label>From</label><select id="resFrom"></select></div>
-                        <div class="res-field"><label>To</label><select id="resTo"></select></div>
-                        <button class="btn btn-primary res-check-btn" onclick="generateSeats()">Check</button>
-                        <button class="btn btn-ghost res-notif-btn" id="notifBtn" onclick="requestNotifPermission()">🔔 Remind</button>
+                        <div class="res-field"><label data-i18n="date">Date</label><input type="date" id="resDate"></div>
+                        <div class="res-field"><label data-i18n="from">From</label><select id="resFrom"></select></div>
+                        <div class="res-field"><label data-i18n="to">To</label><select id="resTo"></select></div>
+                        <button class="btn btn-primary res-check-btn" onclick="generateSeats()" data-i18n="check">Check</button>
+                        <button class="btn btn-ghost res-notif-btn" id="notifBtn" onclick="requestNotifPermission()" data-i18n="remind">🔔 Remind</button>
                     </div>
                     <div class="res-legend">
-                        <span class="rl-item"><i class="rl-dot free"></i>Free (click to reserve)</span>
-                        <span class="rl-item"><i class="rl-dot busy"></i>Reserved by others</span>
-                        <span class="rl-item"><i class="rl-dot mine"></i>Your booking</span>
+                        <span class="rl-item"><i class="rl-dot free"></i><span data-i18n="availableLegend">Free (click to reserve)</span></span>
+                        <span class="rl-item"><i class="rl-dot busy"></i><span data-i18n="reservedByOthers">Reserved by others</span></span>
+                        <span class="rl-item"><i class="rl-dot mine"></i><span data-i18n="yourBooking">Your booking</span></span>
                     </div>
                     <div class="floor-plan" id="seatMap">
-                        <div class="floor-hint">Select a date and time, then click <strong>Check</strong></div>
+                        <div class="floor-hint" data-i18n="selectDateTimeHint">Select a date and time, then click <strong>Check</strong></div>
                     </div>
                     <div id="myReservationsList"></div>
                 </div>
@@ -359,11 +356,10 @@
 
                             <!-- PHONE NUMBER ROW -->
                             <div class="info-row">
-                                <span class="info-k">📞 Phone</span>
+                                <span class="info-k" data-i18n="phone">📞 Phone</span>
                                 <div style="display:flex;gap:.5rem;flex:1">
-                                    <input type="tel" id="profPhone" placeholder="+374 XX XXX XXX"
-                                           style="flex:1;padding:.5rem .8rem;border:1px solid var(--silk);border-radius:var(--r-sm);font-family:inherit">
-                                    <button class="btn btn-primary btn-sm" onclick="updatePhone()">Save</button>
+                                    <input type="tel" id="profPhone" placeholder="+374 XX XXX XXX" style="...">
+                                    <button class="btn btn-primary btn-sm" onclick="updatePhone()" data-i18n="save">Save</button>
                                 </div>
                             </div>
 
@@ -418,21 +414,15 @@
                 </div>
                 <div class="section">
                     <div class="sec-head">
-                        <h2>📋 Borrow <em>Requests</em></h2>
+                        <h2 data-i18n="borrowRequests">📋 Borrow <em>Requests</em></h2>
                     </div>
                     <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Book</th>
-                                    <th>Requested</th>
-                                    <th>Duration</th>
-                                    <th>Action</th>
-                                </tr>
+                                <tr><th data-i18n="ՕգտատերName">Օգտատեր</th><th data-i18n="book">Book</th><th data-i18n="requestedOn">Requested</th><th data-i18n="duration">Duration</th><th data-i18n="action">Action</th></tr>
                             </thead>
                             <tbody id="libRequestsTb">
-                                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--mist);font-style:italic">Loading…</td></tr>
+                                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--mist);font-style:italic" data-i18n="loading">Loading…</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -450,10 +440,20 @@
                     </div>
                 </div>
                 <div class="section">
-                    <div class="sec-head"><h2 data-i18n="activeBorrowings">Ակտիվ Վերցնումներ</h2></div>
+                    <div class="sec-head"><h2 data-i18n="activeBorrowings">Ընթացիկ փոխառություններ</h2></div>
                     <div class="table-wrap">
                         <table>
-                            <thead><thead><tr><th data-i18n="student">Օգտատեր</th><th>📞 Հեռ.</th><th data-i18n="book">Գիրք</th><th data-i18n="borrowed">Վերցված</th><th data-i18n="dueDate">Վ/Ժ</th><th data-i18n="status">Կարգ.</th><th data-i18n="action">Գործ.</th></tr></thead><tr><th data-i18n="student">Օգտատեր</th><th data-i18n="book">Գիրք</th><th data-i18n="borrowed">Վերցված</th><th data-i18n="dueDate">Վ/Ժ</th><th data-i18n="status">Կարգ.</th><th data-i18n="action">Գործ.</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th data-i18n="Օգտատեր">Օգտատեր</th>
+                                    <th>📞 Հեռ.</th>
+                                    <th data-i18n="book">Գիրք</th>
+                                    <th data-i18n="borrowed">Վերցված</th>
+                                    <th data-i18n="dueDate">Վ/Ժ</th>
+                                    <th data-i18n="status">Կարգ.</th>
+                                    <th data-i18n="action">Գործ.</th>
+                                </tr>
+                            </thead>
                             <tbody id="libBorrTable"></tbody>
                         </table>
                     </div>
@@ -532,26 +532,25 @@
                         </table>
                     </div>
                 </div>
-                <div class="section">
+                <!--<div class="section">
                     <div class="sec-head">
                         <h2 data-i18n="allBooksAdmin">Բոլոր Գրքերը</h2>
                         <button class="btn btn-primary btn-sm" data-i18n="addBook" onclick="openAddBook()">+ Ավելացնել Գիրք</button>
                     </div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Status</th><th>Action</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th data-i18n="title">Վերնագիր</th>
+                                    <th data-i18n="author">Հեղինակ</th>
+                                    <th data-i18n="category">Կատեգորիա</th>
+                                    <th data-i18n="status">Կարգավիճակ</th>
+                                    <th data-i18n="action">Գործողություն</th>
+                                </tr>
+                            </thead>
                             <tbody id="adminBooksTb"></tbody>
                         </table>
-                    </div>
-                </div>
-                <div class="section">
-                    <div class="sec-head"><h2 data-i18n="allOrders">Բոլոր Պատվերները</h2></div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead><tr><th>Order #</th><th>Customer</th><th>Total</th><th>Date</th><th>Status</th></tr></thead>
-                            <tbody id="adminOrdersTb"></tbody>
-                        </table>
-                    </div>
+                    </div>-->
                 </div>
             </div>
         </div>
@@ -600,8 +599,7 @@
                             </div>
                         </div>
                         <div class="section">
-                            <div class="sec-head"><h2>&#128293; <em>Trending</em></h2></div>
-                            <div id="aiTrendingBooks"><p style="color:var(--mist);font-size:.82rem;font-style:italic;">Loading...</p></div>
+                            <div class="sec-head"><h2>&#128293; <em data-i18n="aiTrendingBooks">Trending</em></h2></div>                            <div id="aiTrendingBooks"><p style="color:var(--mist);font-size:.82rem;font-style:italic;">Loading...</p></div>
                         </div>
                     </div>
                 </div>
@@ -651,38 +649,21 @@
     <div class="modal" id="menuModal">
         <div class="modal-box" style="max-width:500px">
             <div class="modal-head">
-                <h2 id="menuModalTitle">Add <em>Menu Item</em></h2>
-                <button class="m-close" onclick="closeModal('menuModal')">
-                    <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                <h2 id="menuModalTitle" data-i18n="addMenuItem">Add <em>Menu Item</em></h2>
+                <button class="m-close" onclick="closeModal('menuModal')">...</button>
             </div>
-            <div class="form-group"><label>Item Name</label><input type="text" id="miName" placeholder="e.g. Cappuccino"></div>
+            <div class="form-group"><label data-i18n="itemName">Item Name</label><input type="text" id="miName" data-i18n-ph="itemNamePlaceholder" placeholder="e.g. Cappuccino"></div>
             <div class="form-group">
-                <label>Category</label>
-                <select id="miCat">
-                    <option>Hot Drinks</option>
-                    <option>Cold Drinks</option>
-                    <option>Breakfast</option>
-                    <option>Sandwiches</option>
-                    <option>Salads</option>
-                    <option>Desserts</option>
-                </select>
+                <label data-i18n="category">Category</label>
+                <select id="miCat">...</select>
             </div>
-            <div class="form-group"><label>Price (AMD)</label><input type="number" id="miPrice" placeholder="1200"></div>
+            <div class="form-group"><label data-i18n="price">Price (AMD)</label><input type="number" id="miPrice" data-i18n-ph="pricePlaceholder" placeholder="1200"></div>
             <div class="form-group">
-                <label>Photo <span style="color:var(--mist);font-size:.75rem">(optional — JPG/PNG, max 5 MB)</span></label>
-                <img id="miImagePreview" src="" alt="preview" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:.6rem">
-                <label class="mi-img-label" for="miImage">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                    </svg>
-                    Choose photo
-                </label>
-                <input type="file" id="miImage" accept="image/*" style="display:none" onchange="previewMenuImage(this)">
+                <label data-i18n="photoOptional">Photo <span style="color:var(--mist);font-size:.75rem">(optional — JPG/PNG, max 5 MB)</span></label>
+                ...
+                <label class="mi-img-label" for="miImage" data-i18n="choosePhoto">Choose photo</label>
             </div>
-            <button class="btn btn-primary" id="menuModalSubmitBtn" style="width:100%;margin-top:.5rem" onclick="submitMenuModal()">Add to Menu</button>
+            <button class="btn btn-primary" id="menuModalSubmitBtn" onclick="submitMenuModal()" data-i18n="addToCollection">Add to Menu</button>
         </div>
     </div>
 
@@ -690,8 +671,7 @@
     <div class="modal" id="pdfModal" style="z-index:2000">
         <div class="modal-box" style="max-width:900px;width:95vw;height:90vh;display:flex;flex-direction:column;padding:0">
             <div class="modal-head" style="padding:1.2rem 1.5rem;flex-shrink:0">
-                <h2 id="pdfModalTitle">Book <em>PDF</em></h2>
-                <button class="m-close" onclick="closeModal('pdfModal')">
+                <h2 id="pdfModalTitle" data-i18n="pdfViewer">Book <em>PDF</em></h2>                <button class="m-close" onclick="closeModal('pdfModal')">
                     <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                 </button>
             </div>
@@ -703,13 +683,13 @@
     <div class="modal" id="bookBorrowingsModal">
         <div class="modal-box" style="max-width:680px">
             <div class="modal-head">
-                <h2 id="bookBorrowingsTitle">Book <em>Borrowings</em></h2>
-                <button class="m-close" onclick="closeModal('bookBorrowingsModal')">
+                <h2 id="bookBorrowingsTitle" data-i18n="bookBorrowings">Book <em>Borrowings</em></h2>                <button class="m-close" onclick="closeModal('bookBorrowingsModal')">
                     <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                 </button>
             </div>
             <table class="data-table">
-                <thead><tr><th>Borrower</th><th>📞 Phone</th><th>Borrowed</th><th>Due</th><th>Status</th></tr></thead>                <tbody id="bookBorrowingsTb"></tbody>
+                <thead><tr><th data-i18n="borrower">Borrower</th><th>📞 <span data-i18n="phone">Phone</span></th><th data-i18n="borrowed">Borrowed</th><th data-i18n="dueDate">Due</th><th data-i18n="status">Status</th></tr></thead>                
+                <tbody id="bookBorrowingsTb"></tbody>
             </table>
         </div>
     </div>
@@ -718,23 +698,22 @@
     <div class="modal" id="libBorrowModal">
         <div class="modal-box" style="max-width:480px">
             <div class="modal-head">
-                <h2 id="libBorrowTitle">Borrow <em>Book</em></h2>
+                <h2 id="libBorrowTitle" data-i18n="borrow">Borrow <em>Book</em></h2>
                 <button class="m-close" onclick="closeModal('libBorrowModal')">
                     <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                 </button>
             </div>
             <input type="hidden" id="libBorrowBookId">
             <div class="form-group">
-                <label>Student</label>
+                <label data-i18n="ՕգտատերName">Օգտատեր</label>
                 <select id="libBorrowUser" style="width:100%"></select>
             </div>
             <div class="form-group">
-                <label>Duration (days)</label>
+                <label data-i18n="durationDays">Duration (days)</label>
                 <input type="number" id="libBorrowDays" value="14" min="1" max="90" style="width:100%">
             </div>
-            <button class="btn btn-primary" style="width:100%;margin-top:.5rem" onclick="submitLibBorrow()">
-                📤 Confirm Borrow
-            </button>
+            <button class="btn btn-primary" onclick="submitLibBorrow()" data-i18n="confirmBorrow">📤 Confirm Borrow</button>
+
         </div>
     </div>
 

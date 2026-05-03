@@ -4,6 +4,112 @@
 
 const TRANSLATIONS = {
     hy: {
+        // TRANSLATIONS.hy-ում
+        serverUnreachable: 'Սերվերը հասանելի չէ: Արդյոք backend-ը աշխատում է?',
+        notifyPhoneRequired: 'Խնդրում ենք մուտքագրել հեռախոսահամարը',
+        notifyPhoneInvalid: 'Խնդրում ենք մուտքագրել վավեր հեռախոսահամար',
+        remindersOn: 'Հիշեցումներ Միացված',
+        remindersOff: 'Հիշեցումներ Անջատված',
+
+        // TRANSLATIONS.en-ում
+        serverUnreachable: 'Cannot reach server. Is the backend running?',
+        notifyPhoneRequired: 'Please enter your phone number',
+        notifyPhoneInvalid: 'Please enter a valid phone number',
+        remindersOn: 'Reminders On',
+        remindersOff: 'Reminders Off',
+        section: 'Բաժին',
+        shelfLabel: 'Դարակ',
+        statusAvailable: 'Հասանելի',
+        statusBorrowed: 'Վերցված է',
+        notifySelectDate: 'Խնդրում ենք ընտրել ամսաթիվ',
+        notifyInvalidTime: 'Ավարտի ժամը պետք է լինի սկզբի ժամից հետո',
+        notifyReserveFailed: 'Չհաջողվեց ամրագրել նստատեղը',
+        notifyCancelFailed: 'Չհաջողվեց չեղարկել ամրագրումը',
+        notifyReservationMade: 'Սեղան {seat} ամրագրված {from}–{to}',
+        notifyReservationCancelled: 'Սեղան {seat} ամրագրումը չեղարկվեց',
+        loadingSeats: 'Բեռնում եմ նստատեղերը…',
+        yourBooking: 'Ձեր ամրագրումը',
+        unavailable: 'Անհասանելի',
+        available: 'Հասանելի',
+        cancel: 'Չեղարկել',
+        reserve: 'Ամրագրել',
+        // TRANSLATIONS.hy-ում ավելացնել
+        hotDrinks: 'Տաք Ըմպելիքներ',
+        coldDrinks: 'Սառը Ըմպելիքներ',
+        breakfast: 'Նախաճաշ',
+        sandwiches: 'Սենդվիչներ',
+        salads: 'Աղցաններ',
+        desserts: 'Քաղցրավենիք',
+        amd: 'Դրամ',
+        // TRANSLATIONS.hy-ում ավելացնել
+        shelf: 'Գրադարակ',
+        noShelf: 'Գրադարակ չկա',
+        fiction: 'Գեղարվեստական',
+        nonFiction: 'Ոչ գեղարվեստական',
+        technology: 'Տեխնոլոգիական',
+        science: 'Գիտական',
+
+        // Status-ներ borrow requests-ի համար
+        statusPending: 'Սպասում է',
+        statusApproved: 'Հաստատված է',
+        statusQueued: 'Հերթում է',
+        aiTrendingBooks: 'Ամենաշատ պահանջված գրքերը',
+        // Կոճակներ
+        approve: 'Հաստատել',
+        reject: 'Մերժել',
+        markAsTaken: 'Նշել՝ վերցված',
+        waitingForCopy: '⏳ Սպասում է օրինակի',
+
+        // Notifications for approve/reject
+        notifyApproveFailed: 'Չհաջողվեց հաստատել',
+        notifyRequestApproved: '✅ Հայտը հաստատվեց — օգտատերը կարող է վերցնել գիրքը',
+        confirmRejectRequest: 'Մերժե՞լ այս հայտը',
+        notifyRejectFailed: 'Չհաջողվեց մերժել',
+        notifyRequestRejected: 'Հայտը մերժվեց',
+        notifyMarkTakenFailed: 'Չհաջողվեց նշել որպես վերցված',
+        notifyMarkedAsBorrowed: '📚 Գիրքը նշվեց որպես վերցված',
+
+        // Time ago
+        justNow: 'Հենց նոր',
+        secondsAgo: 'վայրկյաններ առաջ',
+        minutesAgo: 'րոպե առաջ',
+        hoursAgo: 'ժամ առաջ',
+
+        // Notifications panel
+        noNotifications: 'Դեռևս ծանուցումներ չկան',
+        noBooksYet: 'Դեռևս գրքեր չեն բեռնվել',
+        // TRANSLATIONS.hy-ում ավելացնել
+        reservationReminder: 'Ամրագրում 15 րոպեից',
+        gotIt: 'Հասկացա!',
+        cancelReservation: 'Չեղարկել ամրագրումը',
+        remindersOn: 'Հիշեցումը միացված',
+        remindersOff: 'Հիշեցումը անջատված',
+        remindersEnabled: 'Հիշեցումը միացված են! Դուք կտեղեկացվեք ամրագրումից 15 րոպե առաջ:',
+        permissionDenied: 'Մերժված թույլտվություն',
+        bookRequest: 'Գրքի հայտ',
+        alreadyInQueue: 'Դուք արդեն հերթում եք "{title}" գրքի համար',
+        at: 'ժամը',
+        table: 'Սեղան',
+        cancel: 'Չեղարկել',
+        reserve: 'Ամրագրել',
+        unavailable: 'Անհասանելի',
+        yourBooking: 'Ձեր ամրագրումը',
+        availableSeat: 'Ազատ — սեղմեք ամրագրելու համար',
+        // TRANSLATIONS.hy-ում ավելացնել
+        notifications: 'Ծանուցումներ',
+        clearAll: 'Մաքրել բոլորը',
+        availableLegend: 'Հասանելի (սեղմեք ամրագրելու համար)',
+        reservedByOthers: 'Ամրագրված ուրիշների կողմից',
+        yourBooking: 'Ձեր ամրագրումը',
+        selectDateTimeHint: 'Ընտրեք ամսաթիվ և ժամ, ապա սեղմեք Ստուգել',
+        remind: '🔔 Հիշեցում',
+        check: 'Ստուգել',
+        durationDays: 'Տևողություն (օր)',
+        confirmBorrow: '📤 Հաստատել փոխառությունը',
+        pdfViewer: 'Գիրք <em>PDF</em>',
+        phone: '📞 Հեռախոս',
+        save: 'Պահպանել',
+        loading: 'Բեռնում…',
         // Auth
         signIn: 'Մուտք',
         signUp: 'Գրանցվել',
@@ -16,31 +122,42 @@ const TRANSLATIONS = {
         role: 'Դեր',
         createAccount: 'Ստեղծել հաշիվ',
         authQuote: '«Գրադարանը շքեղություն չէ, այլ կյանքի անհրաժեշտություն»',
-        authEyebrow: 'Խելացի Համալսարանական Կենտրոն',
+        authEyebrow: 'Գիրք, սուրճ,հանգիստ',
         student: 'Օգտատեր',
         librarian: 'Գրադարանավար',
-        cafeStaff: 'Սրճարանի Աշխատակից',
+        cafeStaff: 'Սրճարանի աշխատակից',
         admin: 'Ադմին',
+
+
+        Name: 'Անուն Ազգանուն',
+
+        // Verify
+        verifyCode: 'Հաստատման կոդ',
+        verifyAccount: 'Հաստատել և ստեղծել հաշիվ',
+        back: '← ելք',
+        codeSent: 'Մենք 6-անիշ կոդ ենք ուղարկել',
+        didNotReceiveCode: 'Չե՞ք ստացել կոդը 2 րոպեի ընթացքում: Էլ.փոստը կարող է գոյություն չունենալ:',
+        tryDifferentEmail: 'Փորձեք այլ էլ.փոստ',
 
         // Nav
         home: 'Գլխավոր',
         library: 'Գրադարան',
         cafe: 'Սրճարան',
-        favorites: 'Սիրելիներ',
+        favorites: 'Նախընտրելիներ',
         reservations: 'Ամրագրումներ',
         aiAssistant: 'AI Օգնական',
-        profile: 'Պրոֆիլ',
+        profile: 'Անձնական էջ',
         dashboard: 'Վահանակ',
-        shelfMap: 'Դարակի Քարտեզ',
+        shelfMap: 'Գրքերի դասավորություն',
 
         // Home
         welcomeBack: 'Բարի վերադարձ',
         heroTitle: 'Ուրախ ենք <em>քեզ</em> տեսնել։',
-        heroSub: 'Հայտնաբերիր բացառիկ գրքեր, արհեստագործական սուրճ և գիտելիք կարևորող համայնք։',
-        searchPlaceholder: 'Որոնել հավաքածուում…',
+        heroSub: 'Այնտեղ, որտեղ հանդիպում են գրքերը, սուրճն ու գիտելիքը։',
+        searchPlaceholder: 'Որոնել …',
         searchAll: 'Բոլորը',
         searchBooks: 'Գրքեր',
-        searchMenu: 'Ճաշացուցակ',
+        searchMenu: 'Ճաշացանկ',
         search: 'Որոնել',
         availableBooks: 'Հասանելի Գրքեր',
         activeMembers: 'Ակտիվ Անդամներ',
@@ -50,34 +167,60 @@ const TRANSLATIONS = {
         popularMenu: 'Հայտնի Ճաշատեսակներ',
 
         // Library
-        libraryCatalog: 'Գրադարանի Կատալոգ',
+        libraryCatalog: 'Գրադարանի ցուցակ',
         allBooks: 'Բոլորը',
         fiction: 'Գեղարվեստական',
         nonFiction: 'Ոչ Գեղարվեստական',
         technology: 'Տեխնոլոգիա',
         science: 'Գիտություն',
         borrow: 'Վերցնել',
-        allBorrowed: 'Բոլորը Վերցված են',
-        joinQueue: '📋 Հերթ',
+        allBorrowed: 'Բոլորը վերցված են',
+        joinQueue: '📋 Միանալ հերթին',
+        leaveQueue: 'Դուրս գալ հերթից',
         readPdf: '📄 Կարդալ PDF',
         copies: 'օրինակ',
 
         // Café
-        cafeMenu: 'Սրճարանի Ճաշացուցակ',
-        hotDrinks: 'Տաք Ըմպելիքներ',
-        coldDrinks: 'Սառը Ըմպելիքներ',
+        cafeMenu: 'Սրճարանի ճաշացանկ',
+        hotDrinks: 'Տաք ըմպելիքներ',
+        coldDrinks: 'Սառը ըմպելիքներ',
         breakfast: 'Նախաճաշ',
         sandwiches: 'Սենդվիչներ',
         salads: 'Աղցաններ',
         desserts: 'Քաղցրավենիք',
         addToCart: 'Ավելացնել',
         amd: 'Դրամ',
+        amdPerItem: '1 հատը',
+        orderNotification: 'Պատվեր',
+        // Cart
+        yourCart: 'Ձեր զամբյուղը',
+        cartEmpty: 'Զամբյուղը դատարկ է',
+        total: 'Ընդամենը',
+        placeOrderCash: 'Կատարել պատվեր (Կանխիկ)',
+        paymentCashAtCounter: 'Վճարումը կատարվում է կանխիկով՝ դրամարկղում',
+        remove: 'Հեռացնել',
 
-        // Favorites
-        myFavorites: 'Իմ Սիրելիները',
+        // Order status
+        orderPreparing: 'Ձեր պատվերը պատրաստվում է ☕',
+        orderReady: 'Ձեր պատվերը ՊԱՏՐԱՍՏ Է վերցնելու համար! 🔔',
+        orderCompleted: 'Պատվերն ավարտված է: Բարի ախորժակ! ✅',
+        orderCancelled: 'Ձեր պատվերը չեղարկվել է ❌',
 
-        // Reservations
-        seatReservations: 'Նստատեղի Ամրագրումներ',
+        // Borrow requests
+        bookAvailable: '📚 "{title}" գիրքն այժմ հասանելի է: Գրադարանավարը կկապնվի Ձեզ հետ:',
+        requestApproved: '✅ "{title}" գրքի հայտը ՀԱՍՏԱՏՎԵԼ Է: Եկեք վերցրեք այն 📚',
+        requestRejected: '❌ "{title}" գրքի հայտը մերժվել է:',
+        bookTaken: '📚 Հաճույքով կարդացեք "{title}"-ը: Վերադարձրեք սահմանված ժամկետում:',
+        borrowRequestSent: '📋 "{title}" գրքի հայտն ուղարկված է: Գրադարանավարը կքննարկի այն շուտով:',
+        table1: 'Սեղան 1',
+        table2: 'Սեղան 2',
+        table3: 'Սեղան 3',
+        table4: 'Սեղան 4',
+        table5: 'Սեղան 5',
+        table6: 'Սեղան 6',
+        table7: 'Սեղան 7',
+        // Seats/reservations
+        seatReservations: 'Սեղանի ամրագրում',
         reservationHint: 'Ընտրեք ժամանակահատված, ապա սեղմեք հասանելի նստատեղի վրա։',
         date: 'Ամսաթիվ',
         from: 'Սկսած',
@@ -85,62 +228,84 @@ const TRANSLATIONS = {
         checkAvailability: 'Ստուգել',
         available: 'Հասանելի',
         reserved: 'Ամրագրված',
-        yourReservation: 'Ձեր Ամրագրումը',
-        myReservations: 'Իմ Ամրագրումները',
+        yourReservation: 'Ձեր ամրագրումը',
+        myReservations: 'Իմ ամրագրումները',
         seat: 'Նստատեղ',
         cancel: 'Չեղարկել',
+        table: 'Սեղան',
+        yourBooking: 'Ձեր ամրագրումը',
+        unavailable: 'Անհասանելի',
+        availableSeat: 'Հասանելի — սեղմեք ամրագրելու համար',
+        reservedByOthers: 'Ամրագրված ուրիշների կողմից',
+        loadingSeats: 'Բեռնում եմ նստատեղերը…',
+        selectDateTime: 'Ընտրեք ամսաթիվ և ժամ, ապա սեղմեք Ստուգել',
+        check: 'Ստուգել',
+        remind: '🔔 Հիշեցում',
+        reserve: 'Ամրագրել',
+        reserveSlot: 'Ամրագրել {from}–{to}',
+        cancelConfirm: 'Չեղարկե՞լ ամրագրումը',
 
         // Profile
-        myProfile: 'Իմ Պրոֆիլը',
+        myProfile: 'Անձնական էջ',
         email: 'Էլ. հասցե',
         walletBalance: 'Դրամապանակ',
-        booksBorrowed: 'Վերցված Գրքեր',
-        currentFines: 'Ընթացիկ Տուգանք',
-        changePassword: 'Փոխել Գաղտնաբառը',
+        booksBorrowed: 'Վերցված գրքեր',
+        currentFines: 'Ընթացիկ տուգանք',
+        changePassword: 'Փոխել գաղտնաբառը',
         currentPassword: 'Ընթացիկ գաղտնաբառ',
-        newPassword: 'Նոր գաղտնաբառ (նվ. 8 նիշ)',
+        newPassword: 'Նոր գաղտնաբառ (նվազ. 8 նիշ)',
         confirmPassword: 'Հաստատել գաղտնաբառը',
         updatePassword: 'Թարմացնել',
-        borrowingHistory: 'Վերցնելու Պատմություն',
-        orderHistory: 'Պատվերների Պատմություն',
+        borrowingHistory: 'Վերցված գրքերի պատմություն',
+        orderHistory: 'Պատվերների պատմություն',
         book: 'Գիրք',
         borrowed: 'Վերցված',
         dueDate: 'Վերջնաժամկետ',
         status: 'Կարգավիճակ',
         items: 'Ապրանքներ',
-        total: 'Ընդամենը',
-
+        phone: '📞 Հեռախոս',
+        save: 'Պահպանել',
+        type: 'Տեսակ',
         // Librarian Dashboard
-        librarianPortal: 'Գրադարանավարի Պորտալ',
-        bookManagement: 'Գրքի Կառավարում',
+        librarianPortal: 'Գրադարանավարի էջ',
+        bookManagement: 'Գրքի կառավարում',
         libDashSub: 'Կառավարեք հավաքածուն, հետևեք վերցնելուն և վերադարձին',
-        totalBooks: 'Ընդամենը Գրքեր',
+        totalBooks: 'Ընդհանուր գրքեր',
         availableStat: 'Հասանելի',
         borrowedStat: 'Վերցված',
         overdueStat: 'Ժամկետանց',
-        bookCatalog: 'Գրքի Կատալոգ',
-        addBook: '+ Ավելացնել Գիրք',
+        bookCatalog: 'Գրքերի ցուցակ',
+        addBook: '+ Ավելացնել գիրք',
         title: 'Վերնագիր',
         author: 'Հեղինակ',
-        category: 'Կատեգորիա',
+        category: 'Տեսակ',
         isbn: 'ISBN',
         shelf: 'Դարակ',
         action: 'Գործողություն',
         edit: 'Խմբագրել',
         delete: 'Ջնջել',
-        activeBorrowings: 'Ակտիվ Վերցնումներ',
-        student: 'Օգտատեր',
+        activeBorrowings: 'Չվերադարձված գրքեր',
         returnBook: 'Վերադարձնել',
+        copy: 'օրինակ',
+        borrowRequests: '📋 Գրքերի <em>Հայտեր</em>',
+        approve: '✅ Հաստատել',
+        reject: '✕ Մերժել',
+        markTaken: '📚 Նշել Վերցված',
+        waitingForCopy: '⏳ Սպասում է օրինակի',
+        noRequests: 'Սպասող հայտեր չկան',
+        requestedOn: 'Հայտի ա/թ',
+        duration: 'Տևողություն',
+        days: 'օր',
 
         // Café Staff Dashboard
-        cafeStaffPortal: 'Սրճարանի Աշխատակցի Պորտալ',
-        orderManagement: 'Պատվերների Կառավարում',
+        cafeStaffPortal: 'Սրճարանի աշխատակցի էջ',
+        orderManagement: 'Պատվերների կառավարում',
         cafeDashSub: 'Կառավարեք պատվերները, թարմացրեք կարգավիճակները',
-        totalOrders: 'Ընդամենը Պատվերներ',
+        totalOrders: 'Ընդհանուր պատվերներ',
         pending: 'Սպասվող',
         completed: 'Ավարտված',
         todayAmd: 'Այսօր (Դրամ)',
-        liveOrders: 'Ակտիվ Պատվերներ',
+        liveOrders: 'Ակտիվ պատվերներ',
         all: 'Բոլորը',
         preparing: 'Պատրաստվում է',
         ready: 'Պատրաստ',
@@ -151,35 +316,45 @@ const TRANSLATIONS = {
         menuItems: 'Ճաշատեսակներ',
         addItem: '+ Ավելացնել',
         price: 'Գին',
-
+        request: 'Հայտ', 
         // Admin Dashboard
-        adminPortal: 'Ադմինի Պորտալ',
-        systemOverview: 'Համակարգի Ակնարկ',
+        adminPortal: 'Ադմինի էջ',
+        systemOverview: 'Համակարգի կառավարում',
         adminDashSub: 'Ամբողջական հարթակի կառավարում և վերլուծություն',
-        totalUsers: 'Ընդամենը Օգտատերեր',
-        totalOrders2: 'Ընդամենը Պատվերներ',
+        totalUsers: 'Ընդհանուր օգտատերեր',
+        totalOrders2: 'Ընդհանուր պատվերներ  ',
         revenue: 'Եկամուտ (Դրամ)',
-        allUsers: 'Բոլոր Օգտատերերը',
+        allUsers: 'Բոլոր օգտատերերը',
         name: 'Անուն',
-        allBooksAdmin: 'Բոլոր Գրքերը',
-        allOrders: 'Բոլոր Պատվերները',
+        allBooksAdmin: 'Բոլոր գրքերը',
+        allOrders: 'Բոլոր պատվերները',
+        // TRANSLATIONS.hy-ում
+        tableNames: ['Սեղան 1', 'Սեղան 2', 'Սեղան 3', 'Սեղան 4', 'Սեղան 5', 'Սեղան 6', 'Սեղան 7'],
+
+        // TRANSLATIONS.en-ում
+        // Favorites
+        myFavorites: 'Իմ նախընտրելիները',
 
         // AI Assistant
-        poweredByAi: 'AI-ի Աջակցությամբ',
-        readingAssistant: 'Ձեր <em>Ընթերցական Օգնականը</em>',
+        poweredByAi: 'AI-ի աջակցությամբ',
+        readingAssistant: 'Ձեր <em>Ընթերցանության օգնականը</em>',
         aiSub: 'Գրքի առաջարկություններ, պատմական տեղեկություններ, սրճարանի զուգակցություններ',
         askAi: 'Հարցրու <em>AI-ին</em>',
         recommendBooks: '📚 Առաջարկել գրքեր',
         todayHistory: '📅 Այսօր պատմության մեջ',
         cafePairing: '☕ Սրճարանի զուգակցում',
-        summarizeClassic: '✨ Ամփոփել դասական',
+        summarizeClassic: '✨ Դասական գրքեր',
         aiWelcome: '👋 Բարև! Ես ձեր Գրադարան-Սրճարանի օգնականն եմ։ Հարցրեք ինձ գրքերի, պատմության կամ ընթերցանության մասին!',
-        aiPlaceholder: 'Հարցրեք գրքերի, պատմության, առաջարկությունների մասին…',
+        aiPlaceholder: 'Հարցրեք գրքերի, պատմության,սուրճի մասին…',
         send: 'Ուղարկել',
         todayInHistory: 'Այսօր <em>Պատմության Մեջ</em>',
         load: 'Բեռնել',
         readingSuggestions: 'Ընթերցանության <em>Առաջարկություններ</em>',
-        clickRecommend: 'Սեղմեք «Առաջարկել գրքեր»-ը անհատական ​​ընտրություններ ստանալու համար։',
+        clickRecommend: 'Սեղմեք «Առաջարկել գրքեր»-ը անհատական ընտրություններ ստանալու համար։',
+        aiRateLimit: 'Չափազանց շատ հարցումներ — AI-ն սահմանափակում ունի: Խնդրում ենք սպասել 30 վայրկյան և նորից փորձել:',
+        aiNotConfigured: 'AI-ն միացված չէ: Խնդրեք ադմինիստրատորին ավելացնել Gemini:ApiKey-ը appsettings.json ֆայլում:',
+        aiConnectionError: 'Կապի սխալ: Համոզվեք, որ սերվերը աշխատում է:',
+        aiHistoryFallback: 'Գրքերը գոյություն ունեն ավելի քան 5000 տարի — առաջին գրավոր արձանագրությունները թվագրվում են Հին Միջագետքով:',
 
         // Modals
         addNewBook: 'Ավելացնել Նոր <em>Գիրք</em>',
@@ -193,49 +368,73 @@ const TRANSLATIONS = {
         optional: 'Կամընտիր',
         pdfFile: 'PDF Ֆայլ',
         removeImage: '✕ Հեռացնել նկարը',
-        remove: '✕ Հեռացնել',
+        removeFile: '✕ Հեռացնել',
         addToCollection: 'Ավելացնել Հավաքածուին',
         saveChanges: 'Պահպանել',
         saving: 'Պահպանում…',
+        pdfUploaded: 'PDF արդեն վերբեռնված է',
 
         addMenuItem: 'Ավելացնել Ճաշատեսակ',
+        editMenuItem: 'Խմբագրել Ճաշատեսակը',
         itemName: 'Ապրանքի Անուն',
         itemNamePlaceholder: 'օր.՝ Կապուչինո',
         pricePlaceholder: '1200',
 
-        yourCart: 'Ձեր Զամբյուղը',
-        placeOrder: 'Կատարել Պատվեր',
-
         bookBorrowings: 'Գրքի <em>Վերցնումներ</em>',
-        noActiveBorrowings: 'Ակտիվ վերցնումներ չկան',
+        noActiveBorrowings: 'Չվերադարձված գրքեր չկան',
         borrower: 'Վերցնող',
 
         // Bookshelf Map
         libraryLayout: 'Գրադարանի Դասավորություն',
-        bookshelfMap: 'Դարակի <em>Քարտեզ</em>',
-        shelfMapSub: 'Բոլոր դարակների և դրանց գրքերի տեսողական ակնարկ',
+        bookshelfMap: 'Գրադարակի <em>Քարտեզ</em>',
+        shelfMapSub: 'Գրքերի մասին տեսողական նկարագրություն',
         section: 'Բաժին',
+        shelfLabel: 'Դարակ {shelf}',
 
         // Status chips
         statusAvailable: 'Հասանելի',
         statusBorrowed: 'Վերցված',
         statusOverdue: 'Ժամկետանց',
-        statusCompleted: 'Ավարտված',
-        statusPending: 'Սպասվող',
+        statusCompleted: 'Ավարտված է',
+        statusPending: 'Սպասում է',
         statusPreparing: 'Պատրաստվում է',
-        statusReady: 'Պատրաստ',
+        statusReady: 'Պատրաստ է',
+        statusCancelled: 'Չեղարկված',
 
         // Notifications
         notifyBorrowed: 'Գիրքը հաջողությամբ վերցվեց! Վերադարձի ժամկետ՝ 14 օր։',
         notifyReturned: 'Գիրքը հաջողությամբ վերադարձվեց',
-        notifyBookAdded: 'ավելացվեց հավաքածուին',
+        notifyBookAdded: '"{title}" գիրքը ավելացվեց հավաքածուին',
+        notifyBookUpdated: '"{title}" գիրքը թարմացվեց',
         notifyBookRemoved: 'Գիրքը հեռացվեց',
         notifyPasswordUpdated: 'Գաղտնաբառը հաջողությամբ թարմացվեց!',
         notifyFillFields: 'Լրացրեք բոլոր պարտադիր դաշտերը',
-        notifySignIn: 'Նախ մուտք գործեք',
-        notifyQueueJoined: 'Ավելացվել եք հերթին',
-        notifyQueueLeft: 'Հեռացվեց հերթից',
-        notifyOrderPlaced: 'Պատվերը ուղարկված է!',
+        notifySignIn: 'Խնդրում ենք նախ մուտք գործել',
+        notifyQueueJoined: '📋 "{title}" գրքի հերթին միացաք: Մենք Ձեզ կտեղեկացնենք, երբ հասանելի լինի:',
+        notifyQueueLeft: 'Հեռացվեց "{title}" գրքի հերթից',
+        notifyOrderPlaced: '✅ Պատվերը տեղադրված է! Ընդհանուր {total} AMD — մենք Ձեզ կտեղեկացնենք, երբ պատրաստ լինի:',
+        notifyCartAdded: '🛒 {name} ավելացվեց զամբյուղում: Սեղմեք զամբյուղը պատվիրելու համար:',
+        notifyFavAdded: 'Ավելացվեց նախընտրելիներում',
+        notifyFavRemoved: 'Հեռացվեց նախընտրելիներից',
+        notifyReservationMade: 'Սեղան {seat} ամրագրված {from}–{to}',
+        notifyReservationCancelled: 'Սեղան {seat} ամրագրումը չեղարկվեց',
+        notifySaveFailed: 'Չհաջողվեց պահպանել',
+        notifySaveError: 'Պահպանելիս սխալ',
+        notifyDeleteFailed: 'Չհաջողվեց ջնջել',
+        notifyMenuItemUpdated: '"{name}" ճաշատեսակը թարմացվեց',
+        notifyMenuItemAdded: '"{name}" ճաշատեսակը ավելացվեց',
+        notifyMenuItemRemoved: 'Ճաշատեսակը հեռացվեց',
+
+        // Confirm dialogs
+        confirmDeleteBook: 'Ջնջե՞լ այս գիրքը հավաքածուից',
+        confirmDeleteMenuItem: 'Ջնջե՞լ այս ճաշատեսակը ճաշացուցակից',
+        confirmDeleteUser: 'Ջնջե՞լ այս օգտատիրոջ հաշիվը',
+
+        // Search
+        searchResultsBooks: 'Գտնվեց {count} գիրք',
+        searchResultsMenu: 'Գտնվեց {count} ապրանք',
+        searchNoResults: '"{query}"-ով որոնումը արդյունք չտվեց',
+        notifyEnterSearchTerm: 'Մուտքագրեք որոնման բառ',
 
         // Password strength
         pwWeak: 'Թույլ',
@@ -243,9 +442,16 @@ const TRANSLATIONS = {
         pwGood: 'Լավ',
         pwStrong: 'Ուժեղ',
         pwTooShort: 'Շատ կարճ',
+
+        // Misc
+        allRightsReserved: 'Բոլոր իրավունքները պաշտպանված են'
     },
 
     en: {
+        section: 'Section',
+        shelfLabel: 'Shelf',
+        statusAvailable: 'Available',
+        statusBorrowed: 'Borrowed',
         // Auth
         signIn: 'Sign In',
         signUp: 'Sign Up',
@@ -263,6 +469,14 @@ const TRANSLATIONS = {
         librarian: 'Librarian',
         cafeStaff: 'Café Staff',
         admin: 'Admin',
+
+        // Verify
+        verifyCode: 'Verification Code',
+        verifyAccount: 'Verify & Create Account',
+        back: '← Back',
+        codeSent: 'We sent a 6-digit code to',
+        didNotReceiveCode: 'Didn\'t receive a code within 2 minutes? The email may not exist.',
+        tryDifferentEmail: 'Try a different email',
 
         // Nav
         home: 'Home',
@@ -290,6 +504,7 @@ const TRANSLATIONS = {
         upcomingEvents: 'Upcoming Events',
         trendingBooks: 'Trending Books',
         popularMenu: 'Popular Menu',
+        tableNames: ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Table 7'],
 
         // Library
         libraryCatalog: 'Library Catalog',
@@ -301,6 +516,7 @@ const TRANSLATIONS = {
         borrow: 'Borrow',
         allBorrowed: 'All Borrowed',
         joinQueue: '📋 Join Queue',
+        leaveQueue: '✕ Leave Queue',
         readPdf: '📄 Read PDF',
         copies: 'copies',
 
@@ -314,11 +530,30 @@ const TRANSLATIONS = {
         desserts: 'Desserts',
         addToCart: 'Add',
         amd: 'AMD',
+        amdPerItem: 'AMD each',
 
-        // Favorites
-        myFavorites: 'My Favorites',
+        // Cart
+        yourCart: 'Your Cart',
+        cartEmpty: 'Your cart is empty',
+        total: 'Total',
+        placeOrderCash: 'Place Order (Cash)',
+        paymentCashAtCounter: 'Payment is made in cash at the counter',
+        remove: 'Remove',
 
-        // Reservations
+        // Order status
+        orderPreparing: 'Your order is being prepared ☕',
+        orderReady: 'Your order is READY for pickup! 🔔',
+        orderCompleted: 'Order completed. Enjoy! ✅',
+        orderCancelled: 'Your order was cancelled ❌',
+
+        // Borrow requests
+        bookAvailable: '📚 "{title}" is now available! The librarian will reach out to you.',
+        requestApproved: '✅ Your request for "{title}" was APPROVED! Come pick it up 📚',
+        requestRejected: '❌ Your request for "{title}" was declined.',
+        bookTaken: '📚 Enjoy reading "{title}"! Return by the due date.',
+        borrowRequestSent: '📋 Borrow request sent for "{title}". The librarian will review it shortly.',
+
+        // Seats/reservations
         seatReservations: 'Seat Reservations',
         reservationHint: 'Pick a time slot, then click an available seat to reserve your study spot.',
         date: 'Date',
@@ -331,6 +566,18 @@ const TRANSLATIONS = {
         myReservations: 'My Reservations',
         seat: 'Seat',
         cancel: 'Cancel',
+        table: 'Table',
+        yourBooking: 'Your booking',
+        unavailable: 'Unavailable',
+        availableSeat: 'Available — click to reserve',
+        reservedByOthers: 'Reserved by others',
+        loadingSeats: 'Loading seats…',
+        selectDateTime: 'Select a date and time, then click Check',
+        check: 'Check',
+        remind: '🔔 Reminder',
+        reserve: 'Reserve',
+        reserveSlot: 'Reserve {from}–{to}',
+        cancelConfirm: 'Cancel reservation?',
 
         // Profile
         myProfile: 'My Profile',
@@ -350,7 +597,8 @@ const TRANSLATIONS = {
         dueDate: 'Due Date',
         status: 'Status',
         items: 'Items',
-        total: 'Total',
+        phone: 'Phone',
+        save: 'Save',
 
         // Librarian
         librarianPortal: 'Librarian Portal',
@@ -371,8 +619,17 @@ const TRANSLATIONS = {
         edit: 'Edit',
         delete: 'Delete',
         activeBorrowings: 'Active Borrowings',
-        student: 'Student',
         returnBook: 'Return',
+        copy: 'copy',
+        borrowRequests: '📋 Borrow Requests',
+        approve: '✅ Approve',
+        reject: '✕ Reject',
+        markTaken: '📚 Mark as Taken',
+        waitingForCopy: '⏳ Waiting for a copy',
+        noRequests: 'No pending requests',
+        requestedOn: 'Requested',
+        duration: 'Duration',
+        days: 'days',
 
         // Café Staff
         cafeStaffPortal: 'Café Staff Portal',
@@ -406,6 +663,9 @@ const TRANSLATIONS = {
         allBooksAdmin: 'All Books',
         allOrders: 'All Orders',
 
+        // Favorites
+        myFavorites: 'My Favorites',
+
         // AI
         poweredByAi: 'Powered by AI',
         readingAssistant: 'Your <em>Reading Assistant</em>',
@@ -422,6 +682,10 @@ const TRANSLATIONS = {
         load: 'Load',
         readingSuggestions: 'Reading <em>Suggestions</em>',
         clickRecommend: 'Click "Recommend books" to get personalised picks.',
+        aiRateLimit: 'Too many requests — the AI is rate limited. Please wait 30 seconds and try again.',
+        aiNotConfigured: 'AI is not configured. Ask your admin to add the Gemini:ApiKey to appsettings.json.',
+        aiConnectionError: 'Connection error. Please make sure the backend is running.',
+        aiHistoryFallback: 'Books have existed for over 5,000 years — the first written records date to ancient Mesopotamia.',
 
         // Modals
         addNewBook: 'Add New <em>Book</em>',
@@ -435,18 +699,17 @@ const TRANSLATIONS = {
         optional: 'optional',
         pdfFile: 'PDF File',
         removeImage: '✕ Remove image',
-        remove: '✕ Remove',
+        removeFile: '✕ Remove',
         addToCollection: 'Add to Collection',
         saveChanges: 'Save Changes',
         saving: 'Saving…',
+        pdfUploaded: 'PDF already uploaded',
 
         addMenuItem: 'Add Menu Item',
+        editMenuItem: 'Edit Menu Item',
         itemName: 'Item Name',
         itemNamePlaceholder: 'e.g. Cappuccino',
         pricePlaceholder: '1200',
-
-        yourCart: 'Your Cart',
-        placeOrder: 'Place Order',
 
         bookBorrowings: 'Book <em>Borrowings</em>',
         noActiveBorrowings: 'No active borrowings for this book',
@@ -457,6 +720,7 @@ const TRANSLATIONS = {
         bookshelfMap: 'Bookshelf <em>Map</em>',
         shelfMapSub: 'Visual overview of all shelves and their books',
         section: 'Section',
+        shelfLabel: 'Shelf {shelf}',
 
         // Status chips
         statusAvailable: 'Available',
@@ -466,18 +730,42 @@ const TRANSLATIONS = {
         statusPending: 'Pending',
         statusPreparing: 'Preparing',
         statusReady: 'Ready',
+        statusCancelled: 'Cancelled',
 
         // Notifications
         notifyBorrowed: 'Book borrowed successfully! Due in 14 days.',
         notifyReturned: 'Book returned successfully',
-        notifyBookAdded: 'added to collection',
+        notifyBookAdded: '"{title}" added to collection',
+        notifyBookUpdated: '"{title}" updated',
         notifyBookRemoved: 'Book removed',
         notifyPasswordUpdated: 'Password updated successfully!',
         notifyFillFields: 'Please fill all required fields',
         notifySignIn: 'Please sign in first',
-        notifyQueueJoined: 'Added to queue',
-        notifyQueueLeft: 'Removed from queue',
-        notifyOrderPlaced: 'Order placed!',
+        notifyQueueJoined: '📋 You joined the queue for "{title}". We\'ll notify you when it\'s available!',
+        notifyQueueLeft: 'Removed from queue for "{title}"',
+        notifyOrderPlaced: '✅ Order placed! Total: {total} AMD — we will notify you when it is ready!',
+        notifyCartAdded: '🛒 {name} added to cart! Tap the cart to order.',
+        notifyFavAdded: 'Added to favorites',
+        notifyFavRemoved: 'Removed from favorites',
+        notifyReservationMade: 'Table {seat} reserved {from}–{to}',
+        notifyReservationCancelled: 'Table {seat} reservation cancelled',
+        notifySaveFailed: 'Failed to save',
+        notifySaveError: 'Error saving',
+        notifyDeleteFailed: 'Cannot delete',
+        notifyMenuItemUpdated: '"{name}" menu item updated',
+        notifyMenuItemAdded: '"{name}" menu item added',
+        notifyMenuItemRemoved: 'Menu item removed',
+
+        // Confirm dialogs
+        confirmDeleteBook: 'Delete this book from the collection?',
+        confirmDeleteMenuItem: 'Remove this item from the menu?',
+        confirmDeleteUser: 'Delete this user account?',
+
+        // Search
+        searchResultsBooks: 'Found {count} book',
+        searchResultsMenu: 'Found {count} item',
+        searchNoResults: 'No results found for "{query}"',
+        notifyEnterSearchTerm: 'Enter a search term',
 
         // Password strength
         pwWeak: 'Weak',
@@ -485,6 +773,9 @@ const TRANSLATIONS = {
         pwGood: 'Good',
         pwStrong: 'Strong',
         pwTooShort: 'Too short',
+
+        // Misc
+        allRightsReserved: 'All rights reserved'
     }
 };
 
@@ -505,7 +796,6 @@ function setLang(lang) {
     });
     // Re-render dynamic nav (built by JS, not HTML)
     if (typeof showApp === 'function' && typeof currentUser !== 'undefined' && currentUser) {
-        // Rebuild nav links with new language
         const cfg = (typeof ROLES !== 'undefined') && ROLES[currentUser.role];
         if (cfg && cfg.nav) {
             const navEl = document.getElementById('navLinks');
@@ -513,23 +803,19 @@ function setLang(lang) {
                 `<li><a onclick="showPage('${n.p}')">${t(n.lk)}</a></li>`
             ).join('');
         }
-        // Update hero greeting
         const hn = document.getElementById('heroName');
         if (hn) {
             const first = currentUser.name ? currentUser.name.split(' ')[0] : '';
             hn.innerHTML = `${t('welcomeBack')}, <em>${first}</em>!`;
         }
-        // Update hero eyebrow
         const he = document.querySelector('.hero-eyebrow');
         if (he) he.textContent = t('welcomeBack');
-        // Update role pill sign out button
         const soBtn = document.querySelector('[onclick="logout()"]');
         if (soBtn) soBtn.textContent = t('signOut');
     }
 }
 
 function applyTranslations() {
-    // Every element with data-i18n attribute gets its text replaced
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
         const val = t(key);
@@ -539,7 +825,6 @@ function applyTranslations() {
             el.innerHTML = val;
         }
     });
-    // data-i18n-placeholder for inputs that also have visible text
     document.querySelectorAll('[data-i18n-ph]').forEach(el => {
         el.placeholder = t(el.dataset.i18nPh);
     });

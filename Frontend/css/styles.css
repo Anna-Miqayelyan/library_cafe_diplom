@@ -2613,7 +2613,7 @@ button#themeToggle {
     }
 
 /* Hardcoded status colors — dark mode overrides */
-[data-theme="dark"] .role-pill.student {
+[data-theme="dark"] .role-pill.Օգտատեր {
     background: #1a2a1a;
     border-color: #2a3a2a;
 }
@@ -2792,4 +2792,224 @@ button#themeToggle {
 
 [data-theme="dark"] #notifBadge {
     border-color: #242424 !important;
+}
+/* ─── SOFT COLORS BOOKSHELF MAP ─────────────────────────────── */
+.shelf-container {
+    background: #fdfaf5;
+    border-radius: 28px;
+    padding: 2rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+}
+
+.shelf-section {
+    margin-bottom: 2.5rem;
+}
+
+.section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: #5c4a2e;
+    border-left: 3px solid #e8d5b5;
+    padding-left: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+    .section-title::before {
+        content: '📚';
+        font-size: 1.4rem;
+        opacity: 0.7;
+    }
+
+.shelf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.shelf-card {
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    transition: all 0.3s ease;
+    border: 1px solid #f0e6d8;
+}
+
+    .shelf-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+        border-color: #e8d5b5;
+    }
+
+.shelf-header {
+    background: linear-gradient(135deg, #f5efe5 0%, #ede4d8 100%);
+    padding: 0.9rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border-bottom: 1px solid #e8e0d0;
+}
+
+    .shelf-header span:first-child {
+        font-size: 1.3rem;
+    }
+
+    .shelf-header span:last-child {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #6b5a42;
+        letter-spacing: 0.5px;
+    }
+
+.shelf-books {
+    padding: 1rem;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.shelf-book-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 0.6rem;
+    border-bottom: 1px solid #f5efe8;
+    transition: all 0.2s ease;
+    border-radius: 12px;
+}
+
+    .shelf-book-item:hover {
+        background: #fefaf5;
+        transform: translateX(3px);
+    }
+
+.book-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.book-title {
+    font-weight: 600;
+    color: #4a3a28;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'Outfit', sans-serif;
+}
+
+.book-author {
+    font-size: 0.7rem;
+    color: #b0a088;
+    margin-top: 0.2rem;
+    font-family: 'Outfit', sans-serif;
+}
+
+.book-status {
+    flex-shrink: 0;
+    padding: 0.2rem 0.7rem;
+    border-radius: 30px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+}
+
+.status-available {
+    background: #eef5ee;
+    color: #5a8a5a;
+    border: 1px solid #d0e0c8;
+}
+
+.status-borrowed {
+    background: #fef0ee;
+    color: #c47a6a;
+    border: 1px solid #f0d8d0;
+}
+
+/* Scrollbar soft */
+.shelf-books::-webkit-scrollbar {
+    width: 5px;
+}
+
+.shelf-books::-webkit-scrollbar-track {
+    background: #f5efe8;
+    border-radius: 10px;
+}
+
+.shelf-books::-webkit-scrollbar-thumb {
+    background: #e8d5b5;
+    border-radius: 10px;
+}
+
+    .shelf-books::-webkit-scrollbar-thumb:hover {
+        background: #d4c0a0;
+    }
+
+/* Empty state */
+.empty-shelf-message {
+    text-align: center;
+    padding: 3rem;
+    background: #fefaf5;
+    border-radius: 24px;
+    color: #c0b098;
+}
+
+    .empty-shelf-message span {
+        font-size: 3rem;
+        opacity: 0.5;
+        display: block;
+        margin-bottom: 1rem;
+    }
+
+    .empty-shelf-message p {
+        font-size: 0.9rem;
+        font-family: 'Outfit', sans-serif;
+    }
+
+/* Dark mode soft colors */
+[data-theme="dark"] .shelf-container {
+    background: #2a241e;
+}
+
+[data-theme="dark"] .section-title {
+    color: #d4c4a8;
+}
+
+[data-theme="dark"] .shelf-card {
+    background: #332c24;
+    border-color: #443a30;
+}
+
+[data-theme="dark"] .shelf-header {
+    background: linear-gradient(135deg, #3d342a 0%, #332c24 100%);
+    border-bottom-color: #443a30;
+}
+
+    [data-theme="dark"] .shelf-header span:last-child {
+        color: #d4c4a8;
+    }
+
+[data-theme="dark"] .shelf-book-item {
+    border-bottom-color: #443a30;
+}
+
+    [data-theme="dark"] .shelf-book-item:hover {
+        background: #443a30;
+    }
+
+[data-theme="dark"] .book-title {
+    color: #e8dcc8;
+}
+
+[data-theme="dark"] .book-author {
+    color: #a09078;
+}
+
+[data-theme="dark"] .empty-shelf-message {
+    background: #332c24;
+    color: #a09078;
 }
