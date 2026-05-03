@@ -97,9 +97,10 @@ function togglePw(inputId, btn) {
 async function api(path, opts = {}) {
     try {
         return await fetch(`${API}${path}`, {
-            headers: { 'Content-Type': 'application/json' }, ...opts
+            headers: { 'Content-Type': 'application/json' },
+            ...opts
         });
-    } catch {
+    } catch (error) {
         notify('Cannot reach server. Is the backend running?', true);
         return null;
     }
@@ -374,8 +375,7 @@ async function showApp() {
     }
     if (r === 'Librarian' || r === 'Admin') loadLibDash();
     if (r === 'Café Staff' || r === 'Admin') loadCafeDash();
-    if (r === 'Admin') loadAdminDash();
-}
+    if (r === 'Admin') { loadAdminDash(); _lastUserCount = 0; _lastUserList = []; setTimeout(_checkNewRegistrations, 2000); } }
 
 // ─── STORAGE ─────────────────────────────────────────────────
 function saveStorage() {
@@ -1939,18 +1939,144 @@ async function deleteMenuItem(id) {
         if (!res || !res.ok) { notify('Could not update phone', true); return; }
         notify(' Phone number updated!');
     }
-    function rolePillHtml(role) {
-        const m = { 'Student': 'rp-s', 'Librarian': 'rp-l', 'Café Staff': 'rp-c', 'Admin': 'rp-a' };
-        return `<span class="role-pill ${m[role] || 'rp-s'}">${role}</span>`;
-    }
+    //function rolePillHtml(role) {
+    //    const m = { 'Student': 'rp-s', 'Librarian': 'rp-l', 'Café Staff': 'rp-c', 'Admin': 'rp-a' };
+    //    return `<span class="role-pill ${m[role] || 'rp-s'}">${role}</span>`;
+    //}
 
-    async function deleteUser(id) {
-        if (!confirm('Delete this user account?')) return;
+//    async function deleteUser(id) {
+//    if (!confirm('Delete this user account? This will permanently delete all their data (borrowings, orders, reviews, etc.).')) return;
+    
+//    try {
+//        const res = await api(`/users/${id}`, { method: 'DELETE' });
+        
+//        // Check if response exists
+//        if (!res) {
+//            notify('Cannot reach server', true);
+//            return;
+//        }
+        
+//        // Check if deletion was successful
+//        if (res.ok) {
+//            notify('User deleted successfully');
+//            loadAdminDash(); // Refresh the admin dashboard
+//        } else {
+//            // Try to get error message from response
+//            const errorData = await res.json().catch(() => ({}));
+//            const errorMsg = errorData.message || `Failed to delete user (Status: ${res.status})`;
+//            notify(errorMsg, true);
+//        }
+//    } catch (error) {
+//        console.error('Delete user error:', error);
+//        notify('An error occurred while deleting the user', true);
+//        }
+
+//}
+
+//// ─── ADMIN ───────────────────────────────────────────────────
+//async function loadAdminDash() {
+//    await loadBooks(); await loadMenu();
+//    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+
+//    const ur = await api('/users');
+//    if (ur && ur.ok) {
+//        const users = await ur.json();
+//        set('asUsers', users.length);
+//        const tb = document.getElementById('adminUsersTb');
+//        if (tb) tb.innerHTML = users.map(u => `<tr><td>${u.fullname}</td><td>${u.email}</td><td>${u.phone || '—'}</td><td>${rolePillHtml(u.role)}</td><td><button class="btn-del" onclick="deleteUser(${u.id})" ${u.id === currentUser.id ? 'disabled' : ''}>Delete</button></td></tr>`).join('');
+//    }
+
+//    set('asBooks', books.length);
+//    const bk = document.getElementById('adminBooksTb');
+//    if (bk) {
+//        if (books.length === 0) {
+//            bk.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2.5rem;color:var(--mist);font-style:italic">${t('noBooksYet')}</td></tr>`;
+//        } else {
+//            bk.innerHTML = books.map(b => {
+//                const avail = b.availableCount ?? (b.available ? 1 : 0);
+//                const total = b.totalCount || 1;
+//                return `<td>
+//        <td style="padding:0.8rem">${b.title}</td>
+//        <td style="padding:0.8rem">${b.author}</td>
+//        <td style="padding:0.8rem">${b.category}${b.shelf ? ' · ' + b.shelf : ''}</td>
+//        <td style="padding:0.8rem">${avail}/${total} ${statusChip(b.status)}</td>
+//        <td style="display:flex;gap:.4rem;padding:0.8rem">
+//            <button class="btn btn-ghost btn-sm" onclick="openEditBook(${b.id})">✏️ ${t('edit')}</button>
+//            <button class="btn-del" onclick="deleteBook(${b.id})">🗑️ ${t('delete')}</button>
+//        </td>
+//    </table>`;
+//            }).join('');
+//        }
+//    }
+
+//    const or = await api('/cafeorders');
+//    if (or && or.ok) {
+//        const data = await or.json();
+//        const rev = data.reduce((s, o) => s + o.totalAmount, 0);
+//        set('asOrders', data.length); set('asRevenue', fmt(rev));
+//        const otb = document.getElementById('adminOrdersTb');
+//        if (otb) otb.innerHTML = data.map(o => `<tr><td>#${o.id}</td><td>${o.userFullname}</td><td>${fmt(o.totalAmount)} AMD</td><td>${fmtDate(o.orderDate)}</td><td>${statusChip(o.status)}</td></tr>`).join('');
+//    }
+//}
+//async function updatePhone() {
+//    const phone = document.getElementById('profPhone').value.trim();
+//    if (!phone) { notify('Please enter a phone number', true); return; }
+//    currentUser.phone = phone;
+//    saveStorage();
+//    const res = await api(`/users/${currentUser.id}`, {
+//        method: 'PUT',
+//        body: JSON.stringify({ phone })
+//    });
+//    if (!res || !res.ok) { notify('Could not update phone', true); return; }
+//    notify(' Phone number updated!');
+//}
+function rolePillHtml(role) {
+    const m = { 'Student': 'rp-s', 'Librarian': 'rp-l', 'Café Staff': 'rp-c', 'Admin': 'rp-a' };
+    return `<span class="role-pill ${m[role] || 'rp-s'}">${role}</span>`;
+}
+
+async function deleteUser(id) {
+    if (!confirm('Delete this user account? This will permanently delete all their data.')) return;
+    try {
         const res = await api(`/users/${id}`, { method: 'DELETE' });
-        if (!res) return;
-        if (!res.ok) { notify('Cannot delete user', true); return; }
-        notify('User deleted'); loadAdminDash();
+        if (!res) { notify('Cannot reach server', true); return; }
+        if (res.ok) { notify('User deleted successfully'); loadAdminDash(); }
+        else {
+            const e = await res.json().catch(() => ({}));
+            notify(e.message || `Failed (${res.status})`, true);
+        }
+    } catch (err) {
+        notify('An error occurred while deleting the user', true);
     }
+}
+
+// ─── ADMIN: NEW REGISTRATION MONITOR ─────────────────────────
+let _lastUserCount = 0;
+let _lastUserList = [];
+
+async function _checkNewRegistrations() {
+    if (!currentUser || currentUser.role !== 'Admin') return;
+    try {
+        const res = await api('/users');
+        if (!res || !res.ok) return;
+        const users = await res.json();
+        if (_lastUserCount === 0) {
+            _lastUserCount = users.length;
+            _lastUserList = users;
+            return;
+        }
+        if (users.length > _lastUserCount) {
+            users.filter(u => !_lastUserList.some(old => old.id === u.id))
+                .forEach(u => lcNotifAdd(`📚 New registration: ${u.fullname} joined as ${u.role}`, 'book'));
+            if (document.getElementById('adminUsersTb')) loadAdminDash();
+        }
+        _lastUserCount = users.length;
+        _lastUserList = users;
+    } catch (e) { console.error('Monitor:', e); }
+}
+
+setInterval(_checkNewRegistrations, 15000);
+setTimeout(_checkNewRegistrations, 3000);
 
     // ─── SEARCH ──────────────────────────────────────────────────
     async function performSearch() {
@@ -2355,7 +2481,9 @@ async function deleteMenuItem(id) {
             var badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
         }
-    }
+}
+
+
 
     function closeNotifPanel() {
         var panel = document.getElementById('notifPanel');

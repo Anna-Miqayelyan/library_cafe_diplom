@@ -141,46 +141,71 @@ namespace LibraryCafe.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null) return NotFound(new { message = "User not found" });
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
-        [HttpGet("{id}/borrowings")]
-        public async Task<ActionResult<IEnumerable<BorrowingDto>>> GetUserBorrowings(int id)
-        {
-            var now = DateTime.UtcNow;
-            var borrowings = await _context.Borrowings
-                .Include(b => b.Book)
-                .Include(b => b.User)
-                .Where(b => b.UserId == id)
-                .OrderByDescending(b => b.BorrowDate)
-                .ToListAsync();
-
-            var result = borrowings.Select(b =>
+            try
             {
-                var overdueDays = b.DueDate.HasValue && b.ReturnDate == null && b.DueDate < now
-                    ? (int)(now - b.DueDate.Value).TotalDays : 0;
-                return new BorrowingDto
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
                 {
-                    Id = b.Id,
-                    UserId = b.UserId,
-                    UserFullname = b.User?.Fullname ?? "",
-                    BookId = b.BookId,
-                    BookTitle = b.Book?.Title ?? "",
-                    BorrowDate = b.BorrowDate,
-                    ReturnDate = b.ReturnDate,
-                    DueDate = b.DueDate,
-                    IsOverdue = overdueDays > 0,
-                    OverdueFine = overdueDays * FinePerDay
-                };
-            });
+                    return NotFound(new { message = "User not found" });
+                }
 
-            return Ok(result);
+                // Check for active borrowings
+                var activeBorrowings = await _context.Borrowings
+                    .AnyAsync(b => b.UserId == id && b.ReturnDate == null);
+
+                if (activeBorrowings)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Cannot delete user with unreturned books. Please collect all books first."
+                    });
+                }
+
+                // Delete all related records (order matters)
+
+                // 1. Seat Reservations
+                await _context.SeatReservations.Where(s => s.UserId == id).ExecuteDeleteAsync();
+
+                // 2. Borrow Requests
+                await _context.BorrowRequests.Where(r => r.UserId == id).ExecuteDeleteAsync();
+
+                // 3. Book Reviews
+                await _context.BookReviews.Where(r => r.UserId == id).ExecuteDeleteAsync();
+
+                // 4. Cafe Reviews
+                await _context.CafeReviews.Where(r => r.UserId == id).ExecuteDeleteAsync();
+
+                // 5. Cafe Order Items (through Cafe Orders)
+                var orderIds = await _context.CafeOrders
+                    .Where(o => o.UserId == id)
+                    .Select(o => o.Id)
+                    .ToListAsync();
+
+                if (orderIds.Any())
+                {
+                    await _context.CafeOrderItems.Where(oi => orderIds.Contains(oi.OrderId)).ExecuteDeleteAsync();
+                    await _context.CafeOrders.Where(o => orderIds.Contains(o.Id)).ExecuteDeleteAsync();
+                }
+
+                // 6. Borrowings
+                await _context.Borrowings.Where(b => b.UserId == id).ExecuteDeleteAsync();
+
+                // 7. Finally delete the user
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "User deleted successfully" });
+            }
+            catch (DbUpdateException ex)
+            {
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                return StatusCode(500, new { message = $"Database error: {innerMessage}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error: {ex.Message}" });
+            }
         }
-
         [HttpGet("{id}/orders")]
         public async Task<ActionResult<IEnumerable<CafeOrderDto>>> GetUserOrders(int id)
         {
