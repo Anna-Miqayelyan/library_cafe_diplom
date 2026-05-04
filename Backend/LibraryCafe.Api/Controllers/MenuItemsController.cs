@@ -1,4 +1,5 @@
-using LibraryCafe.Api.DTOs;
+﻿using LibraryCafe.Api.DTOs;
+using LibraryCafe.Api.Services;
 using LibraryCafe.Core.Entities;
 using LibraryCafe.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace LibraryCafe.Api.Controllers
     public class MenuItemsController : ControllerBase
     {
         private readonly LibraryCafeDbContext _context;
+        private readonly CloudinaryService _cloudinary;
 
-        public MenuItemsController(LibraryCafeDbContext context)
+        public MenuItemsController(LibraryCafeDbContext context, CloudinaryService cloudinary)
         {
             _context = context;
+            _cloudinary = cloudinary;
         }
 
         // GET: api/menuitems
@@ -56,41 +59,58 @@ namespace LibraryCafe.Api.Controllers
             });
         }
 
-        // POST: api/menuitems
+        // ── POST: api/menuitems ───────────────────────────────────────────────────
+        // Now accepts multipart/form-data with an optional ImageFile.
+        // Falls back to JSON body (imageUrl string) if no file is provided.
         [HttpPost]
-        public async Task<ActionResult<MenuItemDto>> CreateMenuItem(MenuItemCreateDto dto)
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(10485760)] // 10 MB
+        public async Task<ActionResult<MenuItemDto>> CreateMenuItem([FromForm] MenuItemUploadForm form)
         {
-            if (dto.ImageUrl != null && dto.ImageUrl.Length > 7_000_000)
-                return BadRequest(new { message = "Image too large. Please use an image under 5 MB." });
+            string? imageUrl = null;
+
+            // If a file was uploaded → send to Cloudinary
+            if (form.ImageFile != null && form.ImageFile.Length > 0)
+                imageUrl = await _cloudinary.UploadImageAsync(form.ImageFile, "cafe/images");
 
             var item = new MenuItem
             {
-                ItemName = dto.ItemName,
-                Category = dto.Category,
-                Price = dto.Price,
-                ImageUrl = dto.ImageUrl
+                ItemName = form.ItemName,
+                Category = form.Category,
+                Price = form.Price,
+                ImageUrl = imageUrl
             };
+
             _context.MenuItems.Add(item);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetMenuItem), new { id = item.Id },
-                new MenuItemDto { Id = item.Id, ItemName = item.ItemName, Category = item.Category, Price = item.Price, ImageUrl = item.ImageUrl });
+                new MenuItemDto
+                {
+                    Id = item.Id,
+                    ItemName = item.ItemName,
+                    Category = item.Category,
+                    Price = item.Price,
+                    ImageUrl = item.ImageUrl
+                });
         }
 
-        // PUT: api/menuitems/5
+        // ── PUT: api/menuitems/5 ──────────────────────────────────────────────────
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateMenuItem(int id, MenuItemUpdateDto dto)
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(10485760)]
+        public async Task<IActionResult> UpdateMenuItem(int id, [FromForm] MenuItemUploadForm form)
         {
             var item = await _context.MenuItems.FindAsync(id);
             if (item == null) return NotFound(new { message = "Menu item not found" });
 
-            if (dto.ImageUrl != null && dto.ImageUrl.Length > 7_000_000)
-                return BadRequest(new { message = "Image too large. Please use an image under 5 MB." });
+            if (form.ItemName != null) item.ItemName = form.ItemName;
+            if (form.Category != null) item.Category = form.Category;
+            if (form.Price > 0) item.Price = form.Price;
 
-            if (dto.ItemName != null) item.ItemName = dto.ItemName;
-            if (dto.Category != null) item.Category = dto.Category;
-            if (dto.Price.HasValue) item.Price = dto.Price.Value;
-            if (dto.ImageUrl != null) item.ImageUrl = dto.ImageUrl;
+            // Only upload a new image if one was provided; otherwise keep the existing one
+            if (form.ImageFile != null && form.ImageFile.Length > 0)
+                item.ImageUrl = await _cloudinary.UploadImageAsync(form.ImageFile, "cafe/images");
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -103,7 +123,6 @@ namespace LibraryCafe.Api.Controllers
             var item = await _context.MenuItems.FindAsync(id);
             if (item == null) return NotFound(new { message = "Menu item not found" });
 
-            // Check if any orders reference this item
             var hasOrders = await _context.CafeOrderItems.AnyAsync(oi => oi.ItemId == id);
             if (hasOrders)
                 return BadRequest(new { message = "Cannot delete: this item has existing orders. Consider renaming it instead." });
@@ -120,5 +139,13 @@ namespace LibraryCafe.Api.Controllers
             var cats = await _context.MenuItems.Select(m => m.Category).Distinct().OrderBy(c => c).ToListAsync();
             return Ok(cats);
         }
+    }
+
+    public class MenuItemUploadForm
+    {
+        public string ItemName { get; set; } = "";
+        public string Category { get; set; } = "Hot Drinks";
+        public decimal Price { get; set; }
+        public IFormFile? ImageFile { get; set; }
     }
 }

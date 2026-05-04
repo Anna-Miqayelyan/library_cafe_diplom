@@ -1,14 +1,17 @@
 ﻿using LibraryCafe.Data;
 using Microsoft.EntityFrameworkCore;
 using LibraryCafe.Api.Services;
-var builder = WebApplication.CreateBuilder(args);
 
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<PendingVerificationStore>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddControllers();
 builder.Services.AddHostedService<DueDateReminderService>();
 builder.Services.AddHttpClient();
+
+// ── Cloudinary (cloud file storage) ──────────────────────────────────────────
+builder.Services.AddScoped<CloudinaryService>();
 
 builder.Services.AddDbContext<LibraryCafeDbContext>(options =>
     options.UseNpgsql(
@@ -32,12 +35,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-
 builder.WebHost.ConfigureKestrel(o => {
     o.Limits.MaxRequestBodySize = 52428800; // 50 MB
 });
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o => {
-    o.MultipartBodyLengthLimit = 52428800; 
+    o.MultipartBodyLengthLimit = 52428800;
 });
 
 builder.Services.AddEndpointsApiExplorer();

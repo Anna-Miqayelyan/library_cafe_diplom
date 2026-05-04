@@ -1,4 +1,5 @@
 ﻿using LibraryCafe.Api.DTOs;
+using LibraryCafe.Api.Services;
 using LibraryCafe.Core.Entities;
 using LibraryCafe.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace LibraryCafe.Api.Controllers
     public class BooksController : ControllerBase
     {
         private readonly LibraryCafeDbContext _context;
+        private readonly CloudinaryService _cloudinary;
 
-        public BooksController(LibraryCafeDbContext context)
+        public BooksController(LibraryCafeDbContext context, CloudinaryService cloudinary)
         {
             _context = context;
+            _cloudinary = cloudinary;
         }
 
         private static BookDto MapBook(Book b)
@@ -66,7 +69,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(books.Select(MapBook));
         }
 
- 
         [HttpGet("{id}")]
         public async Task<ActionResult<BookDto>> GetBook(int id)
         {
@@ -105,6 +107,8 @@ namespace LibraryCafe.Api.Controllers
             return CreatedAtAction(nameof(GetBook), new { id = book.Id }, MapBook(book));
         }
 
+        // ── POST /api/books/upload ────────────────────────────────────────────────
+        // Creates a book, uploads image + PDF to Cloudinary, stores only the URLs.
         [HttpPost("upload")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(52428800)]
@@ -123,17 +127,19 @@ namespace LibraryCafe.Api.Controllers
                 TotalCount = form.TotalCount > 0 ? form.TotalCount : 1
             };
 
+            // Upload image to Cloudinary → store URL (not binary data)
             if (form.ImageFile != null && form.ImageFile.Length > 0)
-                book.ImagePath = await ReadFileAsDataUrl(form.ImageFile);
+                book.ImagePath = await _cloudinary.UploadImageAsync(form.ImageFile, "library/images");
+
+            // Upload PDF to Cloudinary → store URL (not binary data)
             if (form.PdfFile != null && form.PdfFile.Length > 0)
-                book.PdfUrl = await ReadFileAsDataUrl(form.PdfFile);
+                book.PdfUrl = await _cloudinary.UploadPdfAsync(form.PdfFile, "library/pdfs");
 
             _context.Books.Add(book);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetBook), new { id = book.Id }, MapBook(book));
         }
 
-       
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateBook(int id, [FromBody] BookUpdateDto bookDto)
         {
@@ -161,6 +167,8 @@ namespace LibraryCafe.Api.Controllers
             return NoContent();
         }
 
+        // ── PUT /api/books/{id}/upload ────────────────────────────────────────────
+        // Updates a book, re-uploads new files to Cloudinary if provided.
         [HttpPut("{id}/upload")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(52428800)]
@@ -176,10 +184,12 @@ namespace LibraryCafe.Api.Controllers
             book.Bookshelf = form.Bookshelf;
             book.TotalCount = form.TotalCount > 0 ? form.TotalCount : 1;
 
+            // Only replace image/PDF if a new file was provided
             if (form.ImageFile != null && form.ImageFile.Length > 0)
-                book.ImagePath = await ReadFileAsDataUrl(form.ImageFile);
+                book.ImagePath = await _cloudinary.UploadImageAsync(form.ImageFile, "library/images");
+
             if (form.PdfFile != null && form.PdfFile.Length > 0)
-                book.PdfUrl = await ReadFileAsDataUrl(form.PdfFile);
+                book.PdfUrl = await _cloudinary.UploadPdfAsync(form.PdfFile, "library/pdfs");
 
             await _context.SaveChangesAsync();
             return Ok(MapBook(book));
@@ -234,15 +244,6 @@ namespace LibraryCafe.Api.Controllers
                 .ToListAsync();
 
             return Ok(reviews);
-        }
-
-        
-        private static async Task<string> ReadFileAsDataUrl(IFormFile file)
-        {
-            using var ms = new MemoryStream();
-            await file.CopyToAsync(ms);
-            var base64 = Convert.ToBase64String(ms.ToArray());
-            return $"data:{file.ContentType};base64,{base64}";
         }
     }
 

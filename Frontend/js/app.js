@@ -1832,6 +1832,7 @@ async function toggleFav(id, type) {
             const url = editId ? `${API}/books/${editId}/upload` : `${API}/books/upload`;
             const method = editId ? 'PUT' : 'POST';
 
+            
             const res = await fetch(url, { method, body: fd });
             if (!res.ok) {
                 const e = await res.json().catch(() => ({}));
@@ -1998,29 +1999,55 @@ async function toggleFav(id, type) {
         reader.readAsDataURL(file);
     }
 
-    async function submitMenuModal() {
-        const itemName = (document.getElementById('miName')?.value || '').trim();
-        const type = document.getElementById('miCat')?.value || 'Hot Drinks';
-        const price = parseFloat(document.getElementById('miPrice')?.value || '0');
-        const imageFile = document.getElementById('miImage')?.files[0];
-        if (!itemName || !price) { notify(t('notifyFillFields'), true); return; }
-        const btn = document.getElementById('menuModalSubmitBtn');
-        if (btn) { btn.disabled = true; btn.textContent = t('saving'); }
-        let imageUrl = null;
-        if (imageFile) { try { imageUrl = await compressImage(imageFile); } catch { imageUrl = await readFileAsBase64(imageFile); } }
-        const isEdit = !!window._editingMenuId;
-        const payload = { itemName, type, price };
-        if (imageUrl) payload.imageUrl = imageUrl;
-        else if (isEdit) { const ex = menu.find(x => x.id === window._editingMenuId); if (ex?.imageUrl) payload.imageUrl = ex.imageUrl; }
-        const url = isEdit ? '/menuitems/' + window._editingMenuId : '/menuitems';
-        const method = isEdit ? 'PUT' : 'POST';
-        const result = await api(url, { method, body: JSON.stringify(payload) });
+async function submitMenuModal() {
+    const itemName = (document.getElementById('miName')?.value || '').trim();
+    const type = document.getElementById('miCat')?.value || 'Hot Drinks';
+    const price = parseFloat(document.getElementById('miPrice')?.value || '0');
+    const imageFile = document.getElementById('miImage')?.files[0];
+
+    if (!itemName || !price) { notify(t('notifyFillFields'), true); return; }
+
+    const btn = document.getElementById('menuModalSubmitBtn');
+    if (btn) { btn.disabled = true; btn.textContent = t('saving'); }
+
+    const isEdit = !!window._editingMenuId;
+
+    // Build FormData — backend now accepts multipart/form-data
+    const fd = new FormData();
+    fd.append('itemName', itemName);
+    fd.append('category', type);
+    fd.append('price', price);
+    if (imageFile) fd.append('imageFile', imageFile);   // ← goes to Cloudinary
+
+    const url = isEdit ? `${API}/menuitems/${window._editingMenuId}` : `${API}/menuitems`;
+    const method = isEdit ? 'PUT' : 'POST';
+
+    try {
+        // NOTE: Do NOT set Content-Type header — browser sets it automatically
+        //       with the correct multipart boundary when using FormData.
+        const result = await fetch(url, { method, body: fd });
+
         if (btn) { btn.disabled = false; btn.textContent = isEdit ? t('saveChanges') : t('addToCollection'); }
+
         if (!result) return;
-        if (!result.ok) { const e = await result.json().catch(() => ({})); notify(e.message || t('notifySaveFailed'), true); return; }
-        notify(isEdit ? t('notifyMenuItemUpdated').replace('{name}', itemName) : t('notifyMenuItemAdded').replace('{name}', itemName));
-        closeModal('menuModal'); loadCafeDash();
+        if (!result.ok) {
+            const e = await result.json().catch(() => ({}));
+            notify(e.message || t('notifySaveFailed'), true);
+            return;
+        }
+
+        notify(isEdit
+            ? t('notifyMenuItemUpdated').replace('{name}', itemName)
+            : t('notifyMenuItemAdded').replace('{name}', itemName));
+
+        closeModal('menuModal');
+        loadCafeDash();
+
+    } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = isEdit ? t('saveChanges') : t('addToCollection'); }
+        notify(t('notifySaveError') + ': ' + err.message, true);
     }
+}
 
     async function addMenuItem() { openAddMenuItem(); }
 
