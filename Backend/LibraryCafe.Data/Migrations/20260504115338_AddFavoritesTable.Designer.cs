@@ -3,6 +3,7 @@ using System;
 using LibraryCafe.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LibraryCafe.Data.Migrations
 {
     [DbContext(typeof(LibraryCafeDbContext))]
-    partial class LibraryCafeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260504115338_AddFavoritesTable")]
+    partial class AddFavoritesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

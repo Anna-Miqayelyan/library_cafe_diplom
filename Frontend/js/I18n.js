@@ -4,6 +4,60 @@
 
 const TRANSLATIONS = {
     hy: {
+        // Auth
+        // TRANSLATIONS.hy-ում
+        notifyApproveFailed: 'Չհաջողվեց հաստատել օգտատիրոջը',
+        notifyUserApproved: '✅ Օգտատերը հաստատված է — կարող է մուտք գործել',
+        confirmRejectUser: 'Մերժե՞լ և ջնջե՞լ այս գրանցման հայտը',
+        notifyRejectFailed: 'Չհաջողվեց մերժել',
+        notifyUserRejected: 'Գրանցման հայտը մերժված է',
+        newRegistrationNeedsApproval: '🔔 Նոր գրանցում սպասում է հաստատման',
+
+        // TRANSLATIONS.en-ում
+        notifyApproveFailed: 'Could not approve user',
+        notifyUserApproved: '✅ User approved — they can now log in',
+        confirmRejectUser: 'Reject and delete this registration request?',
+        notifyRejectFailed: 'Could not reject',
+        notifyUserRejected: 'Registration rejected',
+        newRegistrationNeedsApproval: '🔔 New registration needs approval',
+        notifyPhoneRequired: 'Խնդրում ենք մուտքագրել հեռախոսահամարը',
+        notifyPhoneInvalid: 'Խնդրում ենք մուտքագրել վավեր հեռախոսահամար',
+        notifyFullnameRequired: 'Խնդրում ենք մուտքագրել ձեր լրիվ անունը',
+        notifyEmailRequired: 'Խնդրում ենք մուտքագրել էլ.փոստի հասցեն',
+        notifyEmailInvalid: 'Խնդրում ենք մուտքագրել վավեր էլ.փոստ (օր. name@gmail.com)',
+        notifyPasswordRequired: 'Խնդրում ենք մուտքագրել գաղտնաբառ',
+        notifyPasswordMinLength: 'Գաղտնաբառը պետք է լինի առնվազն 6 նիշ',
+        notifyRoleRequired: 'Խնդրում ենք ընտրել դեր',
+        notifyEnterCode: 'Խնդրում ենք մուտքագրել 6-անիշ կոդը',
+        // TRANSLATIONS.hy-ում
+        pendingApprovals: 'Սպասում են հաստատման',
+        noPendingApprovals: 'Սպասող հաստատումներ չկան',
+
+        // TRANSLATIONS.en-ում
+        pendingApprovals: 'Pending Approvals',
+        noPendingApprovals: 'No pending approvals',
+        // Password change
+        notifyEnterCurrentPassword: 'Մուտքագրեք ձեր ընթացիկ գաղտնաբառը',
+        notifyPasswordUppercase: 'Գաղտնաբառը պետք է պարունակի առնվազն մեկ մեծատառ',
+        notifyPasswordNumber: 'Գաղտնաբառը պետք է պարունակի առնվազն մեկ թիվ',
+        notifyPasswordMatch: 'Գաղտնաբառերը չեն համընկնում',
+
+        // PDF
+        notifyNoPdf: 'PDF հասանելի չէ այս գրքի համար',
+
+        // Return book
+        notifyReturnFailed: 'Չհաջողվեց մշակել վերադարձը',
+
+        // Phone update
+        notifyUpdatePhoneFailed: 'Չհաջողվեց թարմացնել հեռախոսահամարը',
+        notifyPhoneUpdated: 'Հեռախոսահամարը թարմացվեց',
+
+        // Server
+        serverUnreachable: 'Սերվերը հասանելի չէ: Արդյոք backend-ը աշխատում է?',
+
+        // Reservations
+        pleaseLoginToReserve: 'Խնդրում ենք մուտք գործել նստատեղեր ամրագրելու համար',
+        sent: 'Ուղարկված է',
         // TRANSLATIONS.hy-ում
         serverUnreachable: 'Սերվերը հասանելի չէ: Արդյոք backend-ը աշխատում է?',
         notifyPhoneRequired: 'Խնդրում ենք մուտքագրել հեռախոսահամարը',
@@ -107,7 +161,7 @@ const TRANSLATIONS = {
         durationDays: 'Տևողություն (օր)',
         confirmBorrow: '📤 Հաստատել փոխառությունը',
         pdfViewer: 'Գիրք <em>PDF</em>',
-        phone: '📞 Հեռախոս',
+        phone: 'Հեռախոս',
         save: 'Պահպանել',
         loading: 'Բեռնում…',
         // Auth
@@ -263,7 +317,7 @@ const TRANSLATIONS = {
         dueDate: 'Վերջնաժամկետ',
         status: 'Կարգավիճակ',
         items: 'Ապրանքներ',
-        phone: '📞 Հեռախոս',
+        phone: 'Հեռախոս',
         save: 'Պահպանել',
         type: 'Տեսակ',
         // Librarian Dashboard

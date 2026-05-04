@@ -86,19 +86,54 @@ namespace LibraryCafe.Api.Services
             message.Body = new TextPart("html")
             {
                 Text = $"""
-            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:2rem;border:1px solid #eee;border-radius:12px">
-                <h2 style="color:#2c2825">📚 Library Café</h2>
-                <p>Hi <strong>{firstName}</strong>,</p>
-                <p>This is a friendly reminder that a book you borrowed is due soon:</p>
-                <div style="background:#f9f6f0;border-left:4px solid {color};padding:1rem 1.2rem;border-radius:6px;margin:1.2rem 0">
-                    <div style="font-size:1.1rem;font-weight:700;color:#2c2825">{bookTitle}</div>
-                    <div style="font-size:.95rem;color:{color};font-weight:600;margin-top:.3rem">{urgency}</div>
-                    <div style="font-size:.85rem;color:#888;margin-top:.2rem">Due date: {dueDate:MMMM dd, yyyy}</div>
-                </div>
-                <p>Please return the book to the library by the due date to avoid overdue fines.</p>
-                <p style="color:#888;font-size:.8rem;margin-top:1.5rem">— Library Café Team</p>
-            </div>
-        """
+                    <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:2rem;border:1px solid #eee;border-radius:12px">
+                        <h2 style="color:#2c2825">📚 Library Café</h2>
+                        <p>Hi <strong>{firstName}</strong>,</p>
+                        <p>This is a friendly reminder that a book you borrowed is due soon:</p>
+                        <div style="background:#f9f6f0;border-left:4px solid {color};padding:1rem 1.2rem;border-radius:6px;margin:1.2rem 0">
+                            <div style="font-size:1.1rem;font-weight:700;color:#2c2825">{bookTitle}</div>
+                            <div style="font-size:.95rem;color:{color};font-weight:600;margin-top:.3rem">{urgency}</div>
+                            <div style="font-size:.85rem;color:#888;margin-top:.2rem">Due date: {dueDate:MMMM dd, yyyy}</div>
+                        </div>
+                        <p>Please return the book to the library by the due date to avoid overdue fines.</p>
+                        <p style="color:#888;font-size:.8rem;margin-top:1.5rem">— Library Café Team</p>
+                    </div>
+                """
+            };
+
+            using var smtp = new SmtpClient();
+            smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
+            await smtp.ConnectAsync(cfg["SmtpHost"], int.Parse(cfg["SmtpPort"]!), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(cfg["SenderEmail"], cfg["SenderPassword"]);
+            await smtp.SendAsync(message);
+            await smtp.DisconnectAsync(true);
+        }
+
+        public async Task SendApprovalEmailAsync(string toEmail, string fullname, string role)
+        {
+            var cfg = _config.GetSection("Email");
+            var firstName = fullname.Split(' ')[0];
+            var roleDisplay = role == "Café Staff" ? "Café Staff" : role;
+
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(cfg["SenderEmail"]));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = "📚 Library Café — Your account has been approved!";
+            message.Body = new TextPart("html")
+            {
+                Text = $"""
+                    <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:2rem;border:1px solid #eee;border-radius:12px">
+                        <h2 style="color:#2c2825">📚 Library Café</h2>
+                        <p>Hi <strong>{firstName}</strong>,</p>
+                        <p>Great news! Your <strong>Library Café</strong> account has been reviewed and approved.</p>
+                        <div style="background:#f9f6f0;border-left:4px solid #c9a84c;padding:1rem 1.2rem;border-radius:6px;margin:1.2rem 0">
+                            <div style="font-size:1rem;color:#2c2825">You are now registered as:</div>
+                            <div style="font-size:1.3rem;font-weight:700;color:#c9a84c;margin-top:.3rem">{roleDisplay}</div>
+                        </div>
+                        <p>You can now log in to your account and start using the system.</p>
+                        <p style="color:#888;font-size:.8rem;margin-top:1.5rem">— Library Café Team</p>
+                    </div>
+                """
             };
 
             using var smtp = new SmtpClient();

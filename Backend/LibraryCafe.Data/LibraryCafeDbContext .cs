@@ -30,7 +30,8 @@ namespace LibraryCafe.Data
 
         // ── System ─────────────────────────────────────────────────
         public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
-
+        public DbSet<Favorite> Favorites => Set<Favorite>();
+        
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -135,6 +136,18 @@ namespace LibraryCafe.Data
             modelBuilder.Entity<Book>()
                 .Property(b => b.TotalCount)
                 .HasDefaultValue(1);
+
+            // ── Favorite ──────────────────────────────────────────
+            modelBuilder.Entity<Favorite>()
+                .HasOne(f => f.User)
+                .WithMany()
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Favorite>()
+                .HasIndex(f => new { f.UserId, f.ItemId, f.ItemType })
+                .IsUnique()
+                .HasDatabaseName("UQ_favorites_user_item");
         }
     }
 }

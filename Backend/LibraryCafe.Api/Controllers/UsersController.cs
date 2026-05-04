@@ -1,4 +1,4 @@
-using LibraryCafe.Api.DTOs;
+﻿using LibraryCafe.Api.DTOs;
 using LibraryCafe.Core.Entities;
 using LibraryCafe.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -37,33 +37,27 @@ namespace LibraryCafe.Api.Controllers
             return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role, Phone = user.PhoneNumber });
         }
 
-        // Step 1: validate email, send code
         [HttpPost("register/send-code")]
         public async Task<IActionResult> SendCode(
             [FromBody] RegisterDto dto,
             [FromServices] EmailService emailSvc,
             [FromServices] PendingVerificationStore store)
         {
-            // 1. Basic format check first
             if (string.IsNullOrWhiteSpace(dto.Email) || !dto.Email.Contains("@"))
                 return BadRequest(new { message = "Invalid email address." });
 
-            // 2. Check domain exists
             var domainExists = await emailSvc.DomainHasMailServerAsync(dto.Email);
             if (!domainExists)
                 return BadRequest(new { message = "This email domain does not exist. Please use a real email address." });
 
-            // 3. Check the specific mailbox is deliverable
             var emailExists = await emailSvc.EmailExistsAsync(dto.Email);
             if (!emailExists)
                 return BadRequest(new { message = "This email address doesn't exist or can't receive mail. Please use a real email." });
 
-            // 4. Check not already registered
             var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email.ToLower());
             if (exists)
                 return BadRequest(new { message = "An account with this email already exists." });
 
-            // 5. Generate secure code and send
             var code = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
             store.Save(dto.Email, code, dto.Fullname, dto.Password, dto.Role ?? "Student", dto.Phone ?? "");
 
@@ -79,7 +73,6 @@ namespace LibraryCafe.Api.Controllers
             return Ok(new { message = "Verification code sent." });
         }
 
-        // Step 2: verify code, create account
         [HttpPost("register/verify")]
         public async Task<IActionResult> VerifyAndRegister(
             [FromBody] VerifyCodeDto dto,
@@ -98,20 +91,58 @@ namespace LibraryCafe.Api.Controllers
                 Email = dto.Email.ToLower(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                 Role = role,
-                PhoneNumber = phone
+                PhoneNumber = phone,
+                IsApproved = role == "Student"
             };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new { id = user.Id, fullname = user.Fullname, email = user.Email, role = user.Role });
+            if (role == "Student")
+                return Ok(new { id = user.Id, fullname = user.Fullname, email = user.Email, role = user.Role });
+            else
+                return Ok(new { id = user.Id, fullname = user.Fullname, email = user.Email, role = user.Role, pendingApproval = true });
         }
+
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(UserLoginDto dto)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized(new { message = "Invalid email or password" });
+
+            if (!user.IsApproved)
+                return Unauthorized(new { message = "Your account is pending admin approval." });
+
             return Ok(new UserDto { Id = user.Id, Fullname = user.Fullname, Email = user.Email, Role = user.Role, Phone = user.PhoneNumber });
+        }
+
+        [HttpGet("pending")]
+        public async Task<IActionResult> GetPendingUsers()
+        {
+            var pending = await _context.Users
+                .Where(u => !u.IsApproved)
+                .Select(u => new {
+                    userId = u.Id,
+                    fullname = u.Fullname,
+                    email = u.Email,
+                    phoneNumber = u.PhoneNumber,
+                    role = u.Role
+                })
+                .ToListAsync();
+            return Ok(pending);
+        }
+        [HttpPut("{id}/approve")]
+        public async Task<IActionResult> ApproveUser(int id, [FromServices] EmailService emailSvc)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null) return NotFound();
+            user.IsApproved = true;
+            await _context.SaveChangesAsync();
+
+            try { await emailSvc.SendApprovalEmailAsync(user.Email, user.Fullname, user.Role); }
+            catch { /* don't block approval if email fails */ }
+
+            return Ok(new { message = "User approved" });
         }
 
         [HttpPut("{id}")]
@@ -133,7 +164,6 @@ namespace LibraryCafe.Api.Controllers
                     return BadRequest(new { message = "Password must be at least 6 characters" });
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             }
-
             await _context.SaveChangesAsync();
             return NoContent();
         }
@@ -145,37 +175,19 @@ namespace LibraryCafe.Api.Controllers
             {
                 var user = await _context.Users.FindAsync(id);
                 if (user == null)
-                {
                     return NotFound(new { message = "User not found" });
-                }
 
-                // Check for active borrowings
                 var activeBorrowings = await _context.Borrowings
                     .AnyAsync(b => b.UserId == id && b.ReturnDate == null);
 
                 if (activeBorrowings)
-                {
-                    return BadRequest(new
-                    {
-                        message = "Cannot delete user with unreturned books. Please collect all books first."
-                    });
-                }
+                    return BadRequest(new { message = "Cannot delete user with unreturned books. Please collect all books first." });
 
-                // Delete all related records (order matters)
-
-                // 1. Seat Reservations
                 await _context.SeatReservations.Where(s => s.UserId == id).ExecuteDeleteAsync();
-
-                // 2. Borrow Requests
                 await _context.BorrowRequests.Where(r => r.UserId == id).ExecuteDeleteAsync();
-
-                // 3. Book Reviews
                 await _context.BookReviews.Where(r => r.UserId == id).ExecuteDeleteAsync();
-
-                // 4. Cafe Reviews
                 await _context.CafeReviews.Where(r => r.UserId == id).ExecuteDeleteAsync();
 
-                // 5. Cafe Order Items (through Cafe Orders)
                 var orderIds = await _context.CafeOrders
                     .Where(o => o.UserId == id)
                     .Select(o => o.Id)
@@ -187,10 +199,7 @@ namespace LibraryCafe.Api.Controllers
                     await _context.CafeOrders.Where(o => orderIds.Contains(o.Id)).ExecuteDeleteAsync();
                 }
 
-                // 6. Borrowings
                 await _context.Borrowings.Where(b => b.UserId == id).ExecuteDeleteAsync();
-
-                // 7. Finally delete the user
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
 
@@ -198,14 +207,14 @@ namespace LibraryCafe.Api.Controllers
             }
             catch (DbUpdateException ex)
             {
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                return StatusCode(500, new { message = $"Database error: {innerMessage}" });
+                return StatusCode(500, new { message = $"Database error: {ex.InnerException?.Message ?? ex.Message}" });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = $"Error: {ex.Message}" });
             }
         }
+
         [HttpGet("{id}/orders")]
         public async Task<ActionResult<IEnumerable<CafeOrderDto>>> GetUserOrders(int id)
         {
@@ -280,11 +289,11 @@ namespace LibraryCafe.Api.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = "Password updated successfully" });
         }
-    }
+    }  // ← end of UsersController class
 
     public class ChangePasswordDto
     {
         public string CurrentPassword { get; set; } = "";
         public string NewPassword { get; set; } = "";
     }
-}
+}  // ← end of namespace

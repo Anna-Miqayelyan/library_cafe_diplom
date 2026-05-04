@@ -23,6 +23,9 @@ namespace LibraryCafe.Core.Entities
         [Column("role")]
         public string Role { get; set; } = null!;
 
+        [Column("isapproved")]
+        public bool IsApproved { get; set; } = true;
+
         public ICollection<Borrowing> Borrowings { get; set; } = new List<Borrowing>();
         public ICollection<BookReview> BookReviews { get; set; } = new List<BookReview>();
         public ICollection<CafeOrder> CafeOrders { get; set; } = new List<CafeOrder>();

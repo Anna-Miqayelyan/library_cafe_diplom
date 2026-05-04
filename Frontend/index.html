@@ -185,7 +185,15 @@
                         <button onclick="backToRegister()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.75rem;text-decoration:underline"><span data-i18n="tryDifferentEmail">Try a different email</span></button>
                     </p>
                 </div>
-
+                <div id="pendingApprovalMsg" style="display:none;text-align:center;padding:2rem">
+                    <div style="font-size:2.5rem;margin-bottom:1rem">⏳</div>
+                    <h3 style="margin-bottom:.5rem">Awaiting Admin Approval</h3>
+                    <p style="color:var(--smoke);font-size:.9rem">Your registration has been received.<br>An admin will review and approve your account.</p>
+                    <button onclick="showLoginTab();this.closest('#pendingApprovalMsg').style.display='none';document.getElementById('regForm').style.display='none';"
+                            class="btn btn-ghost" style="margin-top:1.5rem">
+                        Back to Login
+                    </button>
+                </div>
                 <!-- VERIFY FORM — inside auth-box, right after regForm -->
                 <div id="verifyForm" class="auth-form" style="display:none">
                     <p style="font-size:.85rem;color:var(--smoke);margin-bottom:1.2rem;text-align:center;line-height:1.5">
@@ -524,15 +532,52 @@
                     <div class="stat-cell"><div class="stat-n" id="asOrders">0</div><div class="stat-l" data-i18n="totalOrders">Ընդամենը Պատվերներ</div></div>
                     <div class="stat-cell"><div class="stat-n" id="asRevenue">0</div><div class="stat-l" data-i18n="revenue">Եկամուտ (Դրամ)</div></div>
                 </div>
+
+                <!-- USERS SECTION -->
                 <div class="section">
                     <div class="sec-head"><h2 data-i18n="allUsers">Բոլոր Օգտատերերը</h2></div>
                     <div class="table-wrap">
                         <table>
-                            <thead><tr><th data-i18n="name">Անուն</th><th data-i18n="email">Էլ. հ.</th><th>📞 Հեռ.</th><th data-i18n="role">Դեր</th><th data-i18n="action">Գործ.</th></tr></thead>                            <tbody id="adminUsersTb"></tbody>
+                            <thead>
+                                <tr>
+                                    <th data-i18n="name">Անուն</th>
+                                    <th data-i18n="email">Էլ. հ.</th>
+                                    <th>📞 <span data-i18n="phone">Հեռ.</span></th>
+                                    <th data-i18n="role">Դեր</th>
+                                    <th data-i18n="action">Գործ.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminUsersTb"></tbody>
                         </table>
                     </div>
                 </div>
-                <!--<div class="section">
+
+                <!-- PENDING APPROVALS SECTION -->
+                <!-- PENDING APPROVALS SECTION -->
+                <div class="section">
+                    <div class="sec-head">
+                        <h2>Սպասում են հաստատման</h2>
+                        <span id="pendingApprovalBadge" style="background:var(--gold);color:#1a1a1a;border-radius:99px;padding:2px 8px;font-size:.75rem;font-weight:600"></span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Անուն</th>
+                                    <th>Էլ. հասցե</th>
+                                    <th>Հեռախոս</th>
+                                    <th>Դեր</th>
+                                    <th>Գործողություն</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminPendingTb">
+                                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--mist);font-style:italic">Սպասող հաստատումներ չկան</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- ALL BOOKS SECTION (uncommented) -->
+                <div class="section">
                     <div class="sec-head">
                         <h2 data-i18n="allBooksAdmin">Բոլոր Գրքերը</h2>
                         <button class="btn btn-primary btn-sm" data-i18n="addBook" onclick="openAddBook()">+ Ավելացնել Գիրք</button>
@@ -550,11 +595,11 @@
                             </thead>
                             <tbody id="adminBooksTb"></tbody>
                         </table>
-                    </div>-->
+                    </div>
                 </div>
+
             </div>
         </div>
-
         <!-- AI ASSISTANT PAGE -->
         <div class="page" id="aiPage">
             <div class="container">
